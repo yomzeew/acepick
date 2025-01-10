@@ -1,0 +1,21 @@
+{
+  "sessionId": "ec320784-b0ac-444a-85d8-962e93bc9df5",
+  "title": "Chat with Neat",
+  "models": {
+    "gpt-4": {
+      "id": "gpt-4",
+      "uri": "https://api.openai.com/v1/chat/completions",
+      "interface": "OpenAI"
+    }
+  },
+  "messages": [
+    {
+      "user": "user",
+      "ts": "2025-01-10T12:00:19.534Z",
+      "payload": {
+        "role": "user",
+        "content": "```\nimport { View, TouchableOpacity } from \"react-native\"\nconst first = require(\"../assets/first.svg\") as string;\nconst second = require(\"../assets/2nd.svg\") as string;\nconst third = require(\"../assets/3rd.svg\") as string;\nconst fourth = require(\"../assets/4th.svg\") as string;\nimport { useState, useEffect } from \"react\";\nconst splash = ()=>{\n    \nconst values = [\n    {\n        image: first,\nheader:\"You are welcome to Acepick\",\nbody:\"Your gateway to a world of possibilities. Connect with skilled professionals, explore a transparent marketplace, and experience secure transactions. Join us on this journey where clients and professionals thrive together.\"\n    },\n    {\n        image: second,\nheader:\"Direct Connections, Seamless Chats\",\nbody:\"Clients, engage in direct chats with professionals across sectors. Discuss projects, explore services, and build connections. Acepick simplifies communication for a personalized and efficient experience.\"\n    },\n    {\n        image: third,\nheader:\"Explore the Marketplace\",\nbody:\"Discover our Marketplace, where you can confirm prices of items, explore businesses, and find the best deals. Acepick is committed to transparency, ensuring a seamless experience whether you're hiring professionals or exploring the market.\"\n    },\n    {\n        image: fourth,\n        header:\"Secure Transactions, Effortless works\",\n        body:\"Acepick prioritizes your security. Experience secure transactions, transparent processes, and an intuitive platform. Clients, approve invoices with ease, and professionals, showcase your skills and create invoices effortlessly. Acepick, where every connection leads to success.\"\n    },\n]\n\n\nconst [progress, setProgress] = useState(0);\n  const [currentScreen, setCurrentScreen] = useState(0);\n  const [isFirstLaunch, setIsFirstLaunch] = useState(null);\n  const [location, setLocation] = useState(null);\n  useEffect(() => {\n    const progressValues = [33.33, 66.66, 100];\n    setProgress(progressValues[currentScreen] || 0);\n  }, [currentScreen]);\n\n\n  const nextScreen = () => {\n    if (currentScreen < values.length - 1) {\n      setCurrentScreen(currentScreen + 1);\n    } else {\n      console.log(\"Navigate to next screen\");\n    }\n  };\n\n\nconsole.log(values[0].body)\n    return(\n        <View>\n<TouchableOpacity\n          style={styles.skipButton}\n          onPress={() => router.push('(auth)/welcome')}\n        >\n          <Text style={styles.skipText}>Skip</Text>\n        </TouchableOpacity>\n\n\n        <View style={styles.imageContainer}>\n          <Image\n            source={onboardingData[currentScreen].image}\n            style={styles.image}\n          />\n        </View>\n\n\n        <View style={styles.textContainer}>\n          <Text style={styles.title}>\n            {onboardingData[currentScreen].title}\n          </Text>\n          <View style={styles.descriptionContainer}>\n            <Text style={styles.description}>\n              {onboardingData[currentScreen].description}\n            </Text>\n          </View>\n        </View>\n\n\n        <View style={styles.progressContainer}>\n              <TouchableOpacity\n                onPress={nextScreen}\n                style={styles.nextButton}\n              >\n                {currentScreen === 2 ? (\n                  <Text style={styles.nextText}>Go</Text>\n                ) : (\n                  <AntDesign name=\"arrowright\" size={24} color=\"#ffffff\" />\n                )}\n              </TouchableOpacity>\n        </View>\n    )\n}\n\n\nexport default splash. fix\n```"
+      }
+    }
+  ]
+}

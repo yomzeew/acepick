@@ -1,10 +1,10 @@
 import { View } from "react-native"
-import LogoComponent from "../../component/logocomponent"
+import SplashScreen from "../../pages/splashscreen"
 const HomeScreen=()=>{
     return(
         <>
         <View>
-           <LogoComponent/>
+           <SplashScreen/>
         </View>
         </>
     )
