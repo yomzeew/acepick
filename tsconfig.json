@@ -1,17 +1,10 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
+   "lib": ["dom", "dom.iterable", "esnext"],
+    "jsx": "react-jsx",
     "strict": true,
-    "paths": {
-      "@/*": [
-        "./*"
-      ]
-    }
-  },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
-  ]
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  }
 }
