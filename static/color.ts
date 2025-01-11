@@ -8,5 +8,6 @@ export const getColors = (theme: Theme) => {
     primaryTextColor: theme === "light" ? "#33658A" : "#33658A",
     secondaryTextColor: theme === "light" ? "#000000" : "#ffffff",
     backgroundColor: theme === "light" ? "#ffffff" : "#000000",
+    welcomeText: theme === "light" ? "000000" : "#33658A"
   };
 };

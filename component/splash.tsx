@@ -3,15 +3,16 @@ import { useState, useEffect } from "react";
 import { AntDesign } from '@expo/vector-icons'; // Add AntDesign import
 import FirstSvg from "../assets/first.svg";
 import SecondSvg from "../assets/2nd.svg";
-import ThirdSvg from "../assets/3rd.svg";`  1`
+import ThirdSvg from "../assets/3rd.svg";
 import FourthSvg from "../assets/4th.svg";
 import { StatusBar } from "expo-status-bar";
 import { useTheme } from "../hooks/useTheme";
 import { getColors } from "../static/color"; // Assuming color.ts is in utils folder
-
+import { useRouter } from "expo-router";
 
 
 const Splash = () => {
+  const router = useRouter()
     const { theme } = useTheme(); // Get the theme
   const { primaryColor, primaryTextColor, secondaryTextColor, backgroundColor } = getColors(theme); // Get the colors
 
@@ -73,7 +74,7 @@ const height:number=Dimensions.get('window').height;
             <View>
     {currentScreen === 3 ? (
       <View className="flex-row justify-end">
-        <TouchableOpacity>
+       <TouchableOpacity onPress={() => router.navigate("/welcomescreen")}>
           <Text
             style={{ color: primaryTextColor }}
             className="text-white font-bold text-lg"
@@ -84,7 +85,7 @@ const height:number=Dimensions.get('window').height;
       </View>
     ) : (
       <View className="flex-row justify-between">
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => router.navigate("/welcomescreen")}>
           <Text style={{ color: primaryTextColor }} className="text-slate-200 pt-3">
             SKIP
           </Text>

@@ -8,7 +8,13 @@ module.exports = {
   ],
   presets: [require("nativewind/preset")],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        buttonGray: '#E8ECF4', 
+inputGray:"#99B2C5",
+otpYellow: "#FBBB00"
+      },
+    },
   },
   plugins: [],
 };
