@@ -9,6 +9,7 @@ import { StatusBar } from "expo-status-bar";
 import { useTheme } from "../hooks/useTheme";
 import { getColors } from "../static/color"; // Assuming color.ts is in utils folder
 import { useRouter } from "expo-router";
+import EmptyView from "./emptyview";
 
 
 const Splash = () => {
@@ -65,10 +66,10 @@ const height:number=Dimensions.get('window').height;
 
             </View>
             <View style={{height:height*0.4, backgroundColor:backgroundColor}} className=" rounded-r-3xl  rounded-l-3xl w-full absolute bottom-0 z-50  p-8">
-            <View className="h-5"></View>
+           
             <Text style={{color:primaryTextColor}} className=" text-blue-600 text-3xl">{values[currentScreen].header}</Text>
-            <View className="h-5"></View>
-            <View className="mb-10">
+      
+            <View className="">
               <Text style={{color:secondaryTextColor}} className="text-slate-400">{values[currentScreen].body}</Text>
             </View>
             <View>
@@ -84,22 +85,24 @@ const height:number=Dimensions.get('window').height;
         </TouchableOpacity>
       </View>
     ) : (
-      <View className="flex-row justify-between">
+      <View>
+        <View className="h-5"></View>
+      <View className="flex-row justify-between items-center">
         <TouchableOpacity onPress={() => router.navigate("/welcomescreen")}>
-          <Text style={{ color: primaryTextColor }} className="text-slate-200 pt-3">
+          <Text style={{ color: primaryTextColor }} className="text-slate-200">
             SKIP
           </Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={nextScreen}>
         <View
           style={{ backgroundColor: primaryColor }}
-          className="rounded-full p-3"
+          className="rounded-full w-10 h-10 flex-row items-center justify-center"
         >
-          <AntDesign name="arrowright" size={24} color="#ffffff" />
+          <AntDesign name="arrowright" size={24} color="#ffffff"/>
         </View>
         </TouchableOpacity>
       </View>
-      
+      </View>
     )}
   
 </View>
