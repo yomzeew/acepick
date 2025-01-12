@@ -31,7 +31,7 @@ function LoginComponent() {
 
   <View className="h-5"></View>
   <View className="w-full flex-row justify-end">
-    <TouchableOpacity>
+    <TouchableOpacity onPress={()=> router.navigate("/recoverpasswordscreen")}>
       <Text style={{ color: primaryColor }} className="text-base">
         Forgot Password?
       </Text>

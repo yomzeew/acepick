@@ -1,5 +1,4 @@
 import { View, Text, TouchableOpacity } from "react-native";
-import React from "react";
 import { useRouter } from "expo-router";
 
 const ButtonComponent = ({ color, text, textcolor, route }: { color: string; text: string; textcolor: string; route:string }) => {
@@ -8,7 +7,7 @@ const ButtonComponent = ({ color, text, textcolor, route }: { color: string; tex
     <View className="w-full justify-center items-center">
       <TouchableOpacity
         style={{ backgroundColor: color }}
-        className="w-11/12 rounded-lg justify-center items-center py-3"
+        className="w-11/12 h-14 rounded-lg justify-center items-center"
         onPress={()=>router.navigate(route)}
       >
         <Text

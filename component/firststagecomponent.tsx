@@ -31,16 +31,16 @@ function FirstStagecomponent() {
       <BackComponent bordercolor={primaryColor} textcolor={secondaryTextColor}/>
       <EmptyView />
       <CenteredTextComponent textcolor={primaryTextColor} text=" Register as a Client"/>
-      <View className="h-10"></View>
+      <View className="h-5"></View>
 
       <View className="items-center">
-        <View className="h-5"></View>
+        <View className="h-3"></View>
         <InputComponent color={primaryColor} placeholder="Email" placeholdercolor={secondaryTextColor}/>
-        <View className="h-5"></View>
+        <View className="h-3"></View>
         <InputComponent color={primaryColor} placeholder="Phone Number" placeholdercolor={secondaryTextColor}/>
-        <View className="h-5"></View>
+        <View className="h-3"></View>
         <PasswordComponent color={primaryColor} placeholder="Create Password" placeholdercolor={secondaryTextColor}/>
-        <View className="h-5"></View>
+        <View className="h-3"></View>
         <PasswordComponent color={primaryColor} placeholder="Confirm Password" placeholdercolor={secondaryTextColor}/>
       </View>
   

@@ -18,7 +18,7 @@ const OtpComponent = ({ textcolor, text}: {textcolor: string; text:string;}) => 
           ))}
       </View>
 
-      <Text className="mt-3 text-sm" style={{ color: textcolor }}>
+      <Text className="text-sm" style={{ color: textcolor }}>
         {text}
       </Text>
     </View>

@@ -1,4 +1,4 @@
-import { View, Text, TextInput } from "react-native";
+import { View, Text, TextInput, ScrollView } from "react-native";
 import { useTheme } from "../hooks/useTheme";
 import { getColors } from "../static/color";
 import { StatusBar } from "expo-status-bar";
@@ -27,7 +27,7 @@ function SecondStageComponent() {
           Enter the verification code we just sent to your email
         </Text>
         <View className="h-6"></View>
-        <OtpComponent textcolor={primaryColor} text=" Resend in 59s"/>
+        <OtpComponent textcolor={secondaryTextColor} text=" Resend in 59s"/>
       </View>
       <View className="h-6"></View>
       <View className="">
@@ -35,13 +35,12 @@ function SecondStageComponent() {
         Enter the verification code we just sent to your 081******394
         </Text>
         <View className="h-6"></View>
-        <OtpComponent textcolor={primaryColor} text=" Resend in 59s"/>
+        <OtpComponent textcolor={secondaryTextColor} text=" Resend in 59s"/>
       </View>
       </View>
       <View className="absolute left-5 bottom-0 w-full">
-        <ButtonComponent color={primaryColor} text="Verify" textcolor="#fff" route="/clientregistrationscreen"/>
-        <View className="h-5"></View>
-        <EmptyView />
+        <ButtonComponent color={primaryColor} text="Verify" textcolor="#fff" route="/verificationsuccess"/>
+       <View className="h-10"></View>
       </View>
       
     </View>

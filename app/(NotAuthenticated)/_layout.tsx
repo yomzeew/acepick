@@ -26,8 +26,36 @@ export default function NotAuthenticatedLayout() {
         options={{ title: "email verification Screen" }}
       />
        <Stack.Screen 
+        name="verificationsuccess" 
+        options={{ title: "verification success Screen" }}
+      />
+       <Stack.Screen 
         name="clientregistrationscreen" 
         options={{ title: "client registration Screen" }}
+      />
+      <Stack.Screen 
+        name="passwordconfirmscreen" 
+        options={{ title: "password confirm screen" }}
+      />
+      <Stack.Screen 
+        name="accountsuccessscreen" 
+        options={{ title: "account success screen" }}
+      />
+      <Stack.Screen 
+        name="recoverpasswordscreen" 
+        options={{ title: "recover password screen" }}
+      />
+      <Stack.Screen 
+        name="verifyotpscreen" 
+        options={{ title: "verify otp screen" }}
+      />
+      <Stack.Screen 
+        name="createnewpasswordscreen" 
+        options={{ title: "create new password screen" }}
+      />
+      <Stack.Screen 
+        name="passwordchangesuccessscreen" 
+        options={{ title: "password change success screen" }}
       />
     </Stack>
   );

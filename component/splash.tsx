@@ -98,7 +98,7 @@ const height:number=Dimensions.get('window').height;
           style={{ backgroundColor: primaryColor }}
           className="rounded-full w-10 h-10 flex-row items-center justify-center"
         >
-          <AntDesign name="arrowright" size={24} color="#ffffff"/>
+          <AntDesign name="arrowright" size={24} color="#ffffff"className="mx-1"/>
         </View>
         </TouchableOpacity>
       </View>
