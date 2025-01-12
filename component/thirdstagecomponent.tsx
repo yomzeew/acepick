@@ -43,15 +43,15 @@ function ThirdStageComponent() {
         </Text>
         <View className="h-5"></View>
         <View>
-        <InputComponent color={primaryColor} placeholder="Full name"/>
+        <InputComponent color={primaryColor} placeholder="Full name" placeholdercolor={secondaryTextColor}/>
         <View className="h-5"></View>
-        <InputComponent color={primaryColor} placeholder="State of Residence"/>
+        <InputComponent color={primaryColor} placeholder="State of Residence" placeholdercolor={secondaryTextColor}/>
         <View className="h-5"></View>
-        <InputComponent color={primaryColor} placeholder="Local Govt of Residence"/>
+        <InputComponent color={primaryColor} placeholder="Local Govt of Residence" placeholdercolor={secondaryTextColor}/>
         <View className="h-5"></View>
             <Text style={{color:primaryColor}} >Residential Address</Text>
             <View className="h-3"></View>
-        <InputComponent color={primaryColor} placeholder="enter your full address"/>
+        <InputComponent color={primaryColor} placeholder="enter your full address" placeholdercolor={secondaryTextColor}/>
         </View>
         {/* Button Section */}
         <View className="w-full mt-6">

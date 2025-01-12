@@ -2,7 +2,7 @@ import { View, TextInput, TouchableOpacity } from "react-native";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import React, { useState } from "react";
 
-const PasswordComponent = ({color, placeholder,}: { color: string; placeholder: string;}) => {
+const PasswordComponent = ({color, placeholder, placeholdercolor}: { color: string; placeholder: string; placeholdercolor:string }) => {
   const [isSecure, setIsSecure] = useState(true); 
 
   return (
@@ -12,6 +12,7 @@ const PasswordComponent = ({color, placeholder,}: { color: string; placeholder: 
     >
       <TextInput
         placeholder={placeholder}
+        placeholderTextColor={placeholdercolor}
         secureTextEntry={isSecure}
         style={{ flex: 1 }}
         className="text-base"

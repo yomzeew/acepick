@@ -35,13 +35,13 @@ function FirstStagecomponent() {
 
       <View className="items-center">
         <View className="h-5"></View>
-        <InputComponent color={primaryColor} placeholder="Email" />
+        <InputComponent color={primaryColor} placeholder="Email" placeholdercolor={secondaryTextColor}/>
         <View className="h-5"></View>
-        <InputComponent color={primaryColor} placeholder="Phone Number" />
+        <InputComponent color={primaryColor} placeholder="Phone Number" placeholdercolor={secondaryTextColor}/>
         <View className="h-5"></View>
-        <PasswordComponent color={primaryColor} placeholder="Create Password"  />
+        <PasswordComponent color={primaryColor} placeholder="Create Password" placeholdercolor={secondaryTextColor}/>
         <View className="h-5"></View>
-        <PasswordComponent color={primaryColor} placeholder="Confirm Password" />
+        <PasswordComponent color={primaryColor} placeholder="Confirm Password" placeholdercolor={secondaryTextColor}/>
       </View>
   
       <View className="flex-row items-center p-5 w-full

@@ -24,9 +24,9 @@ function LoginComponent() {
   <View className="h-10"></View>
 
   <View className="items-center">
-    <InputComponent color={primaryColor} placeholder="Email" />
+    <InputComponent color={primaryColor} placeholder="Email" placeholdercolor={secondaryTextColor}/>
     <View className="h-5"></View>
-    <PasswordComponent color={primaryColor} placeholder="Password" />
+    <PasswordComponent color={primaryColor} placeholder="Password" placeholdercolor={secondaryTextColor}/>
   </View>
 
   <View className="h-5"></View>

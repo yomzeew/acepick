@@ -1,6 +1,6 @@
 import { View, TextInput } from 'react-native';
 
-const InputComponent = ({ color, placeholder }: { color: string, placeholder: string }) => {
+const InputComponent = ({ color, placeholder, placeholdercolor }: { color: string, placeholder: string, placeholdercolor:string }) => {
   return (
   <View
        style={{ borderColor: color }}
@@ -8,6 +8,7 @@ const InputComponent = ({ color, placeholder }: { color: string, placeholder: st
      >
        <TextInput
          placeholder={placeholder}
+         placeholderTextColor={placeholdercolor}
          style={{ flex: 1 }}
          className="text-base"
        />
