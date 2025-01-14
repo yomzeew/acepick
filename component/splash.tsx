@@ -1,17 +1,20 @@
-import { View, TouchableOpacity, Text, Image, Dimensions } from "react-native";
+import { View, TouchableOpacity, Text, Image, Dimensions, Platform } from "react-native";
 import { useState, useEffect } from "react";
 import { AntDesign } from '@expo/vector-icons'; // Add AntDesign import
 import FirstSvg from "../assets/first.svg";
 import SecondSvg from "../assets/2nd.svg";
-import ThirdSvg from "../assets/3rd.svg";`  1`
+import ThirdSvg from "../assets/3rd.svg";
 import FourthSvg from "../assets/4th.svg";
 import { StatusBar } from "expo-status-bar";
 import { useTheme } from "../hooks/useTheme";
 import { getColors } from "../static/color"; // Assuming color.ts is in utils folder
-
+import { useRouter } from "expo-router";
+import EmptyView from "./emptyview";
+import { Textstyles } from "../static/textFontsize";
 
 
 const Splash = () => {
+  const router = useRouter()
     const { theme } = useTheme(); // Get the theme
   const { primaryColor, primaryTextColor, secondaryTextColor, backgroundColor } = getColors(theme); // Get the colors
 
@@ -64,41 +67,43 @@ const height:number=Dimensions.get('window').height;
 
             </View>
             <View style={{height:height*0.4, backgroundColor:backgroundColor}} className=" rounded-r-3xl  rounded-l-3xl w-full absolute bottom-0 z-50  p-8">
-            <View className="h-5"></View>
-            <Text style={{color:primaryTextColor}} className=" text-blue-600 text-3xl">{values[currentScreen].header}</Text>
-            <View className="h-5"></View>
-            <View className="mb-10">
-              <Text style={{color:secondaryTextColor}} className="text-slate-400">{values[currentScreen].body}</Text>
+           
+            <Text style={[Textstyles.text_medium, {color:primaryTextColor}]} className=" text-blue-600">{values[currentScreen].header}</Text>
+      <EmptyView/>
+            <View className="">
+              <Text style={[Textstyles.text_x16small,{color:secondaryTextColor}]} className={`text-slate-400 ${Platform.OS==='ios'?'text-lg':'text-sm'}`}>{values[currentScreen].body}</Text>
             </View>
             <View>
     {currentScreen === 3 ? (
       <View className="flex-row justify-end">
-        <TouchableOpacity>
+       <TouchableOpacity onPress={() => router.navigate("/welcomescreen")}>
           <Text
-            style={{ color: primaryTextColor }}
-            className="text-white font-bold text-lg"
+            style={[Textstyles.text_cmedium,{ color: primaryTextColor }]}
+            className="text-white font-bold"
           >
             GET STARTED
           </Text>
         </TouchableOpacity>
       </View>
     ) : (
-      <View className="flex-row justify-between">
-        <TouchableOpacity>
-          <Text style={{ color: primaryTextColor }} className="text-slate-200 pt-3">
+      <View>
+        <View className="h-5"></View>
+      <View className="flex-row justify-between items-center">
+        <TouchableOpacity onPress={() => router.navigate("/welcomescreen")}>
+          <Text style={[Textstyles.text_cmedium,{ color: primaryTextColor }]} className="text-slate-200">
             SKIP
           </Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={nextScreen}>
         <View
           style={{ backgroundColor: primaryColor }}
-          className="rounded-full p-3"
+          className="rounded-full w-10 h-10 flex-row items-center justify-center"
         >
-          <AntDesign name="arrowright" size={24} color="#ffffff" />
+          <AntDesign name="arrowright" size={24} color="#ffffff"className="mx-1"/>
         </View>
         </TouchableOpacity>
       </View>
-      
+      </View>
     )}
   
 </View>

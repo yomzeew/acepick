@@ -17,6 +17,7 @@ export default function RootLayout() {
 
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) {
+      console.log(fontsLoaded)
       await SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);

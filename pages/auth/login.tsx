@@ -1,19 +1,12 @@
 import { Text, View } from "react-native"
-import { useTheme } from "../../hooks/useTheme";
+import LoginComponent from "../../component/auth/logincomponent";
 
 const LoginPage=()=>{
+    return(
+        <View>  
+            <LoginComponent/>
+        </View>
+    )
     
-
-    const { theme } = useTheme();
-    <>
-
-    <View className={`${theme === "dark" ? "bg-gray-800" : "bg-white"} flex-1 items-center justify-center`}>
-    <Text className="text-red-600">
-        login
-    </Text>
-
-    </View>
-    
-    </>
 }
 export default LoginPage
