@@ -10,7 +10,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        buttonGray: '#E8ECF4', 
+buttonGray: '#E8ECF4', 
 inputGray:"#99B2C5",
 otpYellow: "#FBBB00"
       },

@@ -22,7 +22,7 @@ const router = useRouter()
       <View>
         
         <Text
-          style={[Textstyles.text_medium,{ color: welcomeText }]}
+          style={[Textstyles.text_medium,{ color:welcomeText }]}
           className="text-2xl font-bold text-center"
         >
           Who are you?
