@@ -1,5 +1,5 @@
 import { View } from "react-native"
-import VerifyOtpPage from "../../pages/auth/forget/secondstage"
+import VerifyOtpPage from "@pages/auth/forget/secondstage"
 const VerifyOtpScreen=()=>{
     return(
         <>

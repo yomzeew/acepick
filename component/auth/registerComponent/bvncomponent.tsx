@@ -2,7 +2,7 @@ import { View} from "react-native";
 import { useTheme } from "../../../hooks/useTheme";
 import { getColors } from "../../../static/color";
 import { StatusBar } from "expo-status-bar";
-import BackComponent from "../../backcomponent";
+import BackComponent from "../../backcomponent"
 import { useState } from "react";
 import EmptyView from "../../emptyview";
 import CenteredTextComponent from "../../centeredtextcomponent";

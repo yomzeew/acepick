@@ -1,5 +1,5 @@
 import { View } from "react-native"
-import FirstStage from "../../pages/auth/register/firststage"
+import FirstStage from "@pages/auth/register/firststage"
 const loginScreen=()=>{
     return(
         <>

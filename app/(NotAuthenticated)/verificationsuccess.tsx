@@ -1,5 +1,5 @@
 import { View } from "react-native"
-import FourthStage from "../../pages/auth/register/fourthstage"
+import FourthStage from "@pages/auth/register/fourthstage"
 const VerificationSuccessScreen=()=>{
     return(
         <>

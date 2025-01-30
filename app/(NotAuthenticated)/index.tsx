@@ -1,5 +1,5 @@
 import { View } from "react-native"
-import SplashScreen from "../../pages/splashscreen"
+import SplashScreen from "@pages/splashscreen"
 const HomeScreen=()=>{
     return(
         <>

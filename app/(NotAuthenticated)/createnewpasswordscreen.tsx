@@ -1,5 +1,5 @@
 import { View, Text } from 'react-native'
-import ChangePasswordPage from '../../pages/auth/forget/thirdstage'
+import ChangePasswordPage from '@pages/auth/forget/thirdstage'
 
 
 const Createnewpasswordscreen = () => {

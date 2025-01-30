@@ -1,6 +1,5 @@
 import { View, Text } from 'react-native'
-import LastStage from '../../pages/auth/register/laststage'
-import BvnScreen from '../../pages/auth/register/bvn'
+import BvnScreen from '@pages/auth/register/bvn'
 const Bvnpage = () => {
   return (
     <>

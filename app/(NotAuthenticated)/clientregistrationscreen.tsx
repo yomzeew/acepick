@@ -1,5 +1,5 @@
 import { View, Text } from 'react-native'
-import ThirdStage from '../../pages/auth/register/thirdstage'
+import ThirdStage from '@pages/auth/register/thirdstage'
 const clientregistrationscreen = () => {
   return (
     <>

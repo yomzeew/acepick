@@ -1,5 +1,5 @@
 import { View, Text } from 'react-native'
-import FifthStage from '../../pages/auth/register/fifthstage'
+import FifthStage from '@pages/auth/register/fifthstage'
 const passwordconfirmscreen = () => {
   return (
     <>

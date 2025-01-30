@@ -1,5 +1,5 @@
 import { View } from "react-native"
-import SecondStage from "../../pages/auth/register/secondstage"
+import SecondStage from "@pages/auth/register/secondstage"
 const EmailVerificationScreen=()=>{
     return(
         <>

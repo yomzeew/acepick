@@ -1,5 +1,5 @@
 import { View } from "react-native"
-import WelcomePage from "../../pages/welcomepage"
+import WelcomePage from "@pages/welcomepage"
 const WelcomeScreen=()=>{
     return(
         <>

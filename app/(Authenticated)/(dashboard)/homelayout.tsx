@@ -1,4 +1,4 @@
-import HomePage from "../../../pages/dashboard/home"
+import HomePage from "@pages/dashboard/home"
 
 const HomeLayout=()=>{
     return(

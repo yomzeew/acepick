@@ -17,6 +17,9 @@ module.exports = (() => {
     assetExts: config.resolver.assetExts.filter((ext) => ext !== "svg"),
     sourceExts: [...config.resolver.sourceExts, "svg"],
   };
+  config.resolver.extraNodeModules = {
+    "@pages": require("path").resolve(__dirname, "./pages"),
+  };
 
   // Wrap with NativeWind configuration
   return withNativeWind(config, { input: "./global.css" });

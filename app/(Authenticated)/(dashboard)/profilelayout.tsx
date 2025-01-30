@@ -1,5 +1,4 @@
-import ProfilePage from "../../../pages/dashboard/profile"
-
+import ProfilePage from "@pages/dashboard/profile"
 const Profilelayout=()=>{
    return(
     <>

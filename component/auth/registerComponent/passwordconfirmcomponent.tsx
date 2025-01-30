@@ -3,7 +3,7 @@ import { useTheme } from "../../../hooks/useTheme";
 import { getColors } from "../../../static/color";
 import { StatusBar } from "expo-status-bar";
 import PasswordComponent from "../../controls/passwordinput";
-import BackComponent from "../../backcomponent";
+import BackComponent from "../../menuComponent/profilePages/backcomponent";
 import ButtonComponent from "../../buttoncomponent";
 import { useState } from "react";
 import EmptyView from "../../emptyview";

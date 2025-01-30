@@ -4,17 +4,23 @@ import ContainerTemplate from "../dashboardComponent/containerTemplate"
 import { ThemeText, ThemeTextsecond } from "../ThemeText"
 import { Textstyles } from "../../static/textFontsize"
 import FooterComponent from "../dashboardComponent/footerComponent"
-import { AntDesign, Entypo, Feather, FontAwesome5 } from "@expo/vector-icons"
 import { getColors } from "../../static/color"
 import { useTheme } from "../../hooks/useTheme"
 import EmptyView from "../emptyview"
-import { memo } from "react"
+import { memo, ReactNode } from "react"
 import LineChartgraphy from "../chart/linechart"
+import {Feather,Entypo, AntDesign,FontAwesome} from '../icons'
+import { useRouter } from "expo-router"
+import RatingStar from "component/rating"
 
 
 const ProfileComponent = () => {
     const { theme } = useTheme()
     const { primaryTextColor, selectioncardColor, primaryColor } = getColors(theme)
+    const routes=useRouter()
+    const handleNavigation=()=>{
+        routes.push('/reviewlayout')
+    }
 
     return (
         <>
@@ -29,16 +35,31 @@ const ProfileComponent = () => {
                 <UserDetail />
                 <EmptyView height={10} />
                 <AnalyticDiagram/>
-                <View  className="w-full  mt-2 flex-1 pb-20">
+                <View  className="w-full  mt-2">
                     <ScrollView  horizontal   showsHorizontalScrollIndicator={false}>
                     <View className="flex-row gap-x-4">
                         <Cardcomponent Title={"Completed Jobs"} totalnumber={4} />
-                        <Cardcomponent Title={"Completed Jobs"} totalnumber={4} />
-                        <Cardcomponent Title={"Completed Jobs"} totalnumber={4} />
-                        <Cardcomponent Title={"Cancel Jobs"} totalnumber={4} />
+                        <Cardcomponent Title={"Jobs in Progress"} totalnumber={6} />
+                        <Cardcomponent Title={"Pending Jobs"} totalnumber={5} />
+                        <Cardcomponent Title={"Cancelled Jobs"} totalnumber={1} />
+                        <Cardcomponent Title={"Rejected Jobs"} totalnumber={0} />
                         </View>
                        
                     </ScrollView>
+                </View>
+                <View  className="w-full">
+                    <TouchableOpacity>
+                    <ListTab>
+                        <FontAwesome name="warning" size={20} color="red" /> {'Disputes'}({4})
+                    </ListTab>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={handleNavigation}>
+                    <ListTab>
+                        <FontAwesome name="star" size={20} color="gold" /> {'Reviews & Ratings'}({10})
+                    </ListTab>
+                    </TouchableOpacity>
+                    
+
                 </View>
                 
 
@@ -50,7 +71,6 @@ const ProfileComponent = () => {
 export default memo(ProfileComponent)
 export const UserDetail = () => {
     const numberOfStars = 3;
-    const remainStar=5-numberOfStars
     const { theme } = useTheme()
     const { primaryTextColor, selectioncardColor, primaryColor, secondaryTextColor } = getColors(theme)
     return (
@@ -63,16 +83,7 @@ export const UserDetail = () => {
                         <Entypo color={secondaryTextColor} name="location-pin" />
                         <ThemeTextsecond size={Textstyles.text_xsma}>Akure,Ondo State</ThemeTextsecond>
                     </View>
-                    <View className="flex-row">
-                        {Array.from({ length: numberOfStars }).map((_, index) => (
-                            <AntDesign color="gold" key={index} name="star" />
-                        ))}
-                           {Array.from({ length:remainStar  }).map((_, index) => (
-                            <AntDesign color="gold" key={index} name="staro" />
-                        ))}
-
-
-                    </View>
+                  <RatingStar numberOfStars={numberOfStars}/>
                     <EmptyView height={5} />
                     <View>
                         <ThemeText type="primary" size={Textstyles.text_xsmall}>Wallet Balance:₦20,000</ThemeText>
@@ -110,14 +121,14 @@ export const AnalyticDiagram=()=>{
     )
 }
 
-export const ListTab=({Title,totalnumber}:{Title:string,totalnumber:number})=>{
+export const ListTab=({children}:{children:ReactNode})=>{
     const { theme } = useTheme()
     const { primaryTextColor, selectioncardColor, primaryColor, secondaryTextColor } = getColors(theme)
     return(
 <View className="w-full h-16 rounded-2xl px-5 py-3 mt-2 border-b border-b-slate-400 ">
     <View className="w-full flex-row px-3 justify-between items-center h-full">
     <View>
-        <ThemeTextsecond size={Textstyles.text_xmedium}>{Title} ({totalnumber})</ThemeTextsecond>
+        <ThemeTextsecond size={Textstyles.text_xmedium}>{children}</ThemeTextsecond>
     </View>
     <AntDesign name="right" size={24} color={secondaryTextColor} />
 

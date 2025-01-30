@@ -4,7 +4,7 @@ import { getColors } from "../../../static/color";
 import { StatusBar } from "expo-status-bar";
 import EmptyView from "../../emptyview";
 import { useRouter } from "expo-router";
-import BackComponent from "../../backcomponent";
+import BackComponent from "../../menuComponent/profilePages/backcomponent";
 import CenteredTextComponent from "../../centeredtextcomponent";
 import ButtonComponent from "../../buttoncomponent";
 import OtpComponent from "../../controls/otpcomponent";
