@@ -9,11 +9,33 @@ import { useRouter } from "expo-router";
 import PasswordComponent from "../controls/passwordinput";
 import BackComponent from "../backcomponent";
 import CenteredTextComponent from "../centeredtextcomponent";
-
+import { login } from "../../redux/authSlice";
+import { useDispatch } from "react-redux";
+interface UserDetails {
+  firstname: string;
+  lastname: string;
+  email: string;
+}
 function LoginComponent() {
   const { theme } = useTheme(); // Theme state and toggle function
   const { primaryColor, backgroundColor, primaryTextColor, secondaryTextColor } = getColors(theme);
   const router = useRouter()
+
+  const dispatch = useDispatch();
+  
+  
+  const payload: UserDetails = {
+    firstname: "John",
+    lastname: "Doe",
+    email: "johndoe@example.com",
+  };
+  const handleSign=()=>{
+    dispatch(login(payload));
+    router.replace("/homelayout");
+   
+
+
+  }
   return (
     <View style={{ backgroundColor: backgroundColor }} className="h-full w-full p-6">
   <StatusBar style="auto" />
@@ -43,6 +65,7 @@ function LoginComponent() {
     <TouchableOpacity
       style={{ backgroundColor: primaryColor, }}
       className="w-11/12 h-14 rounded-lg justify-center items-center"
+      onPress={handleSign}
     >
       <Text className="text-white text-lg font-bold text-center">Login</Text>
     </TouchableOpacity>

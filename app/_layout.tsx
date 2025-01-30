@@ -5,7 +5,10 @@ import * as SplashScreen from "expo-splash-screen";
 import { Stack } from "expo-router";
 import "../global.css"; // Ensure the path is correct
 import { ThemeProvider } from "../hooks/useTheme";
-import { AppearanceProvider } from "react-native-appearance";
+import AppProvider from "./appProvider";
+import { useSelector } from "react-redux";
+import { RootState } from "../redux/store";
+
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
 
@@ -17,35 +20,44 @@ export default function RootLayout() {
 
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) {
-      console.log(fontsLoaded)
       await SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
 
   if (!fontsLoaded) {
     return (
-      <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" />
-      </View>
+      <AppProvider>
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" />
+        </View>
+      </AppProvider>
     );
   }
 
-  const auth: boolean = false; 
-
   return (
-      <ThemeProvider>
-        <View style={styles.container} onLayout={onLayoutRootView}>
-          <Stack screenOptions={{ headerShown: false }}>
-            {auth ? (
-              <Stack.Screen name="(Authenticated)" />
-            ) : (
-              <Stack.Screen name="(NotAuthenticated)" />
-            )}
-          </Stack>
-        </View>
-      </ThemeProvider>
+    <AppProvider>
+      <RootContent onLayoutRootView={onLayoutRootView} />
+    </AppProvider>
   );
 }
+
+const RootContent = ({ onLayoutRootView }: { onLayoutRootView: () => void }) => {
+  const auth = useSelector((state: RootState) => state.auth.isAuthenticated);
+
+  return (
+    <ThemeProvider>
+      <View style={styles.container} onLayout={onLayoutRootView}>
+        <Stack screenOptions={{ headerShown: false }}>
+          {auth ? (
+            <Stack.Screen name="(Authenticated)" />
+          ) : (
+            <Stack.Screen name="(NotAuthenticated)" />
+          )}
+        </Stack>
+      </View>
+    </ThemeProvider>
+  );
+};
 
 const styles = StyleSheet.create({
   loaderContainer: {
