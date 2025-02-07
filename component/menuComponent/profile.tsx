@@ -21,13 +21,16 @@ const ProfileComponent = () => {
     const handleNavigation=()=>{
         routes.push('/reviewlayout')
     }
+    const handleNavigationSettings=()=>{
+        routes.push('/profilesettinglayout')
+    }
 
     return (
         <>
             <ContainerTemplate>
                 <View className="pt-12  justify-between flex-row items-center">
                     <ThemeText type="primary" size={Textstyles.text_medium} >Profile</ThemeText>
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={handleNavigationSettings}>
                         <Feather size={24} color={primaryColor} name="settings" />
                     </TouchableOpacity>
                 </View>

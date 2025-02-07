@@ -10,9 +10,9 @@ export default function DashboardLayout() {
         gestureEnabled: false, // Disable sliding back gesture
       }}
     >
-      <Stack.Screen 
-        name="reviewlayout" 
-      />
+      <Stack.Screen  name="reviewlayout"   />
+      <Stack.Screen name="profilesettinglayout" />
+      <Stack.Screen name="profileeditlayout" />
     </Stack>
   
     

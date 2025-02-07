@@ -8,6 +8,7 @@ import { ThemeText, ThemeTextsecond } from "../../ThemeText";
 import { Textstyles } from "../../../static/textFontsize";
 import EmptyView from "component/emptyview";
 import RatingStar from "component/rating";
+import HeaderComponent from "./headerComp";
 
 const { height } = Dimensions.get("window");
 
@@ -24,14 +25,9 @@ const ReviewComponent = () => {
 
     return (
         <ContainerTemplate>
-            <View className="pt-10">
-                <BackComponent bordercolor={primaryColor} textcolor={primaryColor} />
-            </View>
-            <View className="px-3 mt-12">
-                <ThemeText type="primary" size={Textstyles.text_medium}>
-                    Ratings and Reviews
-                </ThemeText>
-            </View>
+            <>
+          <HeaderComponent title="Ratings and Reviews" />
+            </>
             <View className="flex-1 mt-3 pb-10">
                 <ScrollView
                     pagingEnabled

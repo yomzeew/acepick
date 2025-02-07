@@ -8,6 +8,7 @@ import { ThemeProvider } from "../hooks/useTheme";
 import AppProvider from "./appProvider";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
+import { StatusBar } from "expo-status-bar";
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -47,6 +48,7 @@ const RootContent = ({ onLayoutRootView }: { onLayoutRootView: () => void }) => 
   return (
     <ThemeProvider>
       <View style={styles.container} onLayout={onLayoutRootView}>
+        <StatusBar style="auto" />
         <Stack screenOptions={{ headerShown: false }}>
           {auth ? (
             <Stack.Screen name="(Authenticated)" />

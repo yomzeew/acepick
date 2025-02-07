@@ -6,7 +6,7 @@ import ButtonComponent from "./buttoncomponent";
 import VerifyComponent from "./verifycomponent";
 import EmptyView from "./emptyview";
 
-const SliderModal = ({ showmodal, setshowmodal, route,title="Email/Phone number Verified" }: { showmodal: boolean; setshowmodal: (value: boolean) => void; route: string;title:string }) => {
+const SliderModal = ({ showmodal, setshowmodal, route,title="Email/Phone number Verified",textbutton="Continue registration",subtitle="" }: { showmodal: boolean; setshowmodal: (value: boolean) => void; route: string;title:string,textbutton?:string,subtitle?:string }) => {
   const { theme } = useTheme();
   const { primaryColor, backgroundColor, backgroundColortwo, secondaryTextColor } = getColors(theme);
 
@@ -54,10 +54,10 @@ const SliderModal = ({ showmodal, setshowmodal, route,title="Email/Phone number 
           className="absolute bottom-0 z-50 h-1/2 rounded-t-3xl border-slate-400 border"
         >
           <EmptyView height={56} />
-          <VerifyComponent textcolor={secondaryTextColor} text={title} />
+          <VerifyComponent textcolor={secondaryTextColor} text={title} subtitle={subtitle} />
           <EmptyView height={56} />
           <View className="px-6">
-            <ButtonComponent color={primaryColor} text="Continue registration" textcolor="#fff" route={route} />
+            <ButtonComponent color={primaryColor} text={textbutton} textcolor="#fff" route={route} />
           </View>
         </Animated.View>
       )}
