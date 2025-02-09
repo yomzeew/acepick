@@ -28,7 +28,7 @@ const ProfileComponent = () => {
     return (
         <>
             <ContainerTemplate>
-                <View className="pt-12  justify-between flex-row items-center">
+                <View className="pt-[60px]  justify-between flex-row items-center">
                     <ThemeText type="primary" size={Textstyles.text_medium} >Profile</ThemeText>
                     <TouchableOpacity onPress={handleNavigationSettings}>
                         <Feather size={24} color={primaryColor} name="settings" />

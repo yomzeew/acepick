@@ -17,6 +17,15 @@ const ProfileSetting=()=>{
         router.push('/profileeditlayout')
 
     }
+    const handlenotificationapp=()=>{
+        router.push('/notificationapplayout')
+    }
+    const handlebillnave=()=>{
+        router.push('/billhistorylayout')
+    }
+    const handlefaqnav=()=>{
+        router.push('/faqlayout')
+    }
     return(
         <>
         <ContainerTemplate>
@@ -38,7 +47,7 @@ const ProfileSetting=()=>{
                     </View>
                 <AntDesign name="right" size={24} color={secondaryTextColor} />
                 </TouchableOpacity>
-                <TouchableOpacity className="flex-row justify-between items-center h-20 border-b border-slate-400">
+                <TouchableOpacity onPress={handlenotificationapp} className="flex-row justify-between items-center h-20 border-b border-slate-400">
                     <View className="flex-row gap-x-2 items-center">
                     <FontAwesome5 name="bell" color={primaryColor} size={16}/>
                     <ThemeTextsecond size={Textstyles.text_xmedium}>Notification and Appearance</ThemeTextsecond>
@@ -65,7 +74,7 @@ const ProfileSetting=()=>{
                     </View>
                 <AntDesign name="right" size={24} color={secondaryTextColor} />
                 </TouchableOpacity>
-                <TouchableOpacity className="flex-row justify-between items-center h-20 border-b border-slate-400">
+                <TouchableOpacity onPress={handlebillnave} className="flex-row justify-between items-center h-20 border-b border-slate-400">
                     <View className="flex-row gap-x-2 items-center">
                     <FontAwesome5 name="book" color={primaryColor} size={16}/>
                     <ThemeTextsecond size={Textstyles.text_xmedium}>Billing history</ThemeTextsecond>
@@ -84,7 +93,7 @@ const ProfileSetting=()=>{
             </ThemeTextsecond>
             <View   style={{ backgroundColor: selectioncardColor, elevation: 4 }}
             className="w-full h-auto rounded-2xl shadow-slate-500 shadow-sm px-5 pb-5">
-                <TouchableOpacity className="flex-row justify-between items-center h-20 border-b border-slate-400">
+                <TouchableOpacity onPress={handlefaqnav} className="flex-row justify-between items-center h-20 border-b border-slate-400">
                     <View className="flex-row gap-x-2 items-center">
                     <FontAwesome5 name="question" color={secondaryTextColor} size={16}/>
                     <ThemeTextsecond size={Textstyles.text_xmedium}>FAQs</ThemeTextsecond>

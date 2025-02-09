@@ -9,8 +9,7 @@ const HeaderComponent=({title}:{title:string})=>{
         const { primaryColor } = getColors(theme);
     return(
         <>
-        <View className="pt-10">
-            
+        <View className="pt-[60px]">  
             <BackComponent bordercolor={primaryColor} textcolor={primaryColor} />
         </View>
         <View className="px-3 mt-12">
