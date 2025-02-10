@@ -54,7 +54,7 @@ const SliderModalTemplate = ({ children, showmodal, setshowmodal, modalHeight }:
   return (
     <>
       {/* 🔹 Dim Background */}
-      <Pressable onPress={() => setshowmodal(false)} style={{ backgroundColor: backgroundColortwo }} className="h-full w-full absolute opacity-70 z-50" />
+      {showmodal &&<Pressable onPress={() => setshowmodal(false)} style={{ backgroundColor: backgroundColortwo }} className="h-full w-full absolute opacity-70 z-50" />}
 
       {showmodal && (
         <Animated.View

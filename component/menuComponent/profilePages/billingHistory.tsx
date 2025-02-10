@@ -2,20 +2,72 @@ import ContainerTemplate from "component/dashboardComponent/containerTemplate"
 import HeaderComponent from "./headerComp"
 import { useTheme } from "hooks/useTheme"
 import { getColors } from "static/color"
-import { Switch, View, Text, ScrollView, TouchableOpacity } from "react-native"
+import { View, Text, ScrollView, TouchableOpacity } from "react-native"
 import { ThemeText, ThemeTextsecond } from "component/ThemeText"
 import { Textstyles } from "static/textFontsize"
 import EmptyView from "component/emptyview"
 import { TextInput } from "react-native"
-import InputComponent from "component/controls/textinput"
 import { AntDesign } from "@expo/vector-icons"
+import { useState } from "react"
+import SliderModalTemplate from "component/slideupModalTemplate"
+import SelectComponent from "component/dashboardComponent/selectComponent"
+import ButtonFunction from "component/buttonfunction"
 
 const BillingHistory = () => {
+    const [showmodal,setshowmodal]=useState<boolean>(true)
+    const [value,setValue]=useState<string>('')
     const { theme } = useTheme()
     const { primaryColor, secondaryTextColor, selectioncardColor } = getColors(theme)
+    const data=['Plumber','Construction','Mechanics']
     return (
         <>
+         {<SliderModalTemplate showmodal={showmodal} setshowmodal={setshowmodal} modalHeight={'80%'}>
+            <View className="p-5">
+            <View>
+                <ThemeText size={Textstyles.text_medium}>
+                    Filter
+                </ThemeText>
+              <View className="mt-5">
+               <ThemeTextsecond size={Textstyles.text_cmedium}>
+                    By date range <ThemeTextsecond size={Textstyles.text_xsma}>(Date format:01-03-2024)</ThemeTextsecond>
+                </ThemeTextsecond>
+                <View className="w-full gap-x-5 flex-row mt-5">
+                <View className="w-1/2">
+                    <ThemeTextsecond size={Textstyles.text_xsma}>From:</ThemeTextsecond>
+                    <TextInput className={`h-12 rounded-lg px-2 ${theme==='dark'?'bg-slate-800 text-white':'bg-slate-200 text-black'}`} />
+                </View>
+                <View className="w-1/2">
+                    <ThemeTextsecond size={Textstyles.text_xsma}>to:</ThemeTextsecond>
+                    <TextInput className={`h-12 px-2 rounded-lg ${theme==='dark'?'bg-slate-800 text-white':'bg-slate-200 text-black'}`} />
+                </View>
+                </View>
+                
+                </View>
+                <View className="mt-10">
+               <ThemeTextsecond size={Textstyles.text_cmedium}>
+                    By type
+                </ThemeTextsecond>
+                <EmptyView height={10} />
+                <ThemeTextsecond size={Textstyles.text_xsma} >
+                    What type of billing do you want to see?
+                </ThemeTextsecond>
+                <EmptyView height={10} />
+               <SelectComponent setValue={(text)=>setValue(text)} value={value} width={'100%'} title="Select billing type" data={data}/>
+                
+                </View>
+                <EmptyView height={20} />
+                <ButtonFunction textcolor="#ffffff" onPress={()=>setshowmodal(false)}  color={primaryColor} text="Filter now" />
+                
+            </View>
+
+            </View>
+ 
+        
+        </SliderModalTemplate>
+        }
+
             <ContainerTemplate>
+           
                 <HeaderComponent title="Billing History" />
                 <EmptyView height={10} />
                     <View className="item-center w-full justify-center flex-row gap-x-2 px-3">
@@ -24,13 +76,13 @@ const BillingHistory = () => {
                             className="w-8/12 h-12 border rounded-lg flex-row items-center px-4"
                         >
                             <TextInput
-                                placeholder="Search"
+                                placeholder="Search By Job"
                                 placeholderTextColor={secondaryTextColor}
                                 style={{ flex: 1, color: secondaryTextColor }}
                                 className="text-base h-12 w-full"
                             />
                         </View>
-                        <TouchableOpacity style={{ backgroundColor: primaryColor }} className="h-12 w-4/12 flex-row items-center justify-center rounded-lg">
+                        <TouchableOpacity onPress={()=>setshowmodal(true)} style={{ backgroundColor: primaryColor }} className="h-12 w-4/12 flex-row items-center justify-center rounded-lg">
                             <AntDesign name="filter" />
                             <Text> Filter</Text>
                         </TouchableOpacity>
@@ -86,7 +138,7 @@ const CardBill = () => {
                         <ThemeTextsecond size={Textstyles.text_xsma}>
                             Jul 13, 2023
                         </ThemeTextsecond>
-                        <Text style={{ color: "green" }}>
+                        <Text  style={[Textstyles.text_cmedium,{ color: "green" }]}>
                             N32,000
                         </Text>
                     </View>
