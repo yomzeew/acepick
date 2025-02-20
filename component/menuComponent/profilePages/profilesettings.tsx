@@ -26,6 +26,9 @@ const ProfileSetting=()=>{
     const handlefaqnav=()=>{
         router.push('/faqlayout')
     }
+    const handlewalletnav=()=>{
+        router.push('/walletpay')
+    }
     return(
         <>
         <ContainerTemplate>
@@ -67,7 +70,7 @@ const ProfileSetting=()=>{
             </ThemeTextsecond>
             <View   style={{ backgroundColor: selectioncardColor, elevation: 4 }}
             className="w-full h-auto rounded-2xl shadow-slate-500 shadow-sm px-5 pb-5">
-                <TouchableOpacity className="flex-row justify-between items-center h-20 border-b border-slate-400">
+                <TouchableOpacity onPress={handlewalletnav} className="flex-row justify-between items-center h-20 border-b border-slate-400">
                     <View className="flex-row gap-x-2 items-center">
                     <FontAwesome5 name="wallet" color="green" size={16}/>
                     <ThemeTextsecond size={Textstyles.text_xmedium}>Wallet and Payment</ThemeTextsecond>
