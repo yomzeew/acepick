@@ -11,6 +11,7 @@ export default function WalletLayout() {
       }}
     >
       <Stack.Screen name="walletpay"/>
+      <Stack.Screen name="cardpaymentlayout/[amount]" />
     </Stack>
   
     

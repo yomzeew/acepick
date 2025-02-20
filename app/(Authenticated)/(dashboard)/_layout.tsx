@@ -18,7 +18,7 @@ export default function DashboardLayout() {
       name="profilelayout"
        />
     </Stack>
-    <View className="w-screen items-center absolute bottom-0">
+    <View className="w-screen items-center  absolute bottom-0">
     <FooterComponent/>
     </View>
     

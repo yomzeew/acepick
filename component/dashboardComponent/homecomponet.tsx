@@ -1,4 +1,4 @@
-import { View, Text, ScrollView } from "react-native"
+import { View, ScrollView } from "react-native"
 import HeaderComponent from "./headercomponent"
 import { useTheme } from "../../hooks/useTheme";
 import { getColors } from "../../static/color";
@@ -9,18 +9,24 @@ import FilterCard from "./filterCard";
 import { ThemeText } from "../ThemeText";
 import { Textstyles } from "../../static/textFontsize";
 import ProfessionalCard from "./professionalCard";
-import FooterComponent from "./footerComponent";
+import { useState } from "react";
+import SliderModalTemplate from "component/slideupModalTemplate";
+import PaymentmethodModal from "component/menuComponent/walletPages/paymentmethodModal";
 
 const HomeComp = () => {
+    const [showmodal,setshowmodal]=useState<boolean>(false)
     const { theme } = useTheme(); // Theme state and toggle function
     const { primaryColor, backgroundColor, primaryTextColor, secondaryTextColor } = getColors(theme);
 
     return (
-        <>
+        <>  
+        {showmodal &&<SliderModalTemplate modalHeight={'60%'} showmodal={showmodal} setshowmodal={setshowmodal} >
+        <PaymentmethodModal/>
+    </SliderModalTemplate>}
             <ContainerTemplate>
                 <HeaderComponent />
                 <EmptyView height={10} />
-                <WalletCard />
+                <WalletCard setshowmodal={setshowmodal} showmodal={showmodal} />
                 <EmptyView height={10} />
                 <FilterCard />
                 <EmptyView height={10} />
