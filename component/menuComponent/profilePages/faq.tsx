@@ -9,6 +9,7 @@ import EmptyView from "component/emptyview"
 import { TextInput } from "react-native"
 import InputComponent from "component/controls/textinput"
 import { AntDesign } from "@expo/vector-icons"
+import ListCard from "component/listcard"
 
 const FAQ = () => {
     const { theme } = useTheme()
@@ -24,13 +25,14 @@ const FAQ = () => {
                     <ScrollView
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={{ paddingBottom: 2, paddingTop: 10 }}>
-                       <QuestionCard/>
-                       <QuestionCard/>
-                       <QuestionCard/>
-                       <QuestionCard/>
-                       <QuestionCard/>
-                       <QuestionCard/>
-                       <QuestionCard/>
+                       <ListCard content="Question"/>
+                       <ListCard content="Question"/>
+                       <ListCard content="Question"/>
+                       <ListCard content="Question"/>
+                       <ListCard content="Question"/>
+                       <ListCard content="Question"/>
+                       
+                      
                     </ScrollView>
                     
                 </View>
@@ -54,23 +56,3 @@ const FAQ = () => {
     )
 }
 export default FAQ
-const QuestionCard = () => {
-    const { theme } = useTheme()
-    const { primaryColor, secondaryTextColor, selectioncardColor } = getColors(theme)
-    return (
-        <>
-            <EmptyView height={10} />
-            <View style={{ backgroundColor: selectioncardColor, elevation: 4 }} className="w-full h-24 justify-center  rounded-2xl shadow-slate-500 shadow-sm px-5">
-                <View className="flex-row justify-between items-center">
-                    <View>
-                        <ThemeTextsecond size={Textstyles.text_cmedium}>Question</ThemeTextsecond>
-                    </View>
-                    <View>
-                        <AntDesign color={secondaryTextColor} name="left" />
-                    </View>
-                </View>
-            </View>
-        </>
-    )
-
-}

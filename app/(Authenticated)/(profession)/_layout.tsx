@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 
-export default function WalletLayout() {
+export default function ProfessionLayout() {
   return (
     <>
 
@@ -10,9 +10,8 @@ export default function WalletLayout() {
         gestureEnabled: false, // Disable sliding back gesture
       }}
     >
-      <Stack.Screen name="walletpay"/>
-      <Stack.Screen name="cardpaymentlayout/[amount]" />
-      <Stack.Screen name="bankdepositlayout/[amount]" />
+      <Stack.Screen name="calllayout"/>
+      <Stack.Screen name="category/[profession]" />
     </Stack>
   
     

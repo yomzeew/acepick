@@ -35,16 +35,37 @@ const HomeComp = () => {
                 </ThemeText>
                 <EmptyView height={10} />
                 <View className="flex-1  pb-5">
-                    <ScrollView showsVerticalScrollIndicator={false}>
-                        <ProfessionalCard />
+                    <ScrollView contentContainerStyle={{paddingBottom:60,paddingTop:20}} showsVerticalScrollIndicator={false}>
+                        <ProfessionalCard
+                        profession="Contruction and Builders"
+                        totalnumber={30}
+                        totaluser={635}
+                         />
+                        
                         <EmptyView height={10} />
-                        <ProfessionalCard />
+                        <ProfessionalCard 
+                         profession="Health and Medical"
+                         totalnumber={30}
+                         totaluser={635}
+                        />
                         <EmptyView height={10} />
-                        <ProfessionalCard />
+                        <ProfessionalCard
+                         profession="Information and Technology"
+                         totalnumber={30}
+                         totaluser={635}
+                         />
                         <EmptyView height={10} />
-                        <ProfessionalCard />
-                        <EmptyView height={10} />
-                        <ProfessionalCard />
+                        <ProfessionalCard
+                         profession="Education and Tutoring"
+                         totalnumber={30}
+                         totaluser={635}
+                         />
+                         <EmptyView height={10} />
+                        <ProfessionalCard
+                         profession="Art and Entertainment"
+                         totalnumber={30}
+                         totaluser={635}
+                         />
 
                     </ScrollView>
 

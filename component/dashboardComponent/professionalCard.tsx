@@ -6,7 +6,12 @@ import { Textstyles } from "../../static/textFontsize"
 import EmptyView from "../emptyview"
 import { FontAwesome5 } from "@expo/vector-icons"
 
-const ProfessionalCard=()=>{
+interface ProfessionalCardProps{
+profession:string;
+totalnumber:number
+totaluser:number
+}
+const ProfessionalCard=({profession,totalnumber,totaluser}:ProfessionalCardProps)=>{
     const {theme}=useTheme()
     const {selectioncardColor,secondaryTextColor,primaryColor}=getColors(theme)
     return(
@@ -18,16 +23,16 @@ const ProfessionalCard=()=>{
             </View>
             <View>
             <ThemeTextsecond size={Textstyles.text_xmedium}>
-              Construction and  Builders
+              {profession}
             </ThemeTextsecond>
             <View className="flex-row gap-3">
                 <View className="flex-row gap-1">
                 <FontAwesome5 color={primaryColor} name="toolbox" size={15} />
-                <ThemeTextsecond size={Textstyles.text_xsma}>30</ThemeTextsecond>
+                <ThemeTextsecond size={Textstyles.text_xsma}>{totalnumber}</ThemeTextsecond>
                 </View>
                 <View className="flex-row gap-1">
                 <FontAwesome5 color={secondaryTextColor} name="user" size={15} />
-                <ThemeTextsecond size={Textstyles.text_xsma}>625</ThemeTextsecond>
+                <ThemeTextsecond size={Textstyles.text_xsma}>{totaluser}</ThemeTextsecond>
                 </View>
             </View>
             </View>       

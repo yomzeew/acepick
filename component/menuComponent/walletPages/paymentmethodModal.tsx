@@ -23,6 +23,14 @@ const PaymentmethodModal=()=>{
         router.push(`/cardpaymentlayout/${amount}`)
 
     }
+    const handlenavbankpay=()=>{
+        console.log('ok')
+        if(!amount){
+            seterrorMsg("Please Enter Amount")
+            return
+        }
+        router.push(`/bankdepositlayout/${amount}`)
+    }
     return(
         <>
          <View className="p-5 items-center w-full">
@@ -61,7 +69,7 @@ const PaymentmethodModal=()=>{
 
             </TouchableOpacity>
             <EmptyView height={20} />
-            <TouchableOpacity className="w-full h-16">
+            <TouchableOpacity onPress={handlenavbankpay} className="w-full h-16">
                 <View style={{ backgroundColor: selectioncardColor, elevation: 4 }}  className="w-full h-full items-center flex-row gap-x-3 justify-center rounded-2xl ">
                 <FontAwesome name="bank" color={primaryColor} size={16}/>
                 <ThemeTextsecond size={Textstyles.text_xmedium}>Bank Deposit</ThemeTextsecond>
