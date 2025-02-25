@@ -4,7 +4,7 @@ import BackComponent from 'component/backcomponent'
 import { Textstyles } from 'static/textFontsize'
 import { useTheme } from 'hooks/useTheme'
 import { getColors } from 'static/color'
-const HeaderComponent=({title}:{title:string})=>{
+const HeaderComponent=({title}:{title:string | any})=>{
         const { theme } = useTheme();
         const { primaryColor } = getColors(theme);
     return(
