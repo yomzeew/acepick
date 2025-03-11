@@ -5,7 +5,7 @@ import { ImageBackground } from "react-native"
     return(
         <>
         <ContainerTemplate>
-            <ImageBackground className="h-full w-full" source={require('../../../../assets/callbg.png')}>
+            <ImageBackground className="h-full w-full" source={require('../../../assets/callbg.png')}>
 
             </ImageBackground>
         </ContainerTemplate>

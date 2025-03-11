@@ -17,6 +17,10 @@ export default function DashboardLayout() {
       <Stack.Screen
       name="profilelayout"
        />
+    <Stack.Screen
+      name="chatlayout"
+       />
+       
     </Stack>
     <View className="w-screen items-center  absolute bottom-0">
     <FooterComponent/>

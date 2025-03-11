@@ -1,4 +1,4 @@
-import Call from "component/menuComponent/professionals/callpages/callpage"
+import Call from "component/menuComponent/chatMessaging/callpage"
 
 const CallPage=()=>{
     return(

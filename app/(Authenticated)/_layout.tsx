@@ -9,6 +9,8 @@ export default function AuthenticatedLayout() {
       <Stack.Screen name="(profile)" />
       <Stack.Screen name="(wallet)" />
       <Stack.Screen name="(profession)" />
+      <Stack.Screen name="(chatcallmessage)" />
+      
     
     </Stack>
 
