@@ -13,10 +13,10 @@ const SwitchMode = ({activePage,setActivePage}:SwitchProps) => {
  
   const { theme } = useTheme();
 
-  const activestylebg = activePage === "corporate" ? "#033A62" : "";
-  const activestylesbgtwo = activePage === "professional" ? "#033A62" : "";
-  const activestyletext = activePage === "corporate" ? "#ffffff" : "#333333";
-  const activestylesbgtexttwo = activePage === "professional" ? "#ffffff" : "#333333";
+  const activestylebg = activePage === "corporate" ? "#033A62" : "transparent";
+  const activestylesbgtwo = activePage === "professional" ? "#033A62" : "transparent";
+  const activestyletext = activePage === "corporate" ? "#ffffff" : "#b5b3b3";
+  const activestylesbgtexttwo = activePage === "professional" ? "#ffffff" : "#b5b3b3";
 
   // Create a PanResponder to handle horizontal swipe gestures.
   const panResponder = useRef(
@@ -50,16 +50,7 @@ const SwitchMode = ({activePage,setActivePage}:SwitchProps) => {
           theme === "dark" ? "bg-gray-700" : "bg-gray-200"
         } rounded-3xl h-12 flex-row`}
       >
-        <TouchableOpacity
-          onPress={() => setActivePage("corporate")}
-          style={{ backgroundColor: activestylebg }}
-          className="rounded-3xl h-full items-center justify-center w-1/2"
-        >
-          <Text style={[Textstyles.text_cmedium, { color: activestyletext }]}>
-            Corporate Bodies
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+             <TouchableOpacity
           onPress={() => setActivePage("professional")}
           style={{ backgroundColor: activestylesbgtwo }}
           className="rounded-3xl h-full items-center justify-center w-1/2"
@@ -70,6 +61,16 @@ const SwitchMode = ({activePage,setActivePage}:SwitchProps) => {
             Profession
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setActivePage("corporate")}
+          style={{ backgroundColor: activestylebg }}
+          className="rounded-3xl h-full items-center justify-center w-1/2"
+        >
+          <Text style={[Textstyles.text_cmedium, { color: activestyletext }]}>
+            Corporate Bodies
+          </Text>
+        </TouchableOpacity>
+   
       </View>
     </View>
   );

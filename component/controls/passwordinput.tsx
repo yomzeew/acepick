@@ -8,7 +8,7 @@ const PasswordComponent = ({color, placeholder, placeholdercolor}: { color: stri
   return (
     <View
       style={{ borderColor: color }}
-      className="w-11/12 h-16 border rounded-lg flex-row items-center px-4"
+      className="w-full h-16 border rounded-lg flex-row items-center px-4"
     >
       <TextInput
         placeholder={placeholder}

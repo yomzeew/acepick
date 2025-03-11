@@ -1,7 +1,7 @@
 import ContainerTemplate from "component/dashboardComponent/containerTemplate"
 import HeaderComponent from "../profilePages/headerComp"
 import EmptyView from "component/emptyview"
-import { useLocalSearchParams } from "expo-router"
+import { useLocalSearchParams, useRouter } from "expo-router"
 import { TouchableOpacity,Text,View, Image, ScrollView } from "react-native"
 import { AntDesign,  FontAwesome5,  FontAwesome6 } from "@expo/vector-icons"
 import { useTheme } from "hooks/useTheme"
@@ -41,16 +41,21 @@ const Professional=()=>{
 }
 export default Professional
 const CorporatePage = () => {
+  const router=useRouter()
     const arraysample = [1, 2, 3, 4, 5, 6,7,8,9];
+    const handlePress=(value:number)=>{
+      router.push("corporateprofileLayout")
+      
+    }
   
     return (
       <View className="flex-1 w-full px-3">
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{paddingBottom:40}}>
           <View className="flex-row flex-wrap gap-2 w-full  justify-between">
             {arraysample.map((item, index) => (
-              <View className="w-[48%]" key={index}>
+              <TouchableOpacity onPress={()=>handlePress(item)} className="w-[48%]" key={index}>
                 <Card />
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         </ScrollView>
@@ -58,15 +63,20 @@ const CorporatePage = () => {
     );
   };
   const ProfessionPage=()=>{
+    const router=useRouter()
     const arraysample = [1, 2, 3, 4, 5, 6,7,8,9];
-  
+    const handlePress=(value:number)=>{
+      router.push("professionalprofileLayout")
+      
+    }
+ 
     return (
       <View className="flex-1 w-full px-3">
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{paddingBottom:40}}>
             {arraysample.map((item, index) => (
-              <View className="w-full" key={index}>
+              <TouchableOpacity onPress={()=>handlePress(item)} className="w-full" key={index}>
                 <ListCard/>
-              </View>
+              </TouchableOpacity>
             ))}
         </ScrollView>
       </View>
@@ -109,18 +119,17 @@ const ListCard=()=>{
     return(
         <>
         <EmptyView height={10}/>
-        <View style={{backgroundColor:selectioncardColor, elevation:4}} className="w-full h-28 rounded-2xl shadow-slate-300 shadow-sm justify-center">
+        <View style={{backgroundColor:selectioncardColor, elevation:4}} className="w-full py-2 h-36 rounded-2xl shadow-slate-300 shadow-sm justify-center">
             <View className="w-full h-full flex-row justify-around px-3 py-3">
                 <View className="w-[20%] h-full justify-center">
                     <Image resizeMode="cover" source={require('../../../assets/professional.png')} className="w-16 h-16 rounded-full"/>
-
                 </View>
-                <View className="w-[50%] justify-center">
-                    <ThemeText size={Textstyles.text_xmedium}>
+                <View className="w-[50%] justify-center ">
+                    <ThemeText size={Textstyles.text_cmedium}>
                         Adebisi Eze
                     </ThemeText>
                     <View className="flex-row gap-x-2">
-                    <FontAwesome5 color={primaryColor} name="toolbox" size={12} />
+                    <FontAwesome5 color={primaryColor} name="toolbox" size={10} />
                     <ThemeTextsecond size={Textstyles.text_xsmall}>
                     Electrician
                     </ThemeTextsecond>
@@ -129,14 +138,14 @@ const ListCard=()=>{
             <FontAwesome6 name="location-dot" size={12} color={primaryColor} />
                 <Text style={[Textstyles.text_xsma,{color:secondaryTextColor}]}>Ibadan,Oyo State</Text>
             </View>
-                    <ThemeText size={Textstyles.text_cc}>
-                        Charges from N20,000
+                    <ThemeText size={Textstyles.text_xsmall}>
+                        Charges from N20,00000
                     </ThemeText>
 
                    
 
                 </View>
-                <View className="w-[20%] flex-col justify-between">
+                <View className="w-[100%] flex-col justify-between">
                     <View className="bg-green-600 rounded-2xl px-2 py-1">
                         <Text style={[Textstyles.text_xsmall,{color:"#ffffff"}]}>
                             Available

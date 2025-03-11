@@ -25,9 +25,6 @@ const Bankdeposit=()=>{
             <Text style={[Textstyles.text_cmedium,{color:'#ffffff'}]}>
                 Oluwadamilola Adex
             </Text>
-            <TouchableOpacity className="w-auto h-10 rounded-2xl bg-white px-3 items-cennter justify-center">
-                <Text style={[Textstyles.text_cmedium]}>Money sent</Text>
-            </TouchableOpacity>
          </View>
          <EmptyView height={30} />
             <View className="px-3">
