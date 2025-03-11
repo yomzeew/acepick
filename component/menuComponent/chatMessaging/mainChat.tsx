@@ -60,36 +60,43 @@ const MainChat = () => {
 
 
                     </View>
-                     <KeyboardAvoidingView
-                                    behavior={Platform.OS === "ios" ? "padding" : "height"}
-                                    style={{ flex: 1 }}
-                                >
-                                    <TouchableWithoutFeedback >
-                                        <ScrollView
-                                            contentContainerStyle={{ flexGrow: 1 }}
-                                            keyboardShouldPersistTaps="handled"
-                                            showsVerticalScrollIndicator={false}
-                                        >
-                    
-                    
-                    
-                    
-                    <EmptyView height={20}/>
-                    <View className="w-full flex-1">
-                        <SenderComponent/>
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === "ios" ? "padding" : "height"}
+                        style={{ flex: 1 }}
+                    >
+                        <TouchableWithoutFeedback >
+                            <ScrollView
+                                contentContainerStyle={{ flexGrow: 1 }}
+                                keyboardShouldPersistTaps="handled"
+                                showsVerticalScrollIndicator={false}
+                            >
 
-                    </View>
-                   
-                    </ScrollView>
-                    </TouchableWithoutFeedback>
-                    <View>
-                    <InputComponent
+
+
+
+                                <EmptyView height={20} />
+                                <View className="w-full flex-1">
+                                    <SenderComponent />
+                                    <EmptyView height={10}/>
+                                    <ReceivedComponent/>
+                                    <EmptyView height={10}/>
+                                    <SenderComponent />
+                                    <EmptyView height={10}/>
+                                    <ReceivedComponent/>
+                                    <EmptyView height={10}/>
+
+                                </View>
+
+                            </ScrollView>
+                        </TouchableWithoutFeedback>
+                        <View>
+                            <InputComponent
                                 color={primaryColor}
                                 placeholder="type here"
                                 placeholdercolor={secondaryTextColor}
                             />
-                    </View>
-                    <EmptyView height={20}/>
+                        </View>
+                        <EmptyView height={20} />
                     </KeyboardAvoidingView>
 
                 </View>
@@ -115,6 +122,36 @@ const SenderComponent = () => {
                             Delivered
                         </Text>
                         <Text style={[Textstyles.text_xsmall, { color: "#ffffff" }]}>
+                            9:10am
+                        </Text>
+
+
+                    </View>
+
+                </View>
+
+            </View>
+
+        </>
+    )
+}
+const ReceivedComponent = () => {
+    const { theme } = useTheme()
+    return (
+        <>
+            <View className="w-full items-start">
+                <View style={{ backgroundColor:theme==="dark"?"#333333":"#ffffff" }} className="w-2/3 h-auto px-3 py-2 rounded-lg rounded-tl-none">
+                    <Text style={[Textstyles.text_xsmall, { color:theme==="dark"?"#ffffff":"#000000" }]}>
+                        Hi there! I'm looking for an electrician to help with some wiring upgrades
+                        in my home. Are you available for a project like that?
+
+                    </Text>
+                    <EmptyView height={10} />
+                    <View className="flex-row justify-between">
+                        <Text style={[Textstyles.text_xsmall, {  color:theme==="dark"?"#ffffff":"#000000"}]}>
+                            Received
+                        </Text>
+                        <Text style={[Textstyles.text_xsmall, { color:theme==="dark"?"#ffffff":"#000000"}]}>
                             9:10am
                         </Text>
 
