@@ -1,5 +1,5 @@
 import ContainerTemplate from "component/dashboardComponent/containerTemplate"
-import HeaderComponent from "./headerComp"
+import HeaderComponent from "../../headerComp"
 import { View,ScrollView,TouchableOpacity, Text } from "react-native"
 import { FontAwesome, FontAwesome5 } from "@expo/vector-icons"
 import { useTheme } from "hooks/useTheme"

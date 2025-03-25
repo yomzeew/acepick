@@ -46,6 +46,7 @@ const router = useRouter()
         <TouchableOpacity
           style={{ backgroundColor: primaryColor }}
           className="w-11/12 rounded-lg py-4"
+          onPress={()=>router.navigate("/(professionAuth)/loginprofession")}
         >
           <Text
             style={[Textstyles.text_cmedium,{ color: "#ffffff" }]}

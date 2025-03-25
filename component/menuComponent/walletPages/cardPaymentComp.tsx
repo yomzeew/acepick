@@ -11,7 +11,7 @@ import ContainerTemplate from "component/dashboardComponent/containerTemplate";
 import { ThemeText } from "component/ThemeText";
 import { useLocalSearchParams } from "expo-router";
 import { Textstyles } from "static/textFontsize";
-import HeaderComponent from "../profilePages/headerComp";
+import HeaderComponent from "../../headerComp";
 import EmptyView from "component/emptyview";
 import CardModal from "./cardModal";
 import ButtonFunction from "component/buttonfunction";

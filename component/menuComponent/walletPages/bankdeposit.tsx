@@ -1,5 +1,5 @@
 import ContainerTemplate from "component/dashboardComponent/containerTemplate"
-import HeaderComponent from "../profilePages/headerComp"
+import HeaderComponent from "../../headerComp"
 import EmptyView from "component/emptyview"
 import { View,Text, TouchableOpacity } from "react-native"
 import { Textstyles } from "static/textFontsize"

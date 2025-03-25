@@ -1,5 +1,5 @@
 import ContainerTemplate from "component/dashboardComponent/containerTemplate"
-import HeaderComponent from "./headerComp"
+import HeaderComponent from "../../headerComp"
 import { TouchableOpacity, View,ScrollView, Switch } from "react-native"
 import { useTheme } from "hooks/useTheme"
 import { getColors } from "static/color"

@@ -12,6 +12,7 @@ import LineChartgraphy from "../chart/linechart"
 import {Feather,Entypo, AntDesign,FontAwesome} from '../icons'
 import { useRouter } from "expo-router"
 import RatingStar from "component/rating"
+import { UserDetail } from "component/dashboardComponent/userdetails"
 
 
 const ProfileComponent = () => {
@@ -72,33 +73,6 @@ const ProfileComponent = () => {
     )
 }
 export default memo(ProfileComponent)
-export const UserDetail = () => {
-    const numberOfStars = 3;
-    const { theme } = useTheme()
-    const { primaryTextColor, selectioncardColor, primaryColor, secondaryTextColor } = getColors(theme)
-    return (
-        <View style={{ backgroundColor: selectioncardColor, elevation: 4 }} className="w-full h-[12%] rounded-2xl shadow-slate-500 shadow-sm px-5 py-3 ">
-            <View className="w-full items-center flex-row gap-5 justify-center">
-                <Image className="w-16 h-16 rounded-full" resizeMode="contain" source={require('../../assets/demo.jpg')} />
-                <View>
-                    <ThemeText type="primary" size={Textstyles.text_small}>Oluwadamilola Samuel</ThemeText>
-                    <View className="flex-row  items-center">
-                        <Entypo color={secondaryTextColor} name="location-pin" />
-                        <ThemeTextsecond size={Textstyles.text_xsma}>Akure,Ondo State</ThemeTextsecond>
-                    </View>
-                  <RatingStar numberOfStars={numberOfStars}/>
-                    <EmptyView height={5} />
-                    <View>
-                        <ThemeText type="primary" size={Textstyles.text_xsmall}>Wallet Balance:₦20,000</ThemeText>
-                    </View>
-                </View>
-
-            </View>
-
-
-        </View>
-    )
-}
 export const AnalyticDiagram=()=>{
     const { theme } = useTheme()
     const { primaryTextColor, selectioncardColor, primaryColor, secondaryTextColor } = getColors(theme)

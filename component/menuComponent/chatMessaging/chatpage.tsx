@@ -1,6 +1,6 @@
 import ContainerTemplate from "component/dashboardComponent/containerTemplate"
 import { Image, TouchableOpacity, View, Text, ScrollView } from "react-native"
-import HeaderComponent from "../profilePages/headerComp"
+import HeaderComponent from "../../headerComp"
 import { ThemeText, ThemeTextsecond } from "component/ThemeText"
 import { Textstyles } from "static/textFontsize"
 import { FontAwesome5, FontAwesome6 } from "@expo/vector-icons"

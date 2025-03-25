@@ -5,7 +5,7 @@ import { ThemeText, ThemeTextsecond } from "component/ThemeText"
 import { useTheme } from "hooks/useTheme"
 import { useState } from "react"
 import { Text } from "react-native"
-import {TouchableOpacity,View } from "react-native"
+import {TouchableOpacity,View,ScrollView } from "react-native"
 import { getColors } from "static/color"
 import { Textstyles } from "static/textFontsize"
 interface SelectComponentProp{
@@ -14,8 +14,9 @@ interface SelectComponentProp{
     data:string[]
     setValue:(value:string)=>void
     value:string
+    height?:any
 }
-const SelectComponent=({title,width=288,data,setValue,value}:SelectComponentProp)=>{
+const SelectComponent=({title,width=288,data,setValue,value,height="auto"}:SelectComponentProp)=>{
    const { theme } = useTheme();
    const { primaryColor, backgroundColor, backgroundColortwo, secondaryTextColor } = getColors(theme); 
    const [showoption,setshowoption]=useState<boolean>(false) 
@@ -30,10 +31,11 @@ const SelectComponent=({title,width=288,data,setValue,value}:SelectComponentProp
            <AntDesign name="down" size={16} color={secondaryTextColor}/>
            </TouchableOpacity>
            
-          {showoption &&<View style={{backgroundColor:backgroundColor}} className="p-3 absolute z-50 top-16 w-full">
+          {showoption &&<View  style={{backgroundColor:backgroundColor,height:height}} className="p-3 absolute z-50  top-16 w-full">
             <EmptyView height={10}/>
+            <ScrollView>
             {data.map((item,index)=>(
-                <TouchableOpacity onPress={()=>{setValue(item); setshowoption(!showoption)}} className="w-full h-10">
+                <TouchableOpacity key={index} onPress={()=>{setValue(item); setshowoption(!showoption);console.log('ogkgg')}} className="w-full h-10">
                     <ThemeText size={Textstyles.text_xsma}>
                         {item}
                     </ThemeText>
@@ -42,6 +44,9 @@ const SelectComponent=({title,width=288,data,setValue,value}:SelectComponentProp
 
             )) }
 
+
+            </ScrollView>
+          
         </View>}
       
 

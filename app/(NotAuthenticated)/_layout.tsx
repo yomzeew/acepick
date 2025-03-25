@@ -61,6 +61,10 @@ export default function NotAuthenticatedLayout() {
       name="bvnscreen"
       options={{title:"bvn screen payment"}}
       />
+         <Stack.Screen
+      name="(professionAuth)"
+      options={{title:"profession Auth screen"}}
+      />
     </Stack>
   );
 }

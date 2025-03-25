@@ -1,5 +1,5 @@
 import ContainerTemplate from "component/dashboardComponent/containerTemplate"
-import HeaderComponent from "../profilePages/headerComp"
+import HeaderComponent from "../../headerComp"
 import EmptyView from "component/emptyview"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { TouchableOpacity,Text,View, Image, ScrollView } from "react-native"

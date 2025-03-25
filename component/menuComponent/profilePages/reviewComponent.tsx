@@ -8,7 +8,7 @@ import { ThemeText, ThemeTextsecond } from "../../ThemeText";
 import { Textstyles } from "../../../static/textFontsize";
 import EmptyView from "component/emptyview";
 import RatingStar from "component/rating";
-import HeaderComponent from "./headerComp";
+import HeaderComponent from "../../headerComp";
 
 const { height } = Dimensions.get("window");
 
