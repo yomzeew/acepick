@@ -17,7 +17,7 @@ const Professional=()=>{
     const {theme}=useTheme()
     const {secondaryTextColor,primaryColor}=getColors(theme)
     const {profession}=useLocalSearchParams()
-    const [activePage, setActivePage] = useState("corporate");
+    const [activePage, setActivePage] = useState("professional");
     return(
         <>
         <ContainerTemplate>
@@ -33,14 +33,15 @@ const Professional=()=>{
             setActivePage={setActivePage} 
             />
             <EmptyView height={20} />
-            {activePage==='corporate'?<CorporatePage/>:<ProfessionPage/>}
+            {activePage==='professional'?<ArtisanPage/>:<CorporatePage/>}
 
         </ContainerTemplate>
         </>
     )
 }
 export default Professional
-const CorporatePage = () => {
+
+export const CorporatePage = () => {
   const router=useRouter()
     const arraysample = [1, 2, 3, 4, 5, 6,7,8,9];
     const handlePress=(value:number)=>{
@@ -50,7 +51,7 @@ const CorporatePage = () => {
   
     return (
       <View className="flex-1 w-full px-3">
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{paddingBottom:40}}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{paddingBottom:100}}>
           <View className="flex-row flex-wrap gap-2 w-full  justify-between">
             {arraysample.map((item, index) => (
               <TouchableOpacity onPress={()=>handlePress(item)} className="w-[48%]" key={index}>
@@ -62,7 +63,7 @@ const CorporatePage = () => {
       </View>
     );
   };
-  const ProfessionPage=()=>{
+  export const ArtisanPage=()=>{
     const router=useRouter()
     const arraysample = [1, 2, 3, 4, 5, 6,7,8,9];
     const handlePress=(value:number)=>{
@@ -72,7 +73,7 @@ const CorporatePage = () => {
  
     return (
       <View className="flex-1 w-full px-3">
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{paddingBottom:40}}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{paddingBottom:100}}>
             {arraysample.map((item, index) => (
               <TouchableOpacity onPress={()=>handlePress(item)} className="w-full" key={index}>
                 <ListCard/>

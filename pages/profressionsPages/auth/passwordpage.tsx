@@ -1,4 +1,4 @@
-import PasswordPageComp from "component/professionalAuth/registerComponent/passwordcomponent"
+import PasswordPageComp from "component/professionalAuth/registerComponent/passwordscreen"
 
 
 const PasswordPageProfession=()=>{

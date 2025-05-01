@@ -7,12 +7,13 @@ import FooterComponent from "../dashboardComponent/footerComponent"
 import { getColors } from "../../static/color"
 import { useTheme } from "../../hooks/useTheme"
 import EmptyView from "../emptyview"
-import { memo, ReactNode } from "react"
+import {  ReactNode } from "react"
 import LineChartgraphy from "../chart/linechart"
 import {Feather,Entypo, AntDesign,FontAwesome} from '../icons'
 import { useRouter } from "expo-router"
 import RatingStar from "component/rating"
 import { UserDetail } from "component/dashboardComponent/userdetails"
+import HeaderComponent from "component/headerComp"
 
 
 const ProfileComponent = () => {
@@ -29,8 +30,8 @@ const ProfileComponent = () => {
     return (
         <>
             <ContainerTemplate>
-                <View className="pt-[60px]  justify-between flex-row items-center">
-                    <ThemeText type="primary" size={Textstyles.text_medium} >Profile</ThemeText>
+            <HeaderComponent title={"Profile"}/>
+                <View className="w-full items-end -mt-5">
                     <TouchableOpacity onPress={handleNavigationSettings}>
                         <Feather size={24} color={primaryColor} name="settings" />
                     </TouchableOpacity>
@@ -44,7 +45,7 @@ const ProfileComponent = () => {
                     <View className="flex-row gap-x-4">
                         <Cardcomponent Title={"Completed Jobs"} totalnumber={4} />
                         <Cardcomponent Title={"Jobs in Progress"} totalnumber={6} />
-                        <Cardcomponent Title={"Pending Jobs"} totalnumber={5} />
+                        <Cardcomponent Title={"Pending Jobs"} totalnumber={90} />
                         <Cardcomponent Title={"Cancelled Jobs"} totalnumber={1} />
                         <Cardcomponent Title={"Rejected Jobs"} totalnumber={0} />
                         </View>
@@ -72,7 +73,7 @@ const ProfileComponent = () => {
         </>
     )
 }
-export default memo(ProfileComponent)
+export default ProfileComponent
 export const AnalyticDiagram=()=>{
     const { theme } = useTheme()
     const { primaryTextColor, selectioncardColor, primaryColor, secondaryTextColor } = getColors(theme)

@@ -63,13 +63,13 @@ const StateandLga = ({ lga = "", state = "", setstate, setlga,setIsStateSelectio
       
         <View className="w-full">
             {/* State Selection */}
-            <TouchableOpacity onPress={handleSelectState} className="w-full h-14 border rounded-xl border-slate-400 flex-row items-center justify-between px-3">
+            <TouchableOpacity style={{borderColor:primaryColor}} onPress={handleSelectState} className="w-full h-16 border rounded-lg  flex-row items-center justify-between px-3">
               <ThemeTextsecond size={Textstyles.text_xsma}>{state === "" ? "Select State" : state}</ThemeTextsecond>
               <AntDesign name="down" size={16} color={secondaryTextColor} />
             </TouchableOpacity>
             <EmptyView height={10} />
             {/* LGA Selection */}
-            <TouchableOpacity onPress={handleSelectLga} className="w-full h-14 border rounded-xl border-slate-400 flex-row items-center justify-between px-3">
+            <TouchableOpacity style={{borderColor:primaryColor}} onPress={handleSelectLga} className="w-full h-16 border rounded-lg flex-row items-center justify-between px-3">
               <ThemeTextsecond size={Textstyles.text_xsma}>{lga === "" ? "Select LGA" : lga}</ThemeTextsecond>
               <AntDesign name="down" size={16} color={secondaryTextColor} />
             </TouchableOpacity>

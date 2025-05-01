@@ -10,12 +10,16 @@ import ButtonFunction from "../../buttonfunction";
 import SliderModal from "../../SlideUpModal";
 import AuthComponent from "../Authcontainer";
 import { Textstyles } from "../../../static/textFontsize";
+import { useLocalSearchParams } from "expo-router";
+
 
 function EmailPhoneNumberVerification() {
   const { theme } = useTheme(); // Theme state and toggle function
   const { primaryColor, backgroundColor, primaryTextColor, secondaryTextColor } = getColors(theme);
   const router = useRouter();
   const [showmodal,setshowmodal]=useState<boolean>(false)
+  const {type}=useLocalSearchParams();
+  const routes=type==="artisan"?"/artisankyclayout":"professionalkyconelayout"
   return (
     <>
     <View style={{ backgroundColor: backgroundColor }} className="w-full h-full">
@@ -23,7 +27,7 @@ function EmailPhoneNumberVerification() {
       <SliderModal
       setshowmodal={setshowmodal}
       showmodal={showmodal}
-      route="/clientregistrationscreen"
+      route={routes}
       title="Email/Phone number Verified"
       />}
     <AuthComponent title="Email/Phone Number Verification">  

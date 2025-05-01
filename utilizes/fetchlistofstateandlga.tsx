@@ -21,7 +21,3 @@ export const getLgasByState = (stateIdentifier:string) => {
     return state ? state.local_government_areas.map(lga => lga.name) : [];
 };
 
-// Example Usage
-console.log(getAllStates()); // ["Abia", "Adamawa"]
-console.log(getLgasByState("Abia")); // ["Aba North", "Aba South", "Arochukwu", ...]
-console.log(getLgasByState("AD")); // ["Demsa", "Fufore", "Ganye", ...]

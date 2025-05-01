@@ -13,6 +13,7 @@ import {Feather,Entypo, AntDesign,FontAwesome} from '../icons'
 import { useRouter } from "expo-router"
 import RatingStar from "component/rating"
 import { UserDetail } from "component/dashboardComponent/userdetails"
+import HeaderComponent from "component/headerComp"
 
 
 const ProfileProfessional = () => {
@@ -29,8 +30,8 @@ const ProfileProfessional = () => {
     return (
         <>
             <ContainerTemplate>
-                <View className="pt-[60px]  justify-between flex-row items-center">
-                    <ThemeText type="primary" size={Textstyles.text_medium} >Profile</ThemeText>
+            <HeaderComponent title={"Profile"}/>
+                <View className="w-full items-end -mt-5">
                     <TouchableOpacity onPress={handleNavigationSettings}>
                         <Feather size={24} color={primaryColor} name="settings" />
                     </TouchableOpacity>

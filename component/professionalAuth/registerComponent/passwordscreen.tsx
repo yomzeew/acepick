@@ -5,6 +5,7 @@ import PasswordComponent from "../../controls/passwordinput";
 import ButtonComponent from "../../buttoncomponent";
 import { useState } from "react";
 import AuthComponent from "../Authcontainer";
+import { useLocalSearchParams } from "expo-router";
 function PasswordPageComp() {
   const { theme } = useTheme(); // Theme state and toggle function
   const { primaryColor, backgroundColor, primaryTextColor, secondaryTextColor } = getColors(theme);
@@ -13,10 +14,11 @@ function PasswordPageComp() {
   const toggleCheckbox = () => {
     setIsChecked(!isChecked);
   };
+  const {type}=useLocalSearchParams()
 
   return (
     <View style={{ backgroundColor: backgroundColor }} className="w-full h-full">
-    <AuthComponent title="Register as a Client">  
+    <AuthComponent title={`Register as a ${type}`}>  
     
 
      <View className="mt-6 items-center">

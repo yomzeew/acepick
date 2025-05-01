@@ -72,7 +72,7 @@ export const ReviewCard = () => {
     return (
         <View
             style={{ backgroundColor: selectioncardColor, elevation: 4 }}
-            className="w-full h-[10%] rounded-2xl shadow-slate-500 shadow-sm px-5 py-3 mt-3"
+            className="w-full h-auto rounded-2xl shadow-slate-500 shadow-sm px-5 py-3 mt-3"
         >
             <View className="flex-row items-center gap-x-2">
                 <Image className="w-12 h-12 rounded-full" source={require("../../../assets/demo.jpg")} />

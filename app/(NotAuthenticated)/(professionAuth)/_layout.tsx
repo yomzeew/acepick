@@ -15,8 +15,16 @@ export default function ProfessionAuthLayout() {
         options={{ title: "register Screen" }}
       />
       <Stack.Screen 
-        name="professionalkyc" 
-        options={{ title: "Kyc Screen" }}
+        name="selectionlayoutScreen" 
+        options={{ title: "selection Screen" }}
+      />
+       <Stack.Screen 
+        name="(artisanAuth)" 
+        options={{ title: "Artisan Screens" }}
+      />
+       <Stack.Screen 
+        name="(professionalAuth)" 
+        options={{ title: "Professional Screens" }}
       />
       <Stack.Screen 
         name="recoverpasswordprofessional" 
@@ -39,7 +47,7 @@ export default function ProfessionAuthLayout() {
         options={{ title: "Term Condition" }}
       />
       <Stack.Screen 
-        name="verificationcodeprofession" 
+        name="verificationcode" 
         options={{ title: "verification Code" }}
       />
      

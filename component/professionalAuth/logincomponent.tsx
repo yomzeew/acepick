@@ -72,7 +72,7 @@ function LoginComponentP() {
     <View className="h-5"></View>
     <View className="flex-row w-3.5/5 justify-between">
       <Text className="text-gray-400 text-base">Don’t have an account? </Text>
-      <TouchableOpacity onPress={()=>router.navigate("/(professionAuth)/registerprofession")}>
+      <TouchableOpacity onPress={()=>router.navigate("/(professionAuth)/selectionlayoutScreen")}>
         <Text style={{ color: primaryColor }} className="text-base font-bold">
           Register Now
         </Text>

@@ -7,7 +7,7 @@ const ButtonComponent = ({ color, text, textcolor, route }: { color: string; tex
     <View className="w-full justify-center items-center">
       <TouchableOpacity
         style={{ backgroundColor: color }}
-        className="w-11/12 h-14 rounded-lg justify-center items-center"
+        className="w-full h-14 rounded-lg justify-center items-center"
         onPress={()=>router.navigate(route)}
       >
         <Text

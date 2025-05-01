@@ -13,7 +13,7 @@ function AccountSuccessScreen() {
       <StatusBar style="auto" />
       <EmptyView />
       <VerifyComponent textcolor={secondaryTextColor} text="Your account has been created successfully"/>
-<ButtonComponent color={primaryColor} text="Login now" textcolor={backgroundColor} route="/loginscreen"/>
+     <ButtonComponent color={primaryColor} text="Login now" textcolor={backgroundColor} route="/loginscreen"/>
     </View>
   );
 }

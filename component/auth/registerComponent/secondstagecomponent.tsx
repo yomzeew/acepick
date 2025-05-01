@@ -4,9 +4,6 @@ import { getColors } from "../../../static/color";
 import { StatusBar } from "expo-status-bar";
 import EmptyView from "../../emptyview";
 import { useRouter } from "expo-router";
-import BackComponent from "../../menuComponent/profilePages/backcomponent";
-import CenteredTextComponent from "../../centeredtextcomponent";
-import ButtonComponent from "../../buttoncomponent";
 import OtpComponent from "../../controls/otpcomponent";
 import { useState } from "react";
 import ButtonFunction from "../../buttonfunction";
@@ -37,7 +34,7 @@ function SecondStageComponent() {
           Enter the verification code we just sent to your email
         </Text>
         <View className="h-6"></View>
-        <OtpComponent textcolor={secondaryTextColor} text=" Resend in 59s"/>
+        <OtpComponent onOtpComplete={()=>console.log('ok')} textcolor={secondaryTextColor} text=" Resend in 59s"/>
       </View>
       <View className="h-6"></View>
       <View className="">
@@ -45,7 +42,7 @@ function SecondStageComponent() {
         Enter the verification code we just sent to your 081******394
         </Text>
         <View className="h-6"></View>
-        <OtpComponent textcolor={secondaryTextColor} text=" Resend in 59s"/>
+        <OtpComponent  onOtpComplete={()=>console.log('ok')} textcolor={secondaryTextColor} text=" Resend in 59s"/>
       </View>
       </View>       
     </AuthComponent>

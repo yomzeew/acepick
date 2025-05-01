@@ -1,5 +1,5 @@
 import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native"
-import AuthComponent from "../Authcontainer"
+import AuthComponent from "../../Authcontainer"
 import InputComponent from "component/controls/textinput"
 import { getColors } from "static/color";
 import { useTheme } from "hooks/useTheme";
@@ -10,8 +10,10 @@ import { useEffect, useState } from "react";
 import { getAllStates, getLgasByState } from "utilizes/fetchlistofstateandlga";
 import { Textstyles } from "static/textFontsize";
 import { useRouter } from "expo-router";
+import EmptyView from "component/emptyview";
+import { Modaldisplay } from "component/controls/stateandlga";
 
-const ProfessionalScreenKyc = () => {
+const ProfessionalScreenKycOne = () => {
     const { theme } = useTheme();
     const { primaryColor, backgroundColor, primaryTextColor, secondaryTextColor } = getColors(theme);
     const router = useRouter();
@@ -33,7 +35,7 @@ const ProfessionalScreenKyc = () => {
     return (
       <>
       <View style={{ backgroundColor: backgroundColor }} className="w-full h-full">
-      <AuthComponent title="Register as a Client">  
+      <AuthComponent title="Register as a professional">  
       <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -49,22 +51,7 @@ const ProfessionalScreenKyc = () => {
                 <Text className="text-center" style={[Textstyles.text_xsmall,{ color: "red" }]}>
                 Please ensure data provided are valid for verifications
               </Text> 
-              <View className="h-5"></View>
-  
-              {/* Upload Profile Picture Section */}
-              <TouchableOpacity
-                className="w-28 h-28 bg-gray-200 rounded-full justify-center items-center mb-4 self-center"
-                style={{
-                  borderWidth: 2,
-                  borderColor: primaryColor,
-                }}
-              >
-                <AntDesign name="camerao" size={36} color={primaryColor} />
-              </TouchableOpacity>
-              <Text className="text-lg text-center" style={{ color: primaryColor }}>
-                Upload Profile Photo
-              </Text>
-              <View className="h-5"></View>
+              <EmptyView height={10} />
   
               {/* Input Fields */}
               <InputComponent
@@ -72,36 +59,28 @@ const ProfessionalScreenKyc = () => {
                 placeholder="First Name"
                 placeholdercolor={secondaryTextColor}
               />
-              <View className="h-5"></View>
+              <EmptyView height={10} />
               <InputComponent
                 color={primaryColor}
                 placeholder="Last Name"
                 placeholdercolor={secondaryTextColor}
               />
-               <View className="h-5" />
-                          <SelectComponent title={"Select State"}
-                              width={"100%"}
-                              data={statelist}
-                              setValue={(text) => setstate(text)}
-                              value={state}
-                          />
-                          <View className="h-5" />
-                          <SelectComponent title={"Select State"}
-                              width={"100%"}
-                              data={lgalist}
-                              setValue={(text) => setlga(text)}
-                              value={lga}
-                          />
-                          <View className="h-5" />
-              <View className="w-full px-6 pb-3">
-              <Text className="" style={{ color: primaryColor }}>
-                Residential Address
-              </Text>
-              </View>
-             
+               <EmptyView height={10} />
               <InputComponent
                 color={primaryColor}
-                placeholder="Enter your full address"
+                placeholder="Phone Number"
+                placeholdercolor={secondaryTextColor}
+              />
+               <EmptyView height={10} />
+              <InputComponent
+                color={primaryColor}
+                placeholder="Email Address"
+                placeholdercolor={secondaryTextColor}
+              />
+               <EmptyView height={10} />
+              <InputComponent
+                color={primaryColor}
+                placeholder="Your Role"
                 placeholdercolor={secondaryTextColor}
               />
   
@@ -112,7 +91,7 @@ const ProfessionalScreenKyc = () => {
       </AuthComponent>
       <View className="absolute bottom-0 w-full px-6">
           <View className="items-center w-full">
-          <ButtonComponent color={primaryColor} text="Next" textcolor="#fff" route="/(professionAuth)/passwordpagelayout" />
+          <ButtonComponent color={primaryColor} text="Next" textcolor="#fff" route="/professionalkyctwolayout" />
           <View className="h-10"></View>
   
           </View>
@@ -124,4 +103,4 @@ const ProfessionalScreenKyc = () => {
     );
   }
 
-export default ProfessionalScreenKyc
+export default ProfessionalScreenKycOne

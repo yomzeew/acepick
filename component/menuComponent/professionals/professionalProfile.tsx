@@ -3,7 +3,7 @@ import HeaderComponent from "../../headerComp"
 import BackComponent from "component/backcomponent"
 import { useTheme } from "hooks/useTheme"
 import { getColors } from "static/color"
-import { ImageBackground, View } from "react-native"
+import { ImageBackground, Touchable, TouchableOpacity, View, ScrollView } from "react-native"
 import { Image, Text } from "react-native"
 import { ThemeText, ThemeTextsecond } from "component/ThemeText"
 import { AntDesign, FontAwesome5, FontAwesome6, Ionicons } from "@expo/vector-icons"
@@ -11,12 +11,13 @@ import { Textstyles } from "static/textFontsize"
 import RatingStar from "component/rating"
 import EmptyView from "component/emptyview"
 import DraggablePanel from "component/bottomSheetcomp"
-import { ScrollView } from "react-native-gesture-handler"
 import Divider from "component/divider"
+import { useRouter } from "expo-router"
 
 const ProfessionalProfile = () => {
     const { theme } = useTheme()
     const { secondaryTextColor, primaryColor, backgroundColortwo, backgroundColor } = getColors(theme)
+    const route=useRouter()
     return (
         <>
             <View style={{ backgroundColor: primaryColor }} className="h-full w-full">
@@ -31,7 +32,7 @@ const ProfessionalProfile = () => {
                     <View className="items-center">
                         <Text style={[Textstyles.text_cmedium, { color: "#ffffff" }]}>Adeze Okoro</Text>
                         <EmptyView height={10} />
-                        <View className="flex-row">
+                        <View className="flex-row gap-x-2">
                             <FontAwesome5 color="red" name="toolbox" size={15} />
                             <Text style={[Textstyles.text_xsma, { color: "#ffffff" }]}>Electrician</Text>
                             <Text style={[Textstyles.text_xsma, { color: "#ffffff" }]}>3 years</Text>
@@ -51,7 +52,7 @@ const ProfessionalProfile = () => {
                         </View>
 
                     </View>
-                    <EmptyView height={20} />
+                    {/* <EmptyView height={20} />
                     <View className="flex-row gap-x-3 items-center justify-center">
                         <View className="w-12 h-12 items-center justify-center bg-red-500 rounded-full">
                             <FontAwesome5 color="white" size={16} name="phone" />
@@ -66,9 +67,19 @@ const ProfessionalProfile = () => {
 
                         </View>
 
+                    </View> */}
+                    <EmptyView height={20} />
+                    <View className="w-full items-center">
+                        <TouchableOpacity onPress={()=>route.push('/joborderLayout')} style={{ backgroundColor: primaryColor }} className="px-3 h-10 items-start justify-center rounded-2xl">
+                            <Text style={[Textstyles.text_small, { color: "#ffffff" }]}>
+                                Sent a job request
+                            </Text>
+                        </TouchableOpacity>
+
                     </View>
+
                     <DraggablePanel backgroundColor={backgroundColor}>
-                        <ScrollView contentContainerStyle={{paddingVertical:20}}>
+                        <ScrollView contentContainerStyle={{ paddingVertical: 20 }}>
                             <ProfessionalDetails />
                         </ScrollView>
 
@@ -297,58 +308,58 @@ const ProfessionalDetails = () => {
                 <Divider />
                 <EmptyView height={10} />
                 <ThemeText size={Textstyles.text_medium} >
-                   Review
+                    Review
                 </ThemeText>
                 <EmptyView height={10} />
                 <Text style={[Textstyles.text_small, { color: secondaryTextColor, }]}>
-                       AdeSeun Olawuyi
-                    </Text>
-                    <EmptyView height={6} />
-                    <Text style={[Textstyles.text_xsma, { color: secondaryTextColor, }]}>
-                        Good job and wel done 
-                    </Text>
-                    <EmptyView height={6} />
-                    <RatingStar numberOfStars={4} />
-                    <EmptyView height={6} />
-                    
-                    <Divider />
-                    <EmptyView height={10} />
-                <Text style={[Textstyles.text_small, { color: secondaryTextColor, }]}>
-                       AdeSeun Olawuyi
-                    </Text>
-                    <EmptyView height={6} />
-                    <Text style={[Textstyles.text_xsma, { color: secondaryTextColor, }]}>
-                        Good job and wel done 
-                    </Text>
-                    <EmptyView height={6} />
-                    <RatingStar numberOfStars={4} />
-                    <EmptyView height={6} />
-                    
-                    <Divider />
-                    <EmptyView height={10} />
-                  <ThemeText size={Textstyles.text_medium} >
-                   Language
-                </ThemeText>
-                <EmptyView height={10} />
-                <Text style={[Textstyles.text_small, { color: secondaryTextColor, }]}>
-                       Yoruba,Hausa
-                    </Text>
-                    <EmptyView height={6} />
-                    
-                    <Divider />
-                    <EmptyView height={10} />
-                  <ThemeText size={Textstyles.text_medium} >
-                 Certification
-                </ThemeText>
-                <EmptyView height={10} />
-                <Text style={[Textstyles.text_small, { color: secondaryTextColor, }]}>
-                       CCNA
-                    </Text>
-                    <Text style={[Textstyles.text_xsma, { color: secondaryTextColor, }]}>
-                       January 2013
-                    </Text>
+                    AdeSeun Olawuyi
+                </Text>
+                <EmptyView height={6} />
+                <Text style={[Textstyles.text_xsma, { color: secondaryTextColor, }]}>
+                    Good job and wel done
+                </Text>
+                <EmptyView height={6} />
+                <RatingStar numberOfStars={4} />
+                <EmptyView height={6} />
 
-                    <EmptyView height={6} />
+                <Divider />
+                <EmptyView height={10} />
+                <Text style={[Textstyles.text_small, { color: secondaryTextColor, }]}>
+                    AdeSeun Olawuyi
+                </Text>
+                <EmptyView height={6} />
+                <Text style={[Textstyles.text_xsma, { color: secondaryTextColor, }]}>
+                    Good job and wel done
+                </Text>
+                <EmptyView height={6} />
+                <RatingStar numberOfStars={4} />
+                <EmptyView height={6} />
+
+                <Divider />
+                <EmptyView height={10} />
+                <ThemeText size={Textstyles.text_medium} >
+                    Language
+                </ThemeText>
+                <EmptyView height={10} />
+                <Text style={[Textstyles.text_small, { color: secondaryTextColor, }]}>
+                    Yoruba,Hausa
+                </Text>
+                <EmptyView height={6} />
+
+                <Divider />
+                <EmptyView height={10} />
+                <ThemeText size={Textstyles.text_medium} >
+                    Certification
+                </ThemeText>
+                <EmptyView height={10} />
+                <Text style={[Textstyles.text_small, { color: secondaryTextColor, }]}>
+                    CCNA
+                </Text>
+                <Text style={[Textstyles.text_xsma, { color: secondaryTextColor, }]}>
+                    January 2013
+                </Text>
+
+                <EmptyView height={6} />
 
 
 

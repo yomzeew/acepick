@@ -11,6 +11,7 @@ export default function AuthenticatedLayout() {
       <Stack.Screen name="(profession)" />
       <Stack.Screen name="(chatcallmessage)" />
       <Stack.Screen name="(professionalLayout)" />
+      <Stack.Screen name="(jobs)" />
     </Stack>
 
  

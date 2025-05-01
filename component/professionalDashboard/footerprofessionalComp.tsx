@@ -43,7 +43,7 @@ const FooterProfessional=()=>{
     shadowOpacity: 0.3,
     shadowRadius: 4,
   }}
-  className="w-auto absolute bottom-5 h-16 justify-center gap-3 flex-row"
+  className="w-auto absolute bottom-5 h-16 justify-center gap-3 flex-row "
 >
   <TouchableOpacity
     style={{
@@ -86,15 +86,15 @@ const FooterProfessional=()=>{
   </TouchableOpacity>
   <TouchableOpacity
     style={{
-      backgroundColor: activePage === "Profile" ? bgcoloractive : "",
+      backgroundColor: activePage === "My job" ? bgcoloractive : "",
       borderRadius: 24,
     }}
     className="w-24 justify-center items-center"
-    onPress={()=>handlenavigation("Profile","/profileprofessionlayout")}
+    onPress={()=>handlenavigation("My job","/myjobAPLayout")}
   >
     <View className="items-center">
-      <FontAwesome5 color={activePage === "Profile" ? textcoloractive : textcolornonactive} size={20} name="user" />
-      <Text style={{ color: activePage === "Profile" ? textcoloractive : textcolornonactive }}>Profile</Text>
+      <FontAwesome5 color={activePage === "My job" ? textcoloractive : textcolornonactive} size={20} name="toolbox" />
+      <Text style={{ color: activePage === "My job" ? textcoloractive : textcolornonactive }}>My job</Text>
     </View>
   </TouchableOpacity>
 </View>

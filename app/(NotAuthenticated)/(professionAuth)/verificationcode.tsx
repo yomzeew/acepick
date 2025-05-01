@@ -7,4 +7,4 @@ const VerificationEmailPhoneLayout=()=>{
         </>
     )
 }
-export default VerificationEmailPhoneLayout
+export default VerificationEmailPhoneLayout 

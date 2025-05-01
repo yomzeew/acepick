@@ -3,7 +3,7 @@ import HeaderComponent from "../../headerComp"
 import BackComponent from "component/backcomponent"
 import { useTheme } from "hooks/useTheme"
 import { getColors } from "static/color"
-import { ImageBackground, TouchableOpacity, View } from "react-native"
+import { ImageBackground, TouchableOpacity, View,ScrollView } from "react-native"
 import { Image, Text } from "react-native"
 import { ThemeText, ThemeTextsecond } from "component/ThemeText"
 import { AntDesign, FontAwesome5, FontAwesome6, Ionicons } from "@expo/vector-icons"
@@ -11,14 +11,15 @@ import { Textstyles } from "static/textFontsize"
 import RatingStar from "component/rating"
 import EmptyView from "component/emptyview"
 import DraggablePanel from "component/bottomSheetcomp"
-import { ScrollView } from "react-native-gesture-handler"
 import Divider from "component/divider"
 import { useState } from "react"
 import SelectionCard from "component/SelectionCard"
+import { useRouter } from "expo-router"
 
 const CorporateProfile = () => {
     const { theme } = useTheme()
     const { secondaryTextColor, primaryColor, backgroundColortwo, backgroundColor } = getColors(theme)
+    const route=useRouter()
     return (
         <>
             <View style={{ backgroundColor: primaryColor }} className="h-full w-full">
@@ -67,6 +68,14 @@ const CorporateProfile = () => {
 
                         </View>
 
+
+                    </View>
+                    <View className="w-full items-center">
+                        <TouchableOpacity onPress={()=>route.push('/joborderLayout')} style={{ backgroundColor: primaryColor }} className="px-3 h-10 items-start justify-center rounded-2xl">
+                            <Text style={[Textstyles.text_small, { color: "#ffffff" }]}>
+                                Sent a job request
+                            </Text>
+                        </TouchableOpacity>
 
                     </View>
                     <DraggablePanel maxHeightPercentage={70} minHeightPercentage={50} backgroundColor={backgroundColor}>

@@ -5,6 +5,7 @@ import InputComponent from "../../controls/textinput";
 import { useState } from "react";
 import ButtonComponent from "../../buttoncomponent";
 import AuthComponent from "../Authcontainer";
+import { useLocalSearchParams } from "expo-router";
 
 function RegisterScreenProfession() {
   const { theme } = useTheme(); // Theme state and toggle function
@@ -17,11 +18,13 @@ function RegisterScreenProfession() {
   const toggleCheckbox = () => {
     setIsChecked(!isChecked);
   };
+  const { type } = useLocalSearchParams();
+
 
   return (
     <>
     <View style={{ backgroundColor: backgroundColor }} className="w-full h-full">
-    <AuthComponent title="Register as a Professional">   
+    <AuthComponent title={`Register as a ${type}`}>   
        <View className="items-center">
         <View className="h-3"></View>
         <InputComponent color={primaryColor} placeholder="Email" placeholdercolor={secondaryTextColor}/>
@@ -36,7 +39,7 @@ function RegisterScreenProfession() {
           color={primaryColor}
           text="Verify Email"
           textcolor="#fff" 
-          route="/verificationcodeprofession"
+          route={`/verificationcode?type=${type}`}
         />
         <View className="h-5"></View>
       </View>

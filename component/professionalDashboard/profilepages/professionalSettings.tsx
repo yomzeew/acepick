@@ -13,12 +13,15 @@ const ProfessionalsSettingsComp = () => {
     const { theme } = useTheme();
     const { primaryColor, selectioncardColor, secondaryTextColor } = getColors(theme);
     const router = useRouter()
+    const professionalType="artisan"
+
     const handleeditnav = () => {
         router.push('/profileeditlayout')
 
     }
-    const handlenotificationapp = () => {
-        router.push('/notificationapplayout')
+    const handlesetting = () => {
+        const routes=professionalType==="artisan"?"/artisanSettingLayout":""
+        router.push(routes)
     }
     const handlebillnave = () => {
         router.push('/billhistorylayout')
@@ -64,7 +67,7 @@ const ProfessionalsSettingsComp = () => {
                                 </View>
                                 <AntDesign name="right" size={24} color={secondaryTextColor} />
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={handlenotificationapp} className="flex-row justify-between items-center h-20 border-b border-slate-400">
+                            <TouchableOpacity onPress={handlesetting} className="flex-row justify-between items-center h-20 border-b border-slate-400">
                                 <View className="flex-row gap-x-2 items-center">
                                     <FontAwesome5 name="bell" color={primaryColor} size={16} />
                                     <ThemeTextsecond size={Textstyles.text_xmedium}>Professional Settings</ThemeTextsecond>

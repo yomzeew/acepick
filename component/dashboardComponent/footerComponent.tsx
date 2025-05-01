@@ -82,15 +82,15 @@ const FooterComponent=()=>{
   </TouchableOpacity>
   <TouchableOpacity
     style={{
-      backgroundColor: activePage === "Profile" ? bgcoloractive : "",
+      backgroundColor: activePage === "My job" ? bgcoloractive : "",
       borderRadius: 24,
     }}
     className="w-24 justify-center items-center"
-    onPress={()=>handlenavigation("Profile","/profilelayout")}
+    onPress={()=>handlenavigation("My job","/myjobLayout")}
   >
     <View className="items-center">
-      <FontAwesome5 color={activePage === "Profile" ? textcoloractive : textcolornonactive} size={20} name="user" />
-      <Text style={{ color: activePage === "Profile" ? textcoloractive : textcolornonactive }}>Profile</Text>
+      <FontAwesome5 color={activePage === "My job" ? textcoloractive : textcolornonactive} size={20} name="toolbox" />
+      <Text style={{ color: activePage === "My job" ? textcoloractive : textcolornonactive }}>My job</Text>
     </View>
   </TouchableOpacity>
 </View>
