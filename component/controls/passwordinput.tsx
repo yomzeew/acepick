@@ -1,9 +1,13 @@
 import { View, TextInput, TouchableOpacity } from "react-native";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import React, { useState } from "react";
+import { useTheme } from "hooks/useTheme";
+import { getColors } from "static/color";
 
-const PasswordComponent = ({color, placeholder, placeholdercolor}: { color: string; placeholder: string; placeholdercolor:string }) => {
-  const [isSecure, setIsSecure] = useState(true); 
+const PasswordComponent = ({color, placeholder, placeholdercolor,value,onChange}: { color: string; placeholder: string; placeholdercolor:string;value:string,onChange:(text:string)=>void }) => {
+  const [isSecure, setIsSecure] = useState(true);
+   const { theme } = useTheme();
+    const { primaryColor, secondaryTextColor, backgroundColor } = getColors(theme); 
 
   return (
     <View
@@ -14,8 +18,10 @@ const PasswordComponent = ({color, placeholder, placeholdercolor}: { color: stri
         placeholder={placeholder}
         placeholderTextColor={placeholdercolor}
         secureTextEntry={isSecure}
-        style={{ flex: 1 }}
         className="text-base"
+        onChangeText={(text:string)=>onChange(text)}
+        value={value}
+        style={{ flex: 1, color: secondaryTextColor }}
       />
       <TouchableOpacity onPress={() => setIsSecure(!isSecure)}>
         <AntDesign

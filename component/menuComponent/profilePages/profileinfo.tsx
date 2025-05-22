@@ -15,12 +15,19 @@ import { useState } from "react"
 import SliderModalTemplate from "component/slideupModalTemplate"
 import VerificationComponent from "./verificationcomp"
 import SliderModal from "component/SlideUpModal"
+import { useSelector } from "react-redux"
+import { RootState } from "redux/store"
 
 const Profileinfo=()=>{
     const {theme}=useTheme()
     const {primaryColor,primaryTextColor,selectioncardColor}=getColors(theme)
     const [showmodal,setshowmodal]=useState<boolean>(false)
     const[showmodalVerify,setshowmodalVerify]=useState<boolean>(false)
+    
+    const user=useSelector((state:RootState)=>state.auth.user)
+    const avatar:string=user?.profile.avatar || ' '
+    const firstName:string= user?.profile.firstName  || ' '
+    const numberOfStars:number=user?.profile.rate || 1
     const route='/profilelayout'
 return(
     <>
@@ -41,7 +48,7 @@ return(
             size={Textstyles.text_medium}
             className="font-extralight text-white mt-8"
             >
-             Oluwadamilola's Profile
+             {firstName}'s Profile
             </ThemeText>
 
             </View>

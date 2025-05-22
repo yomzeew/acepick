@@ -14,6 +14,9 @@ import { useRouter } from "expo-router"
 import RatingStar from "component/rating"
 import { UserDetail } from "component/dashboardComponent/userdetails"
 import HeaderComponent from "component/headerComp"
+import JobStatistics from "component/jobStatistics"
+import { useSelector } from "react-redux"
+import { RootState } from "redux/store"
 
 
 const ProfileComponent = () => {
@@ -26,7 +29,9 @@ const ProfileComponent = () => {
     const handleNavigationSettings=()=>{
         routes.push('/profilesettinglayout')
     }
-
+    const user=useSelector((state:RootState)=>state.auth.user)
+    const numberofDisputes=user?.profile.totalDisputes || 0
+    const numberofReview=user?.profile.totalReview || 0
     return (
         <>
             <ContainerTemplate>
@@ -39,28 +44,19 @@ const ProfileComponent = () => {
                 <EmptyView height={10} />
                 <UserDetail />
                 <EmptyView height={10} />
+
                 <AnalyticDiagram/>
-                <View  className="w-full  mt-2">
-                    <ScrollView  horizontal   showsHorizontalScrollIndicator={false}>
-                    <View className="flex-row gap-x-4">
-                        <Cardcomponent Title={"Completed Jobs"} totalnumber={4} />
-                        <Cardcomponent Title={"Jobs in Progress"} totalnumber={6} />
-                        <Cardcomponent Title={"Pending Jobs"} totalnumber={90} />
-                        <Cardcomponent Title={"Cancelled Jobs"} totalnumber={1} />
-                        <Cardcomponent Title={"Rejected Jobs"} totalnumber={0} />
-                        </View>
-                       
-                    </ScrollView>
-                </View>
+                <JobStatistics/>
+
                 <View  className="w-full">
                     <TouchableOpacity>
                     <ListTab>
-                        <FontAwesome name="warning" size={20} color="red" /> {'Disputes'}({4})
+                        <FontAwesome name="warning" size={20} color="red" /> {'Disputes'}({numberofDisputes})
                     </ListTab>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={handleNavigation}>
                     <ListTab>
-                        <FontAwesome name="star" size={20} color="gold" /> {'Reviews & Ratings'}({10})
+                        <FontAwesome name="star" size={20} color="gold" /> {'Reviews & Ratings'}({numberofReview})
                     </ListTab>
                     </TouchableOpacity>
                     
@@ -118,24 +114,4 @@ export const ListTab=({children}:{children:ReactNode})=>{
    
 }
 
-const Cardcomponent=({Title,totalnumber}:{Title:string,totalnumber:number})=>{
-    const { theme } = useTheme()
-    const { primaryTextColor, selectioncardColor, primaryColor, secondaryTextColor } = getColors(theme)
-    return(
-<View  style={{ backgroundColor: selectioncardColor, elevation: 4 }}  className="w-44 h-24 rounded-2xl px-5 py-3 mt-2 -slate-400 ">
-<View className="w-full px-3 justify-center items-center h-full">
-    <View>
-        <ThemeTextsecond size={Textstyles.text_xsma}>{Title}</ThemeTextsecond>
-    </View>
-    <View>
-        <ThemeTextsecond size={Textstyles.text_xmedium}>{totalnumber}</ThemeTextsecond>
-    </View>
-    
-    </View>
 
-
-</View>
-    )
-
-
-}

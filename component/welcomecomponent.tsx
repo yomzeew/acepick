@@ -6,10 +6,12 @@ import { getColors } from "../static/color";
 import EmptyView from "./emptyview";
 import { useRouter } from "expo-router";
 import { Textstyles } from "../static/textFontsize";
+import { useRole } from "context/roleContext";
 function WelcomeComponent() {
   const { theme } = useTheme(); // Theme state and toggle function
   const { primaryColor, backgroundColor, primaryTextColor, welcomeText } = getColors(theme);
 const router = useRouter()
+const { dispatch } = useRole(); // use the dispatch
   return (
     <View
       style={{ backgroundColor: backgroundColor }}
@@ -31,30 +33,37 @@ const router = useRouter()
       <EmptyView/>
       {/* Buttons */}
       <View className="w-full flex items-center">
-        <TouchableOpacity onPress={()=>router.navigate("/loginscreen")}
-          style={{ borderColor: primaryColor }}
-          className="w-11/12 border rounded-lg py-4 mb-4"
+      <TouchableOpacity
+        onPress={() => {
+          dispatch({ type: "SET_ROLE", payload: "client" });
+          router.navigate("/loginscreen");
+        }}
+        style={{ borderColor: primaryColor }}
+        className="w-11/12 border rounded-lg py-4 mb-4"
+      >
+        <Text
+          style={[Textstyles.text_cmedium, { color: primaryColor }]}
+          className="text-center text-lg font-semibold"
         >
-          <Text
-            style={[Textstyles.text_cmedium,{ color: primaryColor }]}
-            className="text-center text-lg font-semibold"
-          >
-            Client
-          </Text>
-        </TouchableOpacity>
+          Client
+        </Text>
+      </TouchableOpacity>
 
-        <TouchableOpacity
-          style={{ backgroundColor: primaryColor }}
-          className="w-11/12 rounded-lg py-4"
-          onPress={()=>router.navigate("/(professionAuth)/loginprofession")}
+      <TouchableOpacity
+        style={{ backgroundColor: primaryColor }}
+        className="w-11/12 rounded-lg py-4"
+        onPress={() => {
+          dispatch({ type: "SET_ROLE", payload: "professional" });
+          router.navigate("/(professionAuth)/loginprofession");
+        }}
+      >
+        <Text
+          style={[Textstyles.text_cmedium, { color: "#ffffff" }]}
+          className="text-center text-lg font-semibold"
         >
-          <Text
-            style={[Textstyles.text_cmedium,{ color: "#ffffff" }]}
-            className="text-center text-lg font-semibold"
-          >
-            Professional
-          </Text>
-        </TouchableOpacity>
+          Professional
+        </Text>
+      </TouchableOpacity>
       </View>
     </View>
   );

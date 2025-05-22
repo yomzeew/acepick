@@ -11,7 +11,7 @@ const OtpComponent = ({
   onOtpComplete: (otp: string) => void;
 }) => {
   const inputs = useRef<Array<TextInput | null>>([]);
-  const [otp, setOtp] = useState<string[]>(new Array(6).fill(""));
+  const [otp, setOtp] = useState<string[]>(new Array(4).fill(""));
 
   // Handle input change
   const handleChange = (value: string, index: number) => {
@@ -49,7 +49,7 @@ const OtpComponent = ({
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View className="w-full items-center">
         <View className="flex-row gap-x-2">
-          {Array(6)
+          {Array(4)
             .fill("")
             .map((_, index) => (
               <TextInput

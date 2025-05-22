@@ -53,6 +53,12 @@ const ProductDetails=()=>{
                 </ThemeTextsecond> 
              </View>
              <EmptyView height={20}/>
+             <View className="w-full">
+                <ThemeText size={Textstyles.text_xsmall}>
+                    Location City:Akure
+                </ThemeText>
+             </View>
+             <EmptyView height={20}/>
              <ClientDetailsWithoutChat/>
              <EmptyView height={10}/>
        <ButtonFunction 

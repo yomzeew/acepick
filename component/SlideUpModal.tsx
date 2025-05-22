@@ -5,10 +5,12 @@ import { getColors } from "../static/color";
 import ButtonComponent from "./buttoncomponent";
 import VerifyComponent from "./verifycomponent";
 import EmptyView from "./emptyview";
+import { useRouter } from "expo-router";
 
 const SliderModal = ({ showmodal, setshowmodal, route,title="Email/Phone number Verified",textbutton="Continue registration",subtitle="" }: { showmodal: boolean; setshowmodal: (value: boolean) => void; route: string;title:string,textbutton?:string,subtitle?:string }) => {
   const { theme } = useTheme();
   const { primaryColor, backgroundColor, backgroundColortwo, secondaryTextColor } = getColors(theme);
+  const router=useRouter()
 
   // 🔹 Spring animation value
   const [slideAnim] = useState(new Animated.Value(0)); // Hidden initially
@@ -57,7 +59,7 @@ const SliderModal = ({ showmodal, setshowmodal, route,title="Email/Phone number 
           <VerifyComponent textcolor={secondaryTextColor} text={title} subtitle={subtitle} />
           <EmptyView height={56} />
           <View className="px-6">
-            <ButtonComponent color={primaryColor} text={textbutton} textcolor="#fff" route={route} />
+            <ButtonComponent color={primaryColor} text={textbutton} textcolor="#fff" onPress={()=>router.push(route)} />
           </View>
         </Animated.View>
       )}

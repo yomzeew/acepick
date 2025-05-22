@@ -9,15 +9,16 @@ import { Button } from "react-native";
 import { Textstyles } from "static/textFontsize";
 
 interface InputComponentProps {
-  color: string;
-  placeholder: string;
-  placeholdercolor: string;
-  onChange?: (text: string) => void;
-  multiline?: boolean;
-  prefix?: boolean;
-  icon?: ReactNode;
-  keyboardType?: KeyboardTypeOptions;
-  fieldType?: "text" | "date"; // New field type
+    color: string;
+    placeholder: string;
+    placeholdercolor: string;
+    onChange?: (text: string) => void;
+    multiline?: boolean;
+    prefix?: boolean;
+    icon?: ReactNode;
+    keyboardType?: KeyboardTypeOptions;
+    fieldType?: "text" | "date";
+    value: string | number | Date;
 }
 
 const InputComponent = ({
@@ -25,6 +26,7 @@ const InputComponent = ({
   placeholder,
   placeholdercolor,
   onChange,
+  value,
   multiline = false,
   prefix = false,
   icon,

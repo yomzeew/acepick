@@ -1,5 +1,4 @@
-import { View,Image, Text, TouchableOpacity } from "react-native"
-import LikeIcon from "../icons/likeIcon"
+import { View,Image, TouchableOpacity } from "react-native"
 import NotificationIcon from "../icons/notificationIcon"
 import { useSelector } from "react-redux"
 import { RootState } from "../../redux/store"
@@ -13,22 +12,33 @@ import { useRouter } from "expo-router"
 const HeaderComponent=()=>{
     const {theme}=useTheme()
     const {primaryColor}=getColors(theme)
-    const role='professional'
+    const user= useSelector((state: RootState) => state?.auth?.user);
+    const role=user?.role
 
     const navRoute=role==='professional'?'/profileprofessionlayout':'/profilelayout'
 
     const router=useRouter()
     
-    const auth = useSelector((state: RootState) => state.auth.isAuthenticated);
+    const auth = useSelector((state: RootState) => state.auth?.isAuthenticated);
+    const clientName:string= user?.profile.firstName  || ' '
+    const avatar:string=user?.profile.avatar || ' '
+
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return 'Good Morning';
+        if (hour < 17) return 'Good Afternoon';
+        return 'Good Evening';
+      };
+
     console.log(auth)
     return(
         <>
         <View className="h-32 pt-10 w-full flex-row justify-between items-center">
             <View className="flex-row gap-2 items-center">
-            <Image className="w-16 h-16 rounded-full" resizeMode="contain" source={require('../../assets/demo.jpg')} />
+            <Image className="w-16 h-16 rounded-full" resizeMode="contain" source={{uri:avatar}} />
             <View>
-                    <ThemeText type="secondary" size={Textstyles.text_xsma}>Good Afternoon</ThemeText>
-                    <ThemeText type="secondary" size={Textstyles.text_xmedium}>Oluwadamilola</ThemeText>
+                    <ThemeText type="secondary" size={Textstyles.text_xsma}>{getGreeting()}</ThemeText>
+                    <ThemeText type="secondary" size={Textstyles.text_xmedium}>{clientName}</ThemeText>
                 </View>
             </View>
             <View className="flex-row gap-2 items-center">

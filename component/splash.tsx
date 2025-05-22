@@ -20,22 +20,22 @@ const Splash = () => {
 
   const values = [
     {
-        image: <FirstSvg className="w-full"/>,
+        image: <Image source={require('../assets/first.png')} resizeMode="cover"  />,
       header: "You are welcome to Acepick",
       body: "Your gateway to a world of possibilities. Connect with skilled professionals, explore a transparent marketplace, and experience secure transactions. Join us on this journey where clients and professionals thrive together.",
     },
     {
-        image: <SecondSvg className="w-full"/>,
+        image:  <Image source={require('../assets/2nd.png')} resizeMode="cover"  />,
       header: "Direct Connections, Seamless Chats",
       body: "Clients, engage in direct chats with professionals across sectors. Discuss projects, explore services, and build connections. Acepick simplifies communication for a personalized and efficient experience.",
     },
     {
-        image: <ThirdSvg className="w-full" />,
+        image:  <Image source={require('../assets/3rd.png')} resizeMode="cover"  />,
       header: "Explore the Marketplace",
       body: "Discover our Marketplace, where you can confirm prices of items, explore businesses, and find the best deals. Acepick is committed to transparency, ensuring a seamless experience whether you're hiring professionals or exploring the market.",
     },
     {
-        image: <FourthSvg className="w-full"/>,
+        image: <Image source={require('../assets/4th.png')} resizeMode="cover"  />,
       header: "Secure Transactions, Effortless works",
       body: "Acepick prioritizes your security. Experience secure transactions, transparent processes, and an intuitive platform. Clients, approve invoices with ease, and professionals, showcase your skills and create invoices effortlessly. Acepick, where every connection leads to success.",
     },

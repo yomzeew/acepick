@@ -16,11 +16,13 @@ import { useRouter } from "expo-router";
 import JobCard from "component/jobs/jobsCard";
 import ListofAPmodal from "./listofA&Pmodal";
 import { FontAwesome5 } from "@expo/vector-icons";
+import SectorsComponent from "./sectorsComponent";
 
 const HomeComp = () => {
     const router=useRouter()
     const [showmodal,setshowmodal]=useState<boolean>(false)
     const [showprofession,setshowprofession]=useState(false)
+    const [errorMessage,setErrorMessage]=useState('')
     const { theme } = useTheme(); // Theme state and toggle function
     const { primaryColor, backgroundColor, primaryTextColor, secondaryTextColor } = getColors(theme);
 
@@ -28,6 +30,7 @@ const HomeComp = () => {
         router.push(`/category/${value}`)
 
     }
+    
 
     return (
         <>  
@@ -64,55 +67,9 @@ const HomeComp = () => {
                 <ThemeText size={Textstyles.text_medium} type="secondary">
                     Professional
                 </ThemeText>
-                <View className="flex-1  pb-5">
-                    <ScrollView contentContainerStyle={{paddingBottom:60,paddingTop:20}} showsVerticalScrollIndicator={false}>
-                        <TouchableOpacity onPress={()=>handlenavcategory('Contruction and Builders')}>
-                        <ProfessionalCard
-                        profession="Contruction and Builders"
-                        totalnumber={30}
-                        totaluser={635}
-                         />
-                        </TouchableOpacity>
-                        <EmptyView height={10} />
-                        <TouchableOpacity onPress={()=>handlenavcategory('Health and Medical')}>
-                        <ProfessionalCard 
-                         profession="Health and Medical"
-                         totalnumber={30}
-                         totaluser={635}
-                        />
-                        </TouchableOpacity>
-                        <EmptyView height={10} />
-                        <TouchableOpacity onPress={()=>handlenavcategory('Information and Technology')}>
-                        <ProfessionalCard
-                         profession="Information and Technology"
-                         totalnumber={30}
-                         totaluser={635}
-                         />
-
-                        </TouchableOpacity>
-                        
-                        <EmptyView height={10} />
-                        <TouchableOpacity onPress={()=>handlenavcategory('Education and Tutoring')}>
-                        <ProfessionalCard
-                         profession="Education and Tutoring"
-                         totalnumber={30}
-                         totaluser={635}
-                         />
-                        </TouchableOpacity>
-                         <EmptyView height={10} />
-                         <TouchableOpacity onPress={()=>handlenavcategory('Art and Entertainment')}>
-                         <ProfessionalCard
-                         profession="Art and Entertainment"
-                         totalnumber={30}
-                         totaluser={635}
-                         />
-
-                         </TouchableOpacity>
-                        
-
-                    </ScrollView>
-
-                </View>
+                <SectorsComponent
+                setErrorMessage={setErrorMessage}
+                />
 
 
 
