@@ -1,5 +1,5 @@
 import axios from "axios";
-import { loginUrl, registerUrl, sendOtpUrl, verifyOtpUrl } from "utilizes/endpoints";
+import { corporateUrl, forgotpassword, loginUrl, registerUrl, registerUrlArtisan, sendOtpUrl, verifyOtpUrl } from "utilizes/endpoints";
 
 
 export const loginUser = async (data: any) => {
@@ -29,3 +29,17 @@ export const registerUser=async(data:any)=>{
   const response=await axios.post(registerUrl,data)
   return response.data
 }
+export const registerArtisan=async(data:any)=>{
+  const response=await axios.post(registerUrlArtisan,data)
+  return response.data
+}
+export const registerCorporate=async(data:any)=>{
+  const response=await axios.post(corporateUrl,data)
+  return response.data
+}
+
+export const forgetUser=async(data:any)=>{
+  const response=await axios.post(forgotpassword,data)
+  return response.data
+}
+

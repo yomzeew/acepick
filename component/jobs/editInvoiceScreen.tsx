@@ -1,171 +1,337 @@
-import { FontAwesome6 } from "@expo/vector-icons"
-import ButtonFunction from "component/buttonfunction"
-import InputComponent, { InputComponentTextarea } from "component/controls/textinput"
-import ContainerTemplate from "component/dashboardComponent/containerTemplate"
-import Divider from "component/divider"
-import EmptyView from "component/emptyview"
-import HeaderComponent from "component/headerComp"
-import { SliderModalNoScrollview } from "component/slideupModalTemplate"
-import { ThemeText, ThemeTextsecond } from "component/ThemeText"
-import { useTheme } from "hooks/useTheme"
-import { useState } from "react"
-import { View, Text, TouchableOpacity } from "react-native"
-import { getColors } from "static/color"
-import { Textstyles } from "static/textFontsize"
+// EditInvoiceScreen.tsx
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  FlatList,
+  ActivityIndicator,
+} from 'react-native';
+import { FontAwesome6 } from '@expo/vector-icons';
+import { useTheme } from 'hooks/useTheme';
+import ContainerTemplate from 'component/dashboardComponent/containerTemplate';
+import HeaderComponent from 'component/headerComp';
+import EmptyView from 'component/emptyview';
+import InputComponent, {
+  InputComponentTextarea,
+} from 'component/controls/textinput';
+import Checkbox from 'component/controls/checkbox';
+import ButtonFunction from 'component/buttonfunction';
+import Divider from 'component/divider';
+import {
+  SliderModalNoScrollview,
+} from 'component/slideupModalTemplate';
+import {
+  ThemeText,
+  ThemeTextsecond,
+} from 'component/ThemeText';
+import { Textstyles } from 'static/textFontsize';
+import { getColors } from 'static/color';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { AlertMessageBanner } from 'component/AlertMessageBanner';
+import {
+  fetchInvoice,   //  GET /invoices/:id   ➜ Promise<InvoiceDto>
+  updateInvoiceFn //  PATCH /invoices/:id ➜ Promise<InvoiceDto>
+} from 'services/userService';
+
+import { currency } from './invoiceScreen'; // reuse helper
+import { MaterialCard,AddMaterial } from './invoiceScreen';
+import { Material } from 'type';
+import ButtonComponent from 'component/buttoncomponent';
+import { data } from 'autoprefixer';
+
+/* ─────────────────────────────────────────────────────────────────── */
 
 const EditInvoiceScreen = () => {
-    const { theme } = useTheme()
-    const { primaryColor, secondaryTextColor, selectioncardColor } = getColors(theme)
-    const [showmodal, setshowmodal] = useState(false)
-    const [showsuccess,setshowsuccess]=useState(false)
-    const handlePress = () => {
-        setshowmodal(true)
+    
+  const { invoiceId } = useLocalSearchParams<{ invoiceId: string }>();
+  const router        = useRouter();
 
+  const { theme }   = useTheme();
+  const { primaryColor, secondaryTextColor, selectioncardColor } =
+    getColors(theme);
+
+  /* ───────────────────────── Invoice data ───────────────────────── */
+
+  const {
+    data: invoice,
+    isFetching,
+    refetch,
+  } = useQuery({
+    queryKey: ['invoice', invoiceId],
+    queryFn : () => fetchInvoice(Number(invoiceId)),
+    enabled : !!invoiceId,
+  });
+
+  console.log(invoice?.id,'second test')
+
+  /* keep local copy so the form is controlled */
+  const [durationUnit, setDurationUnit]   = useState<'days' | 'months'>('days');
+  const [durationValue, setDurationValue] = useState<string>(''); // raw text
+  const [workmanship, setWorkmanship]     = useState<string>('0');
+  const [materials, setMaterials]         = useState<Material[]>([]);
+
+  /* banner messages */
+  const [errorMessage,   setErrorMessage]   = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  /* add-material modal & success modal */
+  const [showAdd,     setShowAdd]     = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  /* pre-fill once invoice is fetched */
+  useEffect(() => {
+    if (!invoice) return;
+    setDurationUnit((invoice.durationUnit ?? 'days') as 'days' | 'months');
+    setDurationValue(String(invoice.durationValue ?? ''));
+    setWorkmanship(String(invoice.workmanship ?? '0'));
+    setMaterials(invoice.materials ?? []);
+  }, [invoice]);
+
+  /* derived totals */
+  const materialsTotal = materials.reduce(
+    (acc, m) => acc + m.price * m.quantity,
+    0
+  );
+  const grandTotal =
+    (parseFloat(workmanship) || 0) + materialsTotal;
+
+  /* ───────────────────────── Update mutation ───────────────────── */
+
+  const updateMutation = useMutation({
+    mutationFn: (payload: any) => updateInvoiceFn(Number(invoiceId), payload),
+    onSuccess : () => {
+      setSuccessMessage('Invoice updated successfully');
+      setShowSuccess(true);
+      refetch();          // refresh cache with latest data
+    },
+    onError   : (e: any) => {
+      const msg =
+        e?.response?.data?.message ??
+        e?.response?.data?.error ??
+        e?.message ??
+        JSON.stringify(e);
+      setErrorMessage(msg);
+    },
+  });
+
+  const handleSubmit = () => {
+    if (!invoice) return;
+    const body = {
+      durationUnit,
+      durationValue : Number(durationValue),
+      workmanship   : Number(workmanship),
+      materials,
+    };
+    updateMutation.mutate(body);
+  };
+
+  /* auto-dismiss banners */
+  useEffect(() => {
+    if (successMessage) {
+      const t = setTimeout(() => setSuccessMessage(null), 4000);
+      return () => clearTimeout(t);
     }
-    return (
-        <>
-            <ContainerTemplate>
-                <View className="h-full w-full flex-col">
-                    <HeaderComponent title={"Edit Invoice"} />
-                    <EmptyView height={20} />
-                    <View className="w-full flex-1">
-                        <InputComponent color={primaryColor} placeholder={"Jobs Duration"} placeholdercolor={secondaryTextColor} />
-                        <EmptyView height={20} />
-                        <ThemeTextsecond size={Textstyles.text_xsma}>Enter your workmanship</ThemeTextsecond>
-                        <InputComponent prefix={true} icon={<Text style={[Textstyles.text_medium, { color: "#ffffff" }]}>₦</Text>} color={primaryColor} placeholder={"Price"} placeholdercolor={"#ffffff"} />
-                        <EmptyView height={20} />
-                        <View className="w-full items-end ">
-                            <TouchableOpacity onPress={handlePress} style={{ backgroundColor: "#33658A" }} className="px-3 w-36 h-12 justify-center items-center rounded-xl">
-                                <Text style={[Textstyles.text_xsmall, { color: "#ffffff" }]}>+ Add Job Material</Text>
-                            </TouchableOpacity>
-                        </View>
-                        <EmptyView height={20} />
-                        <MaterialCard/>
-                       
-                    </View>
-                    <View className="absolute bottom-20  w-full">
-                        <ButtonFunction color={primaryColor} text={"Submit"} textcolor={"#ffffff"} onPress={() => setshowsuccess(!showsuccess)} />
-                    </View>
-                </View>
-            </ContainerTemplate>
-            {showmodal &&
-                <SliderModalNoScrollview modalHeight={"80%"} showmodal={showmodal} setshowmodal={setshowmodal}>
-                    <AddMaterial
-                        showmodal={showmodal}
-                        setshowmodal={(value: boolean) => setshowmodal(value)}
-                    />
-                </SliderModalNoScrollview>}
-                {showsuccess &&
-                <SliderModalNoScrollview modalHeight={"60%"} showmodal={showsuccess} setshowmodal={setshowsuccess}>
-                    <View className="items-center w-full ">
-                        <EmptyView height={60}/>
-                        <FontAwesome6 name="circle-check" size={36} color={primaryColor}/>
-                        <EmptyView height={20}/>
-                        <ThemeText size={Textstyles.text_medium}>
-                            Successful
-                        </ThemeText>
-                        <EmptyView height={60}/>
-                        <ButtonFunction color={primaryColor} text={"Ok"} textcolor={"#ffffff"} onPress={() => setshowsuccess(!showsuccess)} />
-                    </View>
-                </SliderModalNoScrollview>
-                }
-        </>
-    )
-}
-export default EditInvoiceScreen
+  }, [successMessage]);
 
-interface AddMaterialProps {
-    showmodal: boolean
-    setshowmodal: (value: boolean) => void
-}
+  useEffect(() => {
+    if (errorMessage) {
+      const t = setTimeout(() => setErrorMessage(null), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [errorMessage]);
 
-const AddMaterial = ({ showmodal, setshowmodal }: AddMaterialProps) => {
-    const { theme } = useTheme()
-    const { primaryColor, secondaryTextColor } = getColors(theme)
+  /* ───────────────────────── UI ────────────────────────────────── */
+
+  if (isFetching) {
     return (
-        <>
-            <View className="w-full h-full py-5 px-3">
-                <ThemeText size={Textstyles.text_medium}>
-                    Add material
-                </ThemeText>
-                <EmptyView height={20} />
+      <ContainerTemplate>
+        <View className='w-full h-full justify-center items-center'>
+                   <ActivityIndicator color={primaryColor} style={{ marginTop: 30 }} />
+                   </View>
+      </ContainerTemplate>
+    );
+  }
+
+  if (!invoice) {
+    return (
+      <ContainerTemplate>
+           <HeaderComponent title="View Invoice" />
+         <EmptyView height={10} />
+         
+              <View className='px-3'>
+              <ThemeTextsecond size={Textstyles.text_cmedium}>
+            Invoice not found
+          </ThemeTextsecond>
+
+              </View>
+      </ContainerTemplate>
+    );
+  }
+
+  return (
+    <>
+      {successMessage && (
+        <AlertMessageBanner type="success" message={successMessage} />
+      )}
+      {errorMessage && (
+        <AlertMessageBanner type="error" message={errorMessage} />
+      )}
+
+      <ContainerTemplate>
+        <View className="flex-1">
+          <HeaderComponent title="Edit Invoice" />
+          <EmptyView height={20} />
+
+          {/* Duration */}
+          <ThemeTextsecond size={Textstyles.text_xsma}>Duration</ThemeTextsecond>
+          <View className="flex-row gap-x-5 my-2">
+            {(['days', 'months'] as const).map((u) => (
+              <TouchableOpacity
+                key={u}
+                className="items-center"
+                onPress={() => setDurationUnit(u)}
+              >
                 <ThemeText size={Textstyles.text_xsmall}>
-                    Describe the Item
+                  {u[0].toUpperCase() + u.slice(1)}
                 </ThemeText>
-                <InputComponentTextarea multiline={true} color={primaryColor} placeholder={"Type here"} placeholdercolor={secondaryTextColor} />
-                <EmptyView height={10} />
-                <View className="w-full items-end">
-                    <ThemeTextsecond size={Textstyles.text_xsmall}>
-                        0/200
-                    </ThemeTextsecond>
+                <Checkbox
+                  isChecked={durationUnit === u}
+                  onToggle={() => setDurationUnit(u)}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+          <InputComponent
+            keyboardType="numeric"
+            value={durationValue}
+            onChange={setDurationValue}
+            color={primaryColor}
+            placeholder="Duration value"
+            placeholdercolor={secondaryTextColor}
+          />
 
+          {/* Workmanship */}
+          <EmptyView height={20} />
+          <ThemeTextsecond size={Textstyles.text_xsma}>Workmanship</ThemeTextsecond>
+          <InputComponent
+            prefix
+            icon={<Text style={[Textstyles.text_medium, { color: '#fff' }]}>₦</Text>}
+            keyboardType="numeric"
+            value={workmanship}
+            onChange={setWorkmanship}
+            color={primaryColor}
+            placeholder="0.00"
+            placeholdercolor={secondaryTextColor}
+          />
 
-                </View>
-                <EmptyView height={20} />
-                <View className="w-full items-center flex-row gap-x-1">
-                    <View className="w-1/3">
-                        <InputComponent keyboardType="numeric" color={primaryColor} placeholder={"Quantity"} placeholdercolor={secondaryTextColor} />
+          {/* Add material button */}
+          <EmptyView height={20} />
+          <View className="items-end">
+            <TouchableOpacity
+              onPress={() => setShowAdd(true)}
+              style={{ backgroundColor: primaryColor }}
+              className="h-10 px-4 rounded-xl justify-center"
+            >
+              <ThemeTextsecond size={Textstyles.text_xsmall}>+ Add Material</ThemeTextsecond>
+            </TouchableOpacity>
+          </View>
 
-                    </View>
-                    <View className="w-2/3">
+          {/* Materials list */}
+          <FlatList
+            data={materials}
+            keyExtractor={(_, i) => `${i}`}
+            contentContainerStyle={{ paddingVertical: 20 }}
+            renderItem={({ item, index }) => (
+              <MaterialCard
+                item={item}
+                onDelete={() =>
+                  setMaterials((prev) => prev.filter((_, i) => i !== index))
+                }
+              />
+            )}
+          />
 
-                        <InputComponent prefix={true} icon={<Text style={[Textstyles.text_medium, { color: "#ffffff" }]}>₦</Text>} keyboardType="numeric" color={primaryColor} placeholder={"Price per unit"} placeholdercolor={secondaryTextColor} />
-                    </View>
-                </View>
-                <EmptyView height={40} />
-                <Divider />
-                <EmptyView height={20} />
-                <View className="w-full flex-row items-center justify-between">
-                    <ThemeText size={Textstyles.text_small}>
-                        Sub Total
-                    </ThemeText>
-                    <ThemeTextsecond size={Textstyles.text_small}>
-                        ₦7,800
-                    </ThemeTextsecond>
+          {/* Totals */}
+          <Divider />
+          <EmptyView height={10} />
+          <ThemeTextsecond size={Textstyles.text_small}>
+            Materials: {currency(materialsTotal)}
+          </ThemeTextsecond>
+          <ThemeText size={Textstyles.text_cmedium}>
+            Grand Total: {currency(grandTotal)}
+          </ThemeText>
 
-                </View>
-                <EmptyView height={20} />
-                <View className="">
-                    <ButtonFunction color={primaryColor} text={"Add"} textcolor={"#ffffff"} onPress={() => setshowmodal(!showmodal)} />
-                </View>
+          {/* Submit */}
+          <View className="my-10">
+            <ButtonComponent
+              color={primaryColor}
+              text="Update"
+              textcolor="#fff"
+              onPress={handleSubmit}
+              isLoading={updateMutation.isPending}
+            />
+          </View>
+        </View>
+      </ContainerTemplate>
 
-            </View>
-        </>
-    )
-}
-const MaterialCard=()=>{
-    const { theme } = useTheme()
-    const { selectioncardColor } = getColors(theme)
-    return(
-        <>
-         <View
-         style={{ backgroundColor: selectioncardColor, elevation: 4 }}
-         className="w-full flex-row justify-between h-auto items-center py-3 px-3 shadow-sm shadow-black rounded-xl"
+      {/* Add-material modal */}
+      {showAdd && (
+        <SliderModalNoScrollview
+          modalHeight="80%"
+          showmodal={showAdd}
+          setshowmodal={setShowAdd}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
           >
-                            <View className="w-2/3">
-                            <ThemeText size={Textstyles.text_small}>
-                            13amps Lamp Holder
-                            </ThemeText>
-                            <View className="flex-row gap-x-3">
-                            <ThemeText size={Textstyles.text_xsmall}>
-                            Price:N20,000
-                            </ThemeText>
-                            <ThemeText size={Textstyles.text_xsmall}>
-                            Quantity:5
-                            </ThemeText>
+            <AddMaterial
+                onAdd={(m:any) => {
+                    setMaterials((prev) => [...prev, m]);
+                    setShowAdd(false);
+                  }}
+                  onCancel={() => setShowAdd(false)}
+            />
+          </KeyboardAvoidingView>
+        </SliderModalNoScrollview>
+      )}
 
-                            </View>
+      {/* Success modal */}
+      {showSuccess && (
+        <SliderModalNoScrollview
+          modalHeight="60%"
+          showmodal={showSuccess}
+          setshowmodal={setShowSuccess}
+        >
+          <View className="items-center mt-16 px-6">
+            <FontAwesome6
+              name="circle-check"
+              size={48}
+              color={primaryColor}
+            />
+            <EmptyView height={20} />
+            <ThemeText size={Textstyles.text_medium}>
+              Invoice updated
+            </ThemeText>
+            <EmptyView height={40} />
+            <ButtonFunction
+              color={primaryColor}
+              text="Close"
+              textcolor="#fff"
+              onPress={() => {
+                setShowSuccess(false);
+                router.back(); // go back to invoice view list
+              }}
+            />
+          </View>
+        </SliderModalNoScrollview>
+      )}
+    </>
+  );
+};
 
-                            </View>
-                            <View className="w-1/3 flex-row gap-2 items-center">
-                            
-                            <ThemeText size={Textstyles.text_medium}>N3,000</ThemeText>
-                            <TouchableOpacity><FontAwesome6 color="red" size={20} name="trash"/></TouchableOpacity>
-                            
-
-                            </View>
-
-                        </View>
-        </>
-    )
-}
+export default EditInvoiceScreen;

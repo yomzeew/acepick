@@ -207,7 +207,7 @@ function SecondStageComponent() {
           </View>
         </AuthComponent>
 
-        <View className="absolute bottom-0 w-full px-5">
+        <View className="absolute bottom-10 w-full px-5">
           <View className="items-center w-full">
             <ButtonComponent
               color={primaryColor}
@@ -215,9 +215,9 @@ function SecondStageComponent() {
               textcolor="#fff"
               onPress={submitFn}
               isLoading={mutation.isPending}
-              // disabled={!otpphone || !otpEmail}
+              disabled={!otpphone || !otpEmail}
             />
-            <View className="h-10" />
+            <View className="h-5" />
           </View>
         </View>
 

@@ -54,7 +54,9 @@ const OtpComponent = ({
             .map((_, index) => (
               <TextInput
                 key={index}
-                ref={(ref) => (inputs.current[index] = ref)}
+                ref={(ref) => {
+                  inputs.current[index] = ref;
+                }}
                 className="w-10 h-12 border border-slate-500 text-center text-lg rounded-md text-white"
                 style={{ color: textcolor }}
                 keyboardType="numeric"

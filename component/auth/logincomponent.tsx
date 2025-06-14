@@ -116,7 +116,7 @@ function LoginComponent() {
     </TouchableOpacity>
   </View>
 
-  <View className="absolute bottom-0 left-5 justify-center items-center w-full">
+  <View className="absolute bottom-10 left-5 justify-center items-center w-full">
   <TouchableOpacity
   disabled={!email || !password || mutation.isPending}
   style={{

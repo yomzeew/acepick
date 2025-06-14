@@ -53,7 +53,7 @@ const { dispatch } = useRole(); // use the dispatch
         style={{ backgroundColor: primaryColor }}
         className="w-11/12 rounded-lg py-4"
         onPress={() => {
-          dispatch({ type: "SET_ROLE", payload: "professional" });
+          dispatch({ type: "SET_ROLE", payload: "artisan" });
           router.navigate("/(professionAuth)/loginprofession");
         }}
       >

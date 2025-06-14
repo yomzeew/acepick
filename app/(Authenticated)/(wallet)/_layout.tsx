@@ -13,6 +13,9 @@ export default function WalletLayout() {
       <Stack.Screen name="walletpay"/>
       <Stack.Screen name="cardpaymentlayout/[amount]" />
       <Stack.Screen name="bankdepositlayout/[amount]" />
+      <Stack.Screen name="paymentLayout" />
+      <Stack.Screen name="paymentSuccess" />
+      <Stack.Screen name="paystackViewLayout" />
     </Stack>
   
     

@@ -5,17 +5,30 @@ import { ThemeTextsecond } from "../ThemeText"
 import { Textstyles } from "../../static/textFontsize"
 import EmptyView from "../emptyview"
 import { FontAwesome5 } from "@expo/vector-icons"
+import { useState } from "react"
+import { useSelector } from "react-redux"
+import { RootState } from "redux/store"
+import { useMutation } from "@tanstack/react-query"
+import { getArtisanListFn } from "services/userService"
+
 
 interface FilterCardProps{
-    showprofession:boolean
-    setshowprofession:(value:boolean)=>void
+    showprofession:boolean;
+    setshowprofession:(value:boolean)=>void;
+    professionalValue:string;
+    setProfessionValue:(value:string)=>void
+
 }
 
-const FilterCard=({showprofession,setshowprofession}:FilterCardProps)=>{
+const FilterCard=({showprofession,setshowprofession,professionalValue,setProfessionValue}:FilterCardProps)=>{
     const {theme}=useTheme()
     const {selectioncardColor,secondaryTextColor,primaryColor}=getColors(theme)
+    
+
+
 
     const handleSubmit=()=>{
+       // const queryString:string=`profession=${encodeURIComponent(professionValue)}`
         setshowprofession(!showprofession)
         Keyboard.dismiss()
     }
@@ -38,6 +51,8 @@ const FilterCard=({showprofession,setshowprofession}:FilterCardProps)=>{
          style={{backgroundColor:theme==='dark'?'#4F4F4F':'#e2e8f0', 
          color:secondaryTextColor, borderColor:theme==='dark'?'#4F4F4F':'#cbd5e1'}} 
          className="rounded-3xl border h-12 px-3 w-full"
+         value={professionalValue}
+         onChangeText={(text)=>setProfessionValue(text)}
          />
          </View>
          

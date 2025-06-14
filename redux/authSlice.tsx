@@ -8,48 +8,111 @@ import * as SecureStore from 'expo-secure-store';
 const TOKEN_KEY = 'userToken';
 const USER_KEY = 'userData';
 
+interface Profession {
+  id: number;
+  title?: string;
+  // Add other profession properties if available
+}
+
+interface Professional {
+  id: number;
+  available: boolean;
+  availableWithdrawalAmount: number;
+  chargeFrom: number | null;
+  completedAmount: number;
+  createdAt: string;
+  file: string | null;
+  intro: string | null;
+  language: string;
+  online: boolean;
+  pendingAmount: number;
+  profession: Profession;
+  professionId: number;
+  profileId: number;
+  regNum: string | null;
+  rejectedAmount: number;
+  totalEarning: number;
+  updatedAt: string;
+  workType: string;
+  yearsOfExp: number | null;
+}
+
 interface UserProfile {
   id: number;
+  avatar: string;
+  birthDate: string | null;
+  bvn: string | null;
+  bvnVerified: boolean | null;
+  count: number;
+  createdAt: string;
+  fcmToken: string;
   firstName: string;
   lastName: string;
-  avatar: string;
-  state: string;
-  lga: string;
-  address: string;
-  verified: boolean;
-  bvn?:string;
-  bvnVerified?:boolean;
-  rate:number;
-  totalJobs: number;
+  notified: boolean;
+  position: string | null;
+  professional: Professional;
+  rate: number;
+  store: boolean;
+  switch: boolean;
+  totalDisputes: number;
   totalExpense: number;
-  totalJobsDeclined: number;
-  totalJobsPending:number;
-  totalJobsOngoing: number;
-  totalJobsCompleted: number;
-  totalReview:number;
+  totalJobs: number;
   totalJobsApproved: number;
   totalJobsCanceled: number;
-  totalDisputes: number;
-  // ...add more if needed
+  totalJobsCompleted: number;
+  totalJobsDeclined: number;
+  totalJobsOngoing: number;
+  totalJobsPending: number;
+  totalReview: number;
+  updatedAt: string;
+  userId: string;
+  verified: boolean;
+}
+
+interface Location {
+  id: number;
+  address: string;
+  createdAt: string;
+  latitude: number;
+  lga: string;
+  longitude: number;
+  state: string;
+  updatedAt: string;
+  userId: string;
+  zipcode: string | null;
 }
 
 interface Wallet {
   id: string;
-  currentBalance: number;
+  createdAt: string;
   currency: string;
+  currentBalance: number;
+  pin: string | null;
+  previousBalance: number;
   status: string;
+  updatedAt: string;
+  userId: string;
+}
+
+interface ProfessionalReview {
+  // Define properties based on your review structure
+  id?: number;
+  // ... other review fields
 }
 
 interface AuthUser {
   id: string;
+  createdAt: string;
   email: string;
+  fcmToken: string;
   phone: string;
   role: string;
   status: string;
+  updatedAt: string;
+  location: Location;
+  professionalReviews: ProfessionalReview[];
   profile: UserProfile;
   wallet: Wallet;
-  createdAt: string;
-  updatedAt: string;
 }
 
 interface AuthState {
@@ -90,6 +153,7 @@ const authSlice = createSlice({
       state.user = action.payload.user;
       state.token = action.payload.token;
       state.isAuthenticated = true;
+ 
     },
     logout: (state) => {
       state.user = null;

@@ -94,57 +94,67 @@ function ThirdStageComponent() {
   
 
 
-  const onUpload = async () => {
+const onUpload = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permissionResult.status !== 'granted') {
       setErrorMessage('Permission required. Please allow access to your media library');
       return;
     }
-  
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       quality: 1,
     });
-  
+
     if (result.canceled || !result.assets || result.assets.length === 0) {
       return;
     }
-  
+
     const selectedImage = result.assets[0];
-    console.log('ok',selectedImage.uri)
-  
+    console.log('Selected image:', selectedImage.uri);
+
+    // Android-specific URI handling
+    let uri = selectedImage.uri;
+    if (Platform.OS === 'android' && !uri.startsWith('file://')) {
+      uri = `file://${uri}`;
+    }
+
+    // Extract file extension
+    const fileExt = uri.split('.').pop()?.toLowerCase() || 'jpg';
+    const mimeType = `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`;
+
     const formData = new FormData();
     formData.append('avatar', {
-      uri: selectedImage.uri,
-      name: selectedImage.fileName || 'photo.jpg',
-      type: selectedImage.type || 'image/jpeg',
+      uri: uri,
+      name: selectedImage.fileName || `photo_${Date.now()}.${fileExt}`,
+      type: mimeType,
     } as any);
-  
+
     try {
       const response = await uploadPhotoUser(formData);
       console.log('Upload Success:', response);
       setphotoUrl(response.data?.url || ''); 
       setSuccessMessage('Profile photo uploaded successfully.');
-    } catch (error:any) {
-      console.error("Upload failed:", error);
-
-      // Try to extract detailed message
-      let message = "Upload failed. Please try again.";
-    
-      if (error.response?.data?.message) {
-        // Axios-style error with backend message
-        message = error.response.data.message;
-      } else if (error.message) {
-        // Generic JS error
-        message = error.message;
-      } else if (typeof error === "string") {
-        // Direct string error
-        message = error;
+    } catch (error: any) {
+      let msg = "An unexpected error occurred";
+      if (error?.response?.data) {
+        msg = error.response.data.message || 
+              error.response.data.error || 
+              JSON.stringify(error.response.data);
+      } else if (error?.message) {
+        msg = error.message;
       }
-      setErrorMessage(message);
+      
+      // Specific Android network error handling
+      if (msg.includes('Network Error') && Platform.OS === 'android') {
+        msg = "File upload failed. Please check your connection or try a different image.";
+      }
+      
+      setErrorMessage(msg);
+      console.error("Upload failed:", msg);
     }
-  };
+};
   
 
 
@@ -245,10 +255,10 @@ function ThirdStageComponent() {
           </KeyboardAvoidingView>
 
         </AuthComponent>
-        <View className="absolute bottom-0 w-full px-6">
+        <View className="absolute bottom-10 w-full px-6">
           <View className="items-center w-full">
             <ButtonComponent color={primaryColor} text="Next" textcolor="#fff" onPress={handleNext}  />
-            <View className="h-10"></View>
+            <View className="h-5"></View>
 
           </View>
 

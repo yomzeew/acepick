@@ -1,10 +1,10 @@
 import { View, Text } from "react-native";
-import { useTheme } from "../hooks/useTheme";
-import { getColors } from "../static/color";
+import { useTheme } from "../../../hooks/useTheme";
+import { getColors } from "../../../static/color";
 import { StatusBar } from "expo-status-bar";
-import EmptyView from "./emptyview";
-import ButtonComponent from "./buttoncomponent";
-import VerifyComponent from "./verifycomponent";
+import EmptyView from "../../emptyview";
+import ButtonComponent from "../../buttoncomponent";
+import VerifyComponent from "../../verifycomponent";
 function PasswordChangeSuccessComponent() {
   const { theme } = useTheme(); 
   const { primaryColor, backgroundColor, primaryTextColor, secondaryTextColor, subText } = getColors(theme);

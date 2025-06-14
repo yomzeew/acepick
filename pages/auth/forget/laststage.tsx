@@ -1,5 +1,5 @@
 import { View, Text } from 'react-native'
-import PasswordChangeSuccessComponent from '../../../component/passwordchangesuccess'
+import PasswordChangeSuccessComponent from '../../../component/auth/forgotpassword/passwordchangesuccess'
 
 const PasswordSuccessPage = () => {
   return (

@@ -10,7 +10,7 @@ import { ThemeText, ThemeTextsecond } from "component/ThemeText"
 import { Textstyles } from "static/textFontsize"
 import SliderModalTemplate from "component/slideupModalTemplate"
 import { useState } from "react"
-import PaymentmethodModal from "./paymentmethodModal"
+import PaymentmethodModal from "./paymentModal"
 
 
 const WalletPay=()=>{

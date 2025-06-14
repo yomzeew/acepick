@@ -54,7 +54,7 @@ const SliderModalTemplate = ({ children, showmodal, setshowmodal, modalHeight }:
   return (
     <>
       {/* 🔹 Dim Background */}
-      {showmodal &&<Pressable onPress={() => setshowmodal(false)} style={{ backgroundColor: backgroundColortwo }} className="h-full w-full absolute opacity-70 z-50" />}
+      {showmodal &&<Pressable onPress={() => setshowmodal(false)} style={{ backgroundColor: backgroundColortwo, zIndex:50,elevation:50 }} className="h-full w-full absolute opacity-70" />}
 
       {showmodal && (
         <Animated.View
@@ -64,8 +64,10 @@ const SliderModalTemplate = ({ children, showmodal, setshowmodal, modalHeight }:
             width: "100%",
             backgroundColor: backgroundColor,
             height: modalHeight,
+            zIndex:50,
+            elevation:50
           }}
-          className="absolute bottom-0 z-50 rounded-t-3xl"
+          className="absolute bottom-0  rounded-t-3xl"
         >
           {/* 🔹 Wrap everything to avoid keyboard overlap */}
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
@@ -127,7 +129,7 @@ export const SliderModalNoScrollview = ({ children, showmodal, setshowmodal, mod
   return (
     <>
       {/* 🔹 Dim Background */}
-      {showmodal &&<Pressable onPress={() => setshowmodal(false)} style={{ backgroundColor: backgroundColortwo }} className="h-full w-full absolute opacity-70 z-50" />}
+      {showmodal &&<Pressable onPress={() => setshowmodal(false)} style={{ backgroundColor: backgroundColortwo, zIndex:50,elevation:50 }} className="h-full w-full absolute opacity-70" />}
 
       {showmodal && (
         <Animated.View
@@ -137,13 +139,18 @@ export const SliderModalNoScrollview = ({ children, showmodal, setshowmodal, mod
             width: "100%",
             backgroundColor: backgroundColor,
             height: modalHeight,
+            zIndex:50,
+            elevation:50
+
           }}
-          className="absolute bottom-0 z-50 rounded-t-3xl"
+          className="absolute bottom-0 z-50  rounded-t-3xl"
         >
           {/* 🔹 Wrap everything to avoid keyboard overlap */}
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={{ flex: 1 }}>
                 {children}
+            </View>
             </TouchableWithoutFeedback>
           </KeyboardAvoidingView>
         </Animated.View>

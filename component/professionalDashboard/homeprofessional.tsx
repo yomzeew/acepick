@@ -1,4 +1,5 @@
 import { AntDesign, FontAwesome5 } from "@expo/vector-icons"
+import { useMutation } from "@tanstack/react-query"
 import ButtonComponent from "component/buttoncomponent"
 import CorporateCard from "component/corporatecards"
 import ContainerTemplate from "component/dashboardComponent/containerTemplate"
@@ -10,18 +11,64 @@ import SliderModal from "component/SlideUpModal"
 import SliderModalTemplate from "component/slideupModalTemplate"
 import { ThemeText, ThemeTextsecond } from "component/ThemeText"
 import { useRouter } from "expo-router"
+import { useIncomingJob } from "hooks/useIncomingJob"
+import { useCurrentLocation } from "hooks/useLocation"
+import { useSocket } from "hooks/useSocket"
 import { useTheme } from "hooks/useTheme"
-import { ReactNode, useState } from "react"
+import { ReactNode, useEffect, useState } from "react"
 import { ImageBackground, Text, TouchableOpacity, View,ScrollView  } from "react-native"
+import { useSelector } from "react-redux"
+import { RootState } from "redux/store"
+import { updateLocation } from "services/userService"
 import { getColors } from "static/color"
 import { Textstyles } from "static/textFontsize"
+import { JobLatest } from "type"
+import { formatNaira } from "utilizes/amountFormat"
 
 const HomeComponentProfession = () => {
     const router = useRouter()
     const [showmodal, setshowmodal] = useState<boolean>(false)
     const { theme } = useTheme(); // Theme state and toggle function
     const { primaryColor, backgroundColor, primaryTextColor, secondaryTextColor } = getColors(theme);
-    const [showalertModal,setshowalertModal]=useState(true)
+    
+
+    const user=useSelector((state:RootState)=>state.auth?.user) ?? null
+
+    console.log(user)
+
+    const { location, address, state,lga, loading, error } = useCurrentLocation();
+
+    const mutation = useMutation({
+        mutationFn: updateLocation,
+        onSuccess: async (response) => {
+          //console.log(response,'okkk');
+        },
+        onError: (error: any) => {
+          let msg = "An unexpected error occurred";
+      
+          if (error?.response?.data) {
+            msg =
+              error.response.data.message ||
+              error.response.data.error ||
+              JSON.stringify(error.response.data);
+          } else if (error?.message) {
+            msg = error.message;
+          }
+      
+          setErrorMessage(msg);
+          console.error("failed:", msg);
+        },
+      });
+      const updateLocationFn = () => {
+        const { latitude, longitude } = location?.coords ?? {};
+        const data = { latitude, longitude, address, state, lga };
+        console.log(data)
+      
+        mutation.mutate(data); // ✅ Wrap both in one object
+      };
+      useEffect(()=>{
+        updateLocationFn();
+      },[])
 
 
     return (
@@ -50,7 +97,7 @@ const HomeComponentProfession = () => {
                                 <EmptyView height={20} />
                                 <View className="flex-row justify-around w-full">
                                     <CardRow
-                                        numberofjob={2}
+                                        numberofjob={user?.profile.totalJobsCompleted || 0}
                                         icon={
                                             <View className="bg-green-500 w-12 h-12 rounded-2xl justify-center items-center">
                                                 <AntDesign size={16} name="checkcircle" color={"#ffffff"} />
@@ -59,7 +106,7 @@ const HomeComponentProfession = () => {
                                         description="Jobs Completed"
                                     />
                                     <CardRow
-                                        numberofjob={0}
+                                        numberofjob={user?.profile.totalJobsOngoing || 0}
                                         icon={
                                             <View className="bg-blue-400 w-12 h-12 rounded-2xl justify-center items-center">
                                                 <AntDesign size={16} name="ellipsis1" color={"#ffffff"} />
@@ -73,7 +120,7 @@ const HomeComponentProfession = () => {
                                 <EmptyView height={20} />
                                 <View className="flex-row justify-around w-full">
                                     <CardRow
-                                        numberofjob={3}
+                                        numberofjob={user?.profile.totalJobsDeclined || 0}
                                         icon={
                                             <View className="bg-red-500 w-12 h-12 rounded-2xl justify-center items-center">
                                                 <FontAwesome5 size={16} name="times" color={"#ffffff"} />
@@ -82,7 +129,7 @@ const HomeComponentProfession = () => {
                                         description="Jobs rejected"
                                     />
                                     <CardRow
-                                        numberofjob={9}
+                                        numberofjob={user?.profile.totalJobsPending || 0}
                                         icon={
                                             <View className="bg-red-500 w-12 h-12 rounded-2xl justify-center items-center">
                                                 <AntDesign size={16} name="warning" color={"#ffffff"} />
@@ -115,45 +162,35 @@ const HomeComponentProfession = () => {
                                     <View className="flex-col">
                                         <View>
                                             <ThemeText size={Textstyles.text_xsmall}>Complete</ThemeText>
-                                            <ThemeText size={Textstyles.text_cmedium}>N0.00</ThemeText>
+                                            <ThemeText size={Textstyles.text_cmedium}>{formatNaira(user?.profile.professional.completedAmount ||0)}</ThemeText>
                                         </View>
                                         <View>
                                             <ThemeText size={Textstyles.text_xsmall}>Pending</ThemeText>
-                                            <ThemeText size={Textstyles.text_cmedium}>N0.00</ThemeText>
+                                            <ThemeText size={Textstyles.text_cmedium}>{formatNaira(user?.profile.professional.pendingAmount ||0)}</ThemeText>
                                         </View>
                                         <EmptyView height={10} />
                                     </View>
                                     <View className="flex-col">
                                         <View >
                                             <ThemeText size={Textstyles.text_xsmall}>Available for withdraw</ThemeText>
-                                            <ThemeText size={Textstyles.text_cmedium}>N0.00</ThemeText>
+                                            <ThemeText size={Textstyles.text_cmedium}>{formatNaira(user?.profile.professional.availableWithdrawalAmount ||0)}</ThemeText>
                                         </View>
                                         <View >
                                             <ThemeText size={Textstyles.text_xsmall}>Rejected</ThemeText>
-                                            <ThemeText size={Textstyles.text_cmedium}>N0.00</ThemeText>
+                                            <ThemeText size={Textstyles.text_cmedium}>{formatNaira(user?.profile.professional.rejectedAmount ||0)}</ThemeText>
                                         </View>
 
                                     </View>
 
                                 </View>
-
-
                             </View>
-
-
-
-
-
-
-
-
                         </View>
 
                     </ScrollView>
                 </View>
 
             </ContainerTemplate>
-            {showalertModal &&<JobAlertScreen showalertModal={showalertModal} setshowalertModal={(value:boolean)=>setshowalertModal(value)}/>}
+           
         </>
     )
 }
@@ -241,7 +278,13 @@ const SlideupContent = () => {
                 </View>
                 <EmptyView height={60} />
                 <View className="w-full items-center px-3">
-                    <ButtonComponent color={primaryColor} text={"Activate Now"} textcolor={"#ffffff"} route={"/bvnactivationlayout"} />
+                 <ButtonComponent 
+                    color={primaryColor} 
+                    text={"Activate Now"} 
+                    textcolor={"#ffffff"} 
+                    // route={"/bvnactivationlayout"} 
+                    onPress={()=>null}
+                />
 
 
                 </View>
@@ -249,4 +292,8 @@ const SlideupContent = () => {
             </View>
         </>
     )
+}
+
+function setErrorMessage(msg: string) {
+    throw new Error("Function not implemented.")
 }

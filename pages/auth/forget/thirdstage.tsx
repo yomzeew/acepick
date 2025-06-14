@@ -1,5 +1,5 @@
 import { View, Text } from 'react-native'
-import CreateNewPasswordcomponent from '../../../component/createnewpasswordcomponent'
+import CreateNewPasswordcomponent from '../../../component/auth/forgotpassword/createnewpasswordcomponent'
 
 const ChangePasswordPage = () => {
   return (

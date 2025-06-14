@@ -16,6 +16,7 @@ export default function ProfileLayout() {
       <Stack.Screen name="notificationapplayout" />
       <Stack.Screen name="billhistorylayout" />
       <Stack.Screen name="faqlayout" />
+      <Stack.Screen name="passwordchangelayout" />
     </Stack>
   
     

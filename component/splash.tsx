@@ -66,7 +66,7 @@ const height:number=Dimensions.get('window').height;
             </View>
 
             </View>
-            <View style={{height:height*0.4, backgroundColor:backgroundColor}} className=" rounded-r-3xl  rounded-l-3xl w-full absolute bottom-0 z-50  p-8">
+            <View style={{height:height*0.5, backgroundColor:backgroundColor}} className="w-full absolute bottom-0 z-50  p-8 rounded-t-3xl">
            
             <Text style={[Textstyles.text_medium, {color:primaryTextColor}]} className=" text-blue-600">{values[currentScreen].header}</Text>
       <EmptyView/>

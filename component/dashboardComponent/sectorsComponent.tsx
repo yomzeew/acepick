@@ -8,6 +8,9 @@ import { useEffect, useState } from "react"
 import SectorSkeletonCard from "component/sectorSkeletonCard"
 import { ThemeTextsecond } from "component/ThemeText"
 import { Textstyles } from "static/textFontsize"
+import { useSelector } from "react-redux"
+import { RootState } from "redux/store"
+import { getSectorByUser } from "services/userService"
 
 interface SectorsComponentProps{
     setErrorMessage:(value:string)=>void
@@ -15,9 +18,10 @@ interface SectorsComponentProps{
 const SectorsComponent=({setErrorMessage}:SectorsComponentProps)=>{
     const [data,setData]=useState<any[]>([])
      const router=useRouter()
-       
+
+     const token:string=useSelector((state:RootState)=>(state.auth?.token)?? "") 
      const mutation = useMutation({
-        mutationFn:ListofSectors,
+        mutationFn:getSectorByUser,
         onSuccess:async (dataResponse) => {
             setData(dataResponse.data)
             
@@ -43,7 +47,7 @@ const SectorsComponent=({setErrorMessage}:SectorsComponentProps)=>{
     
       // fetch sectors on mount
       useEffect(() => {
-        mutation.mutate();
+        mutation.mutate(token);
       }, []);
 
     const handlenavcategory=(value:string)=>{
@@ -72,10 +76,9 @@ const SectorsComponent=({setErrorMessage}:SectorsComponentProps)=>{
             >
               <ProfessionalCard
                 profession={item?.title || "Unknown"}
-                //totalnumber={item?.totalProfessionals || 0}
-                //totaluser={item?.totalUsers || 0}
-                totalnumber={0}
-                totaluser={0}
+                numOfProf={item?.numOfProf || 0 }
+                numOfJobs={item?.numOfJobs || 0}
+              
               />
             </TouchableOpacity>
             <EmptyView height={10} />

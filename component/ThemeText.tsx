@@ -11,6 +11,7 @@ export const ThemeText=({children,size,type='',className=""}:{children:ReactNode
         <Text 
         style={[size,{color:type==='secondary'?secondaryTextColor:primaryTextColor}]}
         className={className}
+        //allowFontScaling={false}
         >
         {children}
         </Text>

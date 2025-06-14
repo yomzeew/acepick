@@ -12,7 +12,7 @@ interface InputComponentProps {
     color: string;
     placeholder: string;
     placeholdercolor: string;
-    onChange?: (text: string) => void;
+    onChange?: (text: any) => void;
     multiline?: boolean;
     prefix?: boolean;
     icon?: ReactNode;
@@ -72,6 +72,7 @@ const InputComponent = ({
           onChangeText={onChange}
           multiline={multiline}
           keyboardType={keyboardType}
+          value={String(value)}
         />
       )}
 
@@ -110,13 +111,16 @@ export const InputComponentTextarea = ({
   placeholder,
   placeholdercolor,
   onChange,
-  multiline = false
+  multiline = false,
+  value
+
 }: {
   color: string;
   placeholder: string;
   placeholdercolor: string;
   onChange?: (text: string) => void;
   multiline?: boolean;
+  value?:string
 }) => {
   const { theme } = useTheme(); // Theme state and toggle function
   const { primaryColor, backgroundColor, primaryTextColor, secondaryTextColor } = getColors(theme);
@@ -138,6 +142,7 @@ export const InputComponentTextarea = ({
         className="text-base py-2"
         onChangeText={onChange} // Fixed `onChange` to `onChangeText`
         multiline={multiline}
+        value={value}
       />
     </View>
   );

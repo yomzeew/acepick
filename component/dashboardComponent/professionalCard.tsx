@@ -8,10 +8,12 @@ import { FontAwesome5 } from "@expo/vector-icons"
 
 interface ProfessionalCardProps{
 profession:string;
-totalnumber:number
-totaluser:number
+numOfJobs:number;
+numOfProf:number;
+
 }
-const ProfessionalCard=({profession,totalnumber,totaluser}:ProfessionalCardProps)=>{
+const ProfessionalCard=({profession,numOfJobs,numOfProf}:ProfessionalCardProps)=>{
+    console.log(numOfProf)
     const {theme}=useTheme()
     const {selectioncardColor,secondaryTextColor,primaryColor}=getColors(theme)
     return(
@@ -28,11 +30,11 @@ const ProfessionalCard=({profession,totalnumber,totaluser}:ProfessionalCardProps
             <View className="flex-row gap-3">
                 <View className="flex-row gap-1">
                 <FontAwesome5 color={primaryColor} name="toolbox" size={15} />
-                <ThemeTextsecond size={Textstyles.text_xsma}>{totalnumber}</ThemeTextsecond>
+                <ThemeTextsecond size={Textstyles.text_xsma}>{numOfJobs}</ThemeTextsecond>
                 </View>
                 <View className="flex-row gap-1">
                 <FontAwesome5 color={secondaryTextColor} name="user" size={15} />
-                <ThemeTextsecond size={Textstyles.text_xsma}>{totaluser}</ThemeTextsecond>
+                <ThemeTextsecond size={Textstyles.text_xsma}>{numOfProf}</ThemeTextsecond>
                 </View>
             </View>
             </View>       

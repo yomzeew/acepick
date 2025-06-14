@@ -13,7 +13,7 @@ function EmailVerificationScreen() {
       <StatusBar style="auto" />
       <EmptyView />
       <VerifyComponent textcolor={secondaryTextColor} text="Email & Phone number Verified!"/>
-<ButtonComponent color={primaryColor} text="Continue registration" textcolor={backgroundColor} route="/clientregistrationscreen"/>
+  <ButtonComponent color={primaryColor} text="Continue registration" textcolor={backgroundColor} route="/clientregistrationscreen"/>
     </View>
   );
 }

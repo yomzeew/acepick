@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { useTheme } from "../../../hooks/useTheme";
 import { getColors } from "../../../static/color";
 import { useState, useEffect } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../../redux/store"
 import { useDebounce } from "../../../hooks/useDebounce";
 import PasswordComponent from "../../controls/passwordinput";
@@ -14,6 +14,7 @@ import { useMutation } from "@tanstack/react-query";
 import { registerUser } from "services/authServices";
 import { useDelay } from "hooks/useDelay";
 import { useRole } from "context/roleContext";
+import { clearRegistrationData } from "redux/registerSlice";
 
 function PasswordConfirmcomponent() {
   const { theme } = useTheme();
@@ -71,7 +72,7 @@ useDelay(() => {
     }
   }, 2000, [shouldProceed]);
 
-
+const dispatch=useDispatch()
   const mutation = useMutation({
     mutationFn: registerUser,
     onSuccess: (data) => {
@@ -118,6 +119,7 @@ useDelay(() => {
     console.log("Final Registration Payload: ", { ...registerData, password,confirmPassword,role,agreed:isChecked });
     const payload={ ...registerData, password,confirmPassword,role,agreed:isChecked }
     mutation.mutate(payload)
+    dispatch(clearRegistrationData())
   };
 
   return (
@@ -169,7 +171,7 @@ useDelay(() => {
           </View>
         </AuthComponent>
 
-        <View className="absolute bottom-0 w-full px-6">
+        <View className="absolute bottom-10 w-full px-6">
           <View className="items-center w-full">
             <ButtonComponent
               color={primaryColor}
@@ -179,7 +181,7 @@ useDelay(() => {
               isLoading={mutation.isPending}
               disabled={!password || !confirmPassword}
             />
-            <View className="h-10" />
+            <View className="h-5" />
           </View>
         </View>
       </View>

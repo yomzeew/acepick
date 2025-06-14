@@ -144,7 +144,7 @@ function FirstStagecomponent() {
         </View>
       </AuthComponent>
 
-      <View className="absolute bottom-6 w-full px-5">
+      <View className="absolute bottom-10 w-full px-5">
       <ButtonComponent
   color={primaryColor}
   text="Verify Email & Phone Number"
