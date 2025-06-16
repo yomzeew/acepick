@@ -68,7 +68,7 @@ useDelay(() => {
     mutationFn: forgetUser,
     onSuccess: (data) => {
     console.log(data)
-      setSuccessMessage('Registration Successful')
+      setSuccessMessage('Password Change Successfully')
       setShouldProceed(true)
 
     },
@@ -86,7 +86,7 @@ useDelay(() => {
       }
     
       setErrorMessage(msg);
-      console.error("Register failed:", msg);
+      console.error("failed:", msg);
     },
   });
 
@@ -122,10 +122,10 @@ useDelay(() => {
           setshowmodal={setshowmodal}
           showmodal={showmodal}
           route="/loginscreen"
-          title={`Your account has been created \n successfully`}
+          title={`Your password have been change`}
           />}
      <View style={{ backgroundColor }} className="w-full h-full">
-        <AuthComponent title="Register as a Client">
+        <AuthComponent title="Change Password">
           <View className="mt-6 items-center">
             <PasswordComponent
               color={primaryColor}

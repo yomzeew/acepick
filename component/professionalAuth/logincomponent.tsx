@@ -49,7 +49,12 @@ function LoginComponentP() {
       dispatch(login({ user, token }));
   
       console.log("login success:", user);
-       router.replace("/homeprofessionalayout");
+      if(user.role==='client'){
+        router.replace("/homelayout");
+      }
+      else{
+        router.replace("/homeprofessionalayout");
+      }
     },
     onError: (error: any) => {
       let msg = "An unexpected error occurred";

@@ -176,7 +176,7 @@ function ForgetOtp() {
           <SliderModal
             setshowmodal={setshowmodal}
             showmodal={showmodal}
-            route="/passwordconfirmscreen"
+            route="/createnewpasswordscreen"
             title="Email Verified"
           />
         )}

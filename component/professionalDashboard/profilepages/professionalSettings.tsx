@@ -8,9 +8,10 @@ import EmptyView from "component/emptyview"
 import { AntDesign, FontAwesome5, Entypo, MaterialIcons, FontAwesome } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import HeaderComponent from "component/headerComp"
+import ButtonComponent from "component/buttoncomponent"
 
 const ProfessionalsSettingsComp = () => {
-    const { theme } = useTheme();
+    const { theme,toggleTheme } = useTheme();
     const { primaryColor, selectioncardColor, secondaryTextColor } = getColors(theme);
     const router = useRouter()
     const professionalType="artisan"
@@ -35,6 +36,9 @@ const ProfessionalsSettingsComp = () => {
     const handleNavcorporate=()=>{
         console.log('ok')
         router.push('/corporateReglayout')
+    }
+    const handlechangePassword=()=>{
+        router.push('/passwordchangelayout')
     }
     return (
         <>
@@ -148,27 +152,38 @@ const ProfessionalsSettingsComp = () => {
                         </ThemeTextsecond>
                         <View style={{ backgroundColor: selectioncardColor, elevation: 4 }}
                             className="w-full h-auto rounded-2xl shadow-slate-500 shadow-sm px-5 pb-5">
-                            <TouchableOpacity className="flex-row justify-between items-center h-20 border-b border-slate-400">
+                            <TouchableOpacity onPress={handlechangePassword} className="flex-row justify-between items-center h-20 border-b border-slate-400">
                                 <View className="flex-row gap-x-2 items-center">
                                     <FontAwesome5 name="lock" color={secondaryTextColor} size={16} />
                                     <ThemeTextsecond size={Textstyles.text_xmedium}>Change Password</ThemeTextsecond>
                                 </View>
                                 <AntDesign name="right" size={24} color={secondaryTextColor} />
                             </TouchableOpacity>
-                            <TouchableOpacity className="flex-row justify-between items-center h-20 border-b border-slate-400">
-                                <View className="flex-row gap-x-2 items-center">
-                                    <FontAwesome name="refresh" color={primaryColor} size={16} />
-                                    <ThemeTextsecond size={Textstyles.text_xmedium}>Switch to Professional</ThemeTextsecond>
-                                </View>
-                                <AntDesign name="right" size={24} color={secondaryTextColor} />
-                            </TouchableOpacity>
                             <View className="flex-row justify-between items-center h-20 border-b border-slate-400">
-                                <View className="flex-row gap-x-2 items-center">
-                                    <MaterialIcons name="dark-mode" size={16} color={primaryColor} />
-                                    <ThemeTextsecond size={Textstyles.text_xmedium}>Dark</ThemeTextsecond>
-                                </View>
-                                <Switch />
-                            </View>
+   <View className="flex-row gap-x-2 items-center">
+    <MaterialIcons name="dark-mode" size={16} color={primaryColor} />
+    <ThemeTextsecond size={Textstyles.text_xmedium}>
+      {theme === "dark" ? "Dark Mode" : "Light Mode"}
+    </ThemeTextsecond>
+  </View>
+  <Switch
+   trackColor={{ false: "#767577", true: primaryColor }}
+   thumbColor={theme === "dark" ? "#f4f3f4" : "#fff"}
+   ios_backgroundColor="#3e3e3e"
+   onValueChange={toggleTheme}
+   value={theme === "dark"}
+  />
+</View>
+<EmptyView height={10} />
+<View className="w-full">
+<ButtonComponent 
+color={primaryColor} 
+text={"Logout"} 
+textcolor={"#ffffff"} 
+onPress={() => { router.replace("/loginscreen") }}
+/>
+
+</View>
 
 
 
