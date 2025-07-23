@@ -45,6 +45,10 @@ import InputComponent, { InputComponentTextarea } from 'component/controls/texti
 import Divider from 'component/divider';
 import ButtonFunction from 'component/buttonfunction';
 import { ProfessionalDetails } from 'component/dashboardComponent/clientdetail';
+import { useSocket } from 'hooks/useSocket';
+import { RootState } from 'redux/store';
+import { useSelector } from 'react-redux';
+
   
   /* -------------------------------------------------------------------------- */
   
@@ -67,6 +71,16 @@ import { ProfessionalDetails } from 'component/dashboardComponent/clientdetail';
   
   
     /* ──────────────── fetch jobs from API ──────────────── */
+    useEffect(() => {
+      if (banner) {
+        const timer = setTimeout(() => {
+          setBanner(null);
+        }, 4000); // 4 seconds
+    
+        return () => clearTimeout(timer); // cleanup if banner changes quickly
+      }
+    }, [banner]);
+
     const fetchMutation = useMutation({
       mutationFn : getAllJobs,
       onSuccess  : (res) => setJobs(res.data),
@@ -108,7 +122,7 @@ import { ProfessionalDetails } from 'component/dashboardComponent/clientdetail';
             'Unable to approve job',
         }),
     });
-  
+    console.log(jobs[jobs.length-1])
     const handleApprove = () => {
       if (selectedJobId) approveMutation.mutate(selectedJobId);
     };
@@ -228,14 +242,17 @@ import { ProfessionalDetails } from 'component/dashboardComponent/clientdetail';
   }
   
   const JobCard = memo(({ job, router, onUpdate, onApprove }: JobCardProps) => {
+    
     /* Colors / theme */
     const { theme }        = useTheme();
     const { selectioncardColor, primaryColor } = getColors(theme);
+
   
     /* Which main action button to show? */
     const showInvoice   = !!job.workmanship;
     const canApprove    = job.status === 'COMPLETED';
     const isPending     = job.status === 'PENDING';
+  
   
     return (
       <View

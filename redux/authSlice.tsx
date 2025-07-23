@@ -121,6 +121,7 @@ interface AuthState {
   user: AuthUser | null;
   activePage: string;
   loading: boolean;
+  fcmToken?:string 
 }
 
 
@@ -130,6 +131,7 @@ const initialState: AuthState = {
   user: null,
   activePage: 'Home',
   loading: true,
+  fcmToken:""
 };
 
 // Async thunk to load persisted login
@@ -165,6 +167,9 @@ const authSlice = createSlice({
     setActivePage: (state, action: PayloadAction<string>) => {
       state.activePage = action.payload;
     },
+    setFcmToken: (state, action: PayloadAction<string>) => {
+      state.fcmToken = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(loadAuthFromSecureStore.fulfilled, (state, action) => {
@@ -181,5 +186,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { login, logout, setActivePage } = authSlice.actions;
+export const { login, logout, setActivePage,setFcmToken } = authSlice.actions;
 export default authSlice.reducer;

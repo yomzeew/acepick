@@ -1,15 +1,21 @@
-import { configureStore } from "@reduxjs/toolkit";
-import authReducer from "./authSlice";
-import registerReducer from "./registerSlice";
+import { configureStore } from '@reduxjs/toolkit';
+import { persistStore, persistReducer } from 'redux-persist';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import rootReducer from './rootReducer';
 
-const store = configureStore({
-  reducer: {
-    auth: authReducer,
-    register:registerReducer
-  },
+const persistConfig = {
+  key: 'root',
+  storage: AsyncStorage,
+  whitelist: ['chat', 'contacts'],
+};
+
+const persistedReducer = persistReducer(persistConfig, rootReducer);
+
+export const store = configureStore({
+  reducer: persistedReducer,
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({ serializableCheck: false }),
 });
 
+export const persistor = persistStore(store);
 export type RootState = ReturnType<typeof store.getState>;
-export type AppDispatch = typeof store.dispatch;
-
-export default store;

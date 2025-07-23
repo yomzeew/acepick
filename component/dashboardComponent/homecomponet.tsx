@@ -1,4 +1,10 @@
-import { View, ScrollView, TouchableOpacity } from "react-native"
+import {
+  ScrollView,
+  RefreshControl,
+  View,
+  TouchableOpacity,
+  Dimensions
+} from "react-native";
 import HeaderComponent from "./headercomponent"
 import { useTheme } from "../../hooks/useTheme";
 import { getColors } from "../../static/color";
@@ -18,7 +24,7 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import SectorsComponent from "./sectorsComponent";
 import { useCurrentLocation } from "hooks/useLocation";
 import { useMutation } from "@tanstack/react-query";
-import { updateLocation } from "services/userService";
+import { SaveTokenFunction, updateLocation } from "services/userService";
 import { useSelector } from "react-redux";
 import { RootState } from "redux/store";
 import PaymentModal from "component/menuComponent/walletPages/paymentModal";
@@ -33,6 +39,28 @@ const HomeComp = () => {
   const [errorPMessage, setErrorPMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [filterData, setFilterData] = useState<any[]>([])
+  const [refreshing, setRefreshing] = useState(false);
+  const [balanceRefreshTrigger, setBalanceRefreshTrigger] = useState(false); // 👈 Trigger to re-fetch wallet
+  const fcmToken=useSelector((state:RootState)=>(state.auth.fcmToken))
+  const saveFcmToken=async()=>{
+                 try {
+                   const response = await SaveTokenFunction(fcmToken);
+                   console.log('SaveTokenUrl response:', response.data);
+                 } catch (error) {
+                   console.error('SaveTokenUrl error:', error);
+                 }
+    }
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    // Toggle the trigger for WalletCard
+    setBalanceRefreshTrigger(prev => !prev);
+    // Add delay to simulate loading
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
+  
 
 
   // const handlenavcategory=(value:string)=>{
@@ -70,9 +98,12 @@ const HomeComp = () => {
     mutation.mutate(data); // ✅ Wrap both in one object
   };
   useEffect(() => {
+    saveFcmToken();
     updateLocationFn();
 
   }, [])
+
+  const { height } = Dimensions.get('window');
 
 
 
@@ -117,7 +148,23 @@ const HomeComp = () => {
       <ContainerTemplate>
         <HeaderComponent />
         <EmptyView height={20} />
-        <WalletCard setshowmodal={setshowmodal} showmodal={showmodal} />
+        <View className="flex-1">
+        <ScrollView
+      refreshControl={
+        <RefreshControl 
+        refreshing={refreshing} 
+        onRefresh={onRefresh}
+
+         />
+         
+      }
+      showsVerticalScrollIndicator={false}
+    >
+      <WalletCard 
+      setshowmodal={setshowmodal} 
+      showmodal={showmodal}  
+      refreshTrigger={balanceRefreshTrigger}
+      />
         <EmptyView height={20} />
         <FilterCard
           showprofession={showprofession}
@@ -129,9 +176,16 @@ const HomeComp = () => {
         <ThemeText size={Textstyles.text_medium} type="secondary">
           Professional
         </ThemeText>
+        <View style={{height:height*0.55}}>
         <SectorsComponent
           setErrorMessage={setErrorMessage}
         />
+
+        </View>
+       
+      </ScrollView>
+        </View>
+        
 
 
 
@@ -140,3 +194,5 @@ const HomeComp = () => {
   )
 }
 export default HomeComp
+
+

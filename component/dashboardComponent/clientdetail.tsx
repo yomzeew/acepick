@@ -13,9 +13,11 @@ import { getClientDetailFn, getProfessionDetailFn, getProfessionDetailIDFn } fro
 import { getColors } from "static/color"
 import { Textstyles } from "static/textFontsize"
 import { ClientDetail, ProfessionalData } from "type"
+import { useDispatch } from "react-redux";
 
 const ClientDetails = () => {
     const { theme } = useTheme()
+    
     const { selectioncardColor,primaryColor } = getColors(theme)
     const user=useSelector((state:RootState)=>state.auth.user)
 
@@ -23,7 +25,7 @@ const ClientDetails = () => {
     const clientName:string= user?.profile.firstName +' '+ user?.profile.lastName || ' '
     const numberOfStars:number=user?.profile.rate || 1
 
-
+   
     const router=useRouter()
     return (
         <>
@@ -49,7 +51,7 @@ const ClientDetails = () => {
                     <TouchableOpacity style={{backgroundColor:"red"}} className="w-8 h-8 rounded-full justify-center items-center">
                         <FontAwesome5 color="#ffffff" name="phone"/>
                     </TouchableOpacity>
-                    <TouchableOpacity style={{backgroundColor:primaryColor}} className="w-8 h-8 rounded-full justify-center items-center">
+                    <TouchableOpacity  onPress={() => router.push(`/mainchat/${user?.id}`)} style={{backgroundColor:primaryColor}} className="w-8 h-8 rounded-full justify-center items-center">
                     <Ionicons name="chatbubbles-sharp" color={"#ffffff"} size={20} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={()=>router.push('/clientProfileLayout')} style={{borderColor:primaryColor,borderWidth:1}} className="w-8 h-8 rounded-full justify-center items-center">
@@ -72,9 +74,15 @@ interface ProfessionalDetailsProps{
     professionalId:number
 }
 export const ProfessionalDetails = ({professionalId}:ProfessionalDetailsProps) => {
-     const [data, setData] = useState<ProfessionalData | null>(null);
 
-    
+     const [data, setData] = useState<ProfessionalData | null>(null);
+     const { theme } = useTheme()
+     const { selectioncardColor,primaryColor } = getColors(theme)
+     const router=useRouter()
+     const dispatch=useDispatch()
+     if (!professionalId) return null;
+     const userIDprofessionalId={userId:data?.profile.userId,professionalId}
+
         const mutation = useMutation({
             mutationFn:getProfessionDetailFn,
             onSuccess: async (response) => {
@@ -105,9 +113,7 @@ export const ProfessionalDetails = ({professionalId}:ProfessionalDetailsProps) =
             return null; // or loading indicator
         }
 
-    const { theme } = useTheme()
-    const { selectioncardColor,primaryColor } = getColors(theme)
-    const router=useRouter()
+  
     return (
         <>
             <View
@@ -117,7 +123,7 @@ export const ProfessionalDetails = ({professionalId}:ProfessionalDetailsProps) =
                 <View className="w-full flex-row justify-between items-center">
                 <View className="flex-row gap-x-2 items-center">
                     <View className="w-12 h-12 bg-slate-200 rounded-full">
-                        {/* <Image resizeMode="contain" className="w-12 h-12 rounded-full" source={{uri:data.profile.avatar}} /> */}
+                        <Image resizeMode="contain" className="w-12 h-12 rounded-full" source={{uri:data.profile.avatar}} />
 
                     </View>
                     <View>
@@ -130,10 +136,17 @@ export const ProfessionalDetails = ({professionalId}:ProfessionalDetailsProps) =
 
                 </View>
                 <View className="flex-row gap-x-2">
-                    <TouchableOpacity style={{backgroundColor:"red"}} className="w-8 h-8 rounded-full justify-center items-center">
+                    <TouchableOpacity   onPress={() => {
+                            router.push(`/callchat/${JSON.stringify(userIDprofessionalId)}`);
+                          }} style={{backgroundColor:"red"}}
+                           className="w-8 h-8 rounded-full justify-center items-center">
                         <FontAwesome5 color="#ffffff" name="phone"/>
                     </TouchableOpacity>
-                    <TouchableOpacity style={{backgroundColor:primaryColor}} className="w-8 h-8 rounded-full justify-center items-center">
+                    <TouchableOpacity 
+                          onPress={() => {
+                            router.push(`/mainchat/${JSON.stringify(userIDprofessionalId)}`);
+                          }}
+                    style={{backgroundColor:primaryColor}} className="w-8 h-8 rounded-full justify-center items-center">
                     <Ionicons name="chatbubbles-sharp" color={"#ffffff"} size={20} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={()=>router.push(`/clientProfileLayout?professionalId=${professionalId}`)} style={{borderColor:primaryColor,borderWidth:1}} className="w-8 h-8 rounded-full justify-center items-center">
@@ -199,7 +212,7 @@ export const ClientDetailsWithoutChat = () => {
     const { theme } = useTheme()
     const { selectioncardColor,primaryColor } = getColors(theme)
     const router=useRouter()
-    const user=useSelector((state:RootState)=>state.auth.user)
+    const user=useSelector((state:RootState)=>state?.auth.user)
 
     const avatar:string=user?.profile.avatar || ' '
     const clientName:string= user?.profile.firstName +' '+ user?.profile.lastName || ' '
@@ -280,6 +293,8 @@ export const ClientDetailsForProf = ({clientId}:ClientDetailsForProf) => {
         return null; // or loading indicator
     }
     const router=useRouter()
+
+    const userIDprofessionalId={userId:clientId,professionalId:''}
     return (
         <>
             <View
@@ -303,7 +318,7 @@ export const ClientDetailsForProf = ({clientId}:ClientDetailsForProf) => {
                     <TouchableOpacity style={{backgroundColor:"red"}} className="w-8 h-8 rounded-full justify-center items-center">
                         <FontAwesome5 color="#ffffff" name="phone"/>
                     </TouchableOpacity>
-                    <TouchableOpacity style={{backgroundColor:primaryColor}} className="w-8 h-8 rounded-full justify-center items-center">
+                    <TouchableOpacity  onPress={() => router.push(`/mainchat/${JSON.stringify(userIDprofessionalId)}`)} style={{backgroundColor:primaryColor}} className="w-8 h-8 rounded-full justify-center items-center">
                     <Ionicons name="chatbubbles-sharp" color={"#ffffff"} size={20} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={()=>router.push('/clientProfileLayout')} style={{borderColor:primaryColor,borderWidth:1}} className="w-8 h-8 rounded-full justify-center items-center">

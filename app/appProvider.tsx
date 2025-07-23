@@ -1,8 +1,8 @@
 import { ReactNode, useEffect, useRef, useState } from "react";
 import * as Notifications from 'expo-notifications';
-import { Provider } from "react-redux";
+import { Provider, useDispatch } from "react-redux";
 import '../global.css';
-import store from "../redux/store";
+import {store,persistor} from "../redux/store";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RoleProvider } from "context/roleContext";
@@ -10,62 +10,38 @@ import { registerForPushNotificationsAsync, setupNotificationListeners } from "s
 import { SaveTokenFunction } from "services/userService";
 import { useSecureAuth } from "hooks/useSecureAuth";
 import { SocketProvider } from "hooks/useSocket";
+import { PersistGate } from "redux-persist/integration/react";
+import { initializeSocketListeners } from "services/socketHandler";
+import NotificationWrapper from "./NotificationWrapper";
+import { CallProvider } from "context/WebRtcContext";
+
+
 
 const AppProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = new QueryClient();
-  const notificationListener = useRef<any>(null);
-  const responseListener = useRef<any>(null);
-
-  const { getAuthData } = useSecureAuth();
-  const [authToken, setAuthToken] = useState<string | null>(null);
-
   useEffect(() => {
-    const fetchAuthData = async () => {
-      const authdata = await getAuthData();
-      setAuthToken(authdata?.token || null);
-    };
-
-    fetchAuthData();
+    initializeSocketListeners();
   }, []);
-
-  useEffect(() => {
-    registerForPushNotificationsAsync().then(async(token) => {
-      console.log('Registered token:', token);
-      if (authToken) {
-         const data = { token };
-         try {
-           const response = await SaveTokenFunction(data, authToken);
-           console.log('SaveTokenUrl response:', response.data);
-         } catch (error) {
-           console.error('SaveTokenUrl error:', error);
-         }
-       } else {
-         console.log('No auth token available, skipping SaveTokenUrl call.');
-       }
-    });
-
-    const { notificationListener: notifListener, responseListener: respListener } =
-      setupNotificationListeners();
-
-    notificationListener.current = notifListener;
-    responseListener.current = respListener;
-
-    return () => {
-      notificationListener.current?.remove();
-      responseListener.current?.remove();
-    };
-  }, [authToken]); // run this effect **after** authToken is loaded
-
   return (
     <RoleProvider>
       <Provider store={store}>
+      <PersistGate loading={null} persistor={persistor}>
+        <NotificationWrapper>
         <QueryClientProvider client={queryClient}>
          <SocketProvider>
+       
+         <CallProvider>
           <GestureHandlerRootView>
             {children}
           </GestureHandlerRootView>
+          </CallProvider>
+         
+        
           </SocketProvider>
         </QueryClientProvider>
+        </NotificationWrapper>
+        
+        </PersistGate>
       </Provider>
     </RoleProvider>
   );

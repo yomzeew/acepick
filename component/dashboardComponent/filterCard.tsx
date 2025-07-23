@@ -35,7 +35,7 @@ const FilterCard=({showprofession,setshowprofession,professionalValue,setProfess
 
     return(
         <>
-        <View style={{backgroundColor:selectioncardColor,elevation:4}} className="w-full h-[12%] rounded-2xl shadow-slate-500 shadow-sm px-5 py-3 ">
+        <View style={{backgroundColor:selectioncardColor,elevation:4}} className="w-full h-[13%] rounded-2xl shadow-slate-500 shadow-sm px-5 py-3 ">
          <ThemeTextsecond size={Textstyles.text_xmedium}>
            Who are you looking for?
          </ThemeTextsecond>

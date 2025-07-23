@@ -320,3 +320,191 @@ export interface JobMaterial {
     durationValue: number | null;
     materials: Material[];
   }
+  export interface Wallet {
+    id: string;
+    createdAt: string;
+    currency: string;
+    currentBalance: number;
+    pin: string | null;
+    previousBalance: number;
+    status: string;
+    updatedAt: string;
+    userId: string;
+  }
+
+  export interface Message {
+    from: any;
+    to: any;
+    text?: string;
+    image?: any;
+    room?: string;
+    timestamp?: string;
+    time?:string
+    
+  }
+
+  type UserLocation = {
+    id: number;
+    address: string;
+    latitude: number;
+    longitude: number;
+    lga: string;
+    state: string;
+    zipcode: string | null;
+    createdAt: string;
+    updatedAt: string;
+    userId: string;
+  };
+  
+  type UserProfile = {
+    id: number;
+    avatar: string;
+    birthDate: string | null;
+    bvn: string | null;
+    bvnVerified: boolean | null;
+    count: number;
+    createdAt: string;
+    updatedAt: string;
+    fcmToken: string;
+    firstName: string;
+    lastName: string;
+    notified: boolean;
+    position: string | null;
+    rate: string;
+    store: boolean;
+    switch: boolean;
+    totalDisputes: number;
+    totalExpense: number;
+    totalJobs: number;
+    totalJobsApproved: number;
+    totalJobsCanceled: number;
+    totalJobsCompleted: number;
+    totalJobsDeclined: number;
+    totalJobsOngoing: number;
+    totalJobsPending: number;
+    totalReview: number;
+    userId: string;
+    verified: boolean;
+  };
+  
+  export interface UserData{
+    id: string;
+    email: string;
+    phone: string;
+    agreed: boolean;
+    createdAt: string;
+    updatedAt: string;
+    role: string;
+    status: string;
+    location: UserLocation;
+    profile: UserProfile;
+  };
+  export interface PreviousChatData {
+    agreed: boolean;
+    createdAt: string;
+    email: string;
+    fcmToken: string | null;
+    id: string;
+    location: {
+      address: string | null;
+      createdAt: string;
+      id: number;
+      latitude: number;
+      lga: string | null;
+      longitude: number;
+      state: string | null;
+      updatedAt: string;
+      userId: string;
+      zipcode: string | null;
+    };
+    onlineUser: {
+      createdAt: string;
+      isOnline: boolean;
+      lastActive: string;
+      socketId: string;
+      updatedAt: string;
+      userId: string;
+    } | null;
+    phone: string;
+    profile: {
+      avatar: string;
+      birthDate: string | null;
+      bvn: string | null;
+      bvnVerified: boolean | null;
+      count: number;
+      createdAt: string;
+      fcmToken: string | null;
+      firstName: string;
+      id: number;
+      lastName: string;
+      notified: boolean;
+      position: string | null;
+      professional: Record<string, any>; // Update if structure is known
+      rate: string;
+      store: boolean;
+      switch: boolean;
+      totalDisputes: number;
+      totalExpense: number;
+      totalJobs: number;
+      totalJobsApproved: number;
+      totalJobsCanceled: number;
+      totalJobsCompleted: number;
+      totalJobsDeclined: number;
+      totalJobsOngoing: number;
+      totalJobsPending: number;
+      totalReview: number;
+      updatedAt: string;
+      userId: string;
+      verified: boolean;
+    };
+    role: string;
+    status: string;
+    updatedAt: string;
+  }
+
+  export interface BankRecipient {
+    id: number;
+    userId: string;
+    name: string;
+    number: string;
+    bank: string;
+    currency: string;
+    recipientCode: string;
+    createdAt: string; // ISO date string
+    updatedAt: string; // ISO date string
+  }
+
+  export interface categoryProduct{
+   
+      id: number,
+      name: string,
+      description:string
+  
+  }
+  export interface Location {
+    id: number;
+    address: string;
+    lga: string;
+    state: string;
+    latitude: number;
+    longitude: number;
+    zipcode: string | null;
+    userId: string;
+    createdAt: string; // ISO date string
+    updatedAt: string; // ISO date string
+  }
+  
+  export interface Product {
+    id: number;
+    name: string;
+    description: string;
+    images: string[]; // Assuming images is an array of image URL strings
+    categoryId: number;
+    quantity: number;
+    price: string; // Can be changed to number if your API returns numeric price
+    discount: number;
+    userId: string;
+    locationId: number;
+    category: categoryProduct;
+    location: Location;
+  }

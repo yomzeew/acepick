@@ -29,7 +29,7 @@ const ProfileComponent = () => {
     const handleNavigationSettings=()=>{
         routes.push('/profilesettinglayout')
     }
-    const user=useSelector((state:RootState)=>state.auth.user)
+    const user=useSelector((state:RootState)=>state?.auth.user)
     const numberofDisputes=user?.profile.totalDisputes || 0
     const numberofReview=user?.profile.totalReview || 0
     return (

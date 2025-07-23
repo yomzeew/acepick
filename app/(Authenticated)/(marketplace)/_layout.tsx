@@ -6,6 +6,7 @@ export default function MarketLayout() {
     
       <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen  name="addproductLayout" />
+      <Stack.Screen name="myItemsLayout" />
     </Stack>
 
  

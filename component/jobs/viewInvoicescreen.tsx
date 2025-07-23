@@ -78,7 +78,9 @@ const ViewInvoiceScreen = () => {
 
                     </View>
                     <EmptyView height={20} />
-                    <ButtonComponent color={primaryColor} text={"View Chat"} textcolor={"#ffffff"} route={""}/>
+                    <ButtonComponent  color={primaryColor} text={"View Chat"} textcolor={"#ffffff"} route={""} onPress={function (): void {
+                        throw new Error("Function not implemented.")
+                    } }/>
                 </View>
 
             </ContainerTemplate>

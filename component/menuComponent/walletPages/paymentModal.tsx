@@ -97,7 +97,8 @@ const PaymentModal = ({
       return;
     }
     setErrorMsg("");
-    mutation.mutate(parsedAmount);
+    const payload={amount:parsedAmount,description:"Wallet topup"}
+    mutation.mutate(payload);
   };
 
   return (

@@ -1,10 +1,9 @@
-// src/context/SocketContext.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useSelector } from 'react-redux';
 import { RootState } from '../redux/store';
 import { baseUrl } from 'utilizes/endpoints';
-
+import { setSocket as setGlobalSocket } from '../services/socketInstance';
 
 type SocketContextType = {
   socket: Socket | null;
@@ -17,40 +16,47 @@ const SocketContext = createContext<SocketContextType>({
 });
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const token = useSelector((state: RootState) => state.auth.token);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const token = useSelector((state: RootState) => state.auth.token);
-
+  
   useEffect(() => {
-    if (!token) return;
-
-    const socketInstance = io(baseUrl, {
+    const socketInstance: Socket = io(baseUrl, {
+      path: '/chat', // or your preferred path
       transports: ['websocket'],
-      auth: {
-        token,
-      },
     });
 
     socketInstance.on('connect', () => {
-      console.log('Connected to socket server');
+      console.log('✅ Connected to socket server');
       setIsConnected(true);
     });
 
     socketInstance.on('disconnect', () => {
-      console.log('Disconnected from socket server');
+      console.log('🔌 Disconnected from socket server');
       setIsConnected(false);
     });
 
     socketInstance.on('connect_error', (err) => {
-      console.log('Connection error:', err.message);
+      console.log('⚠️ Connection error:', err.message);
     });
 
+    // Assign to local and global
     setSocket(socketInstance);
+    setGlobalSocket(socketInstance);
 
     return () => {
       socketInstance.disconnect();
+      setGlobalSocket(null);
     };
-  }, [token]);
+  }, []);
+
+  // Auth + connect once token is ready
+  useEffect(() => {
+    if (socket && token) {
+      socket.auth = { token };
+      socket.connect();
+    }
+  }, [token, socket]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

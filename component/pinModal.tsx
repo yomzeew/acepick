@@ -4,7 +4,7 @@ import {
   Text,
   TouchableOpacity,
   Vibration,
-  Modal,          // ← use React-Native modal for visibility
+  Modal,
 } from 'react-native';
 import ContainerTemplate from './dashboardComponent/containerTemplate';
 import { AlertMessageBanner } from './AlertMessageBanner';
@@ -49,10 +49,10 @@ const Keypad = ({ onPress }: { onPress: (val: string) => void }) => {
 
 /* ---------- Props ---------- */
 type PinModalProps = {
-  visible: boolean;                 // ← control from parent
-  mode: 'transaction' | 'update';
-  onComplete: (pin: string) => void;
-  onClose: () => void;              // ← dismiss callback (modal & parent)
+  visible: boolean;
+  mode: 'transaction' | 'update' | 'reset';
+  onComplete: (pin:any) => void;
+  onClose: () => void;
 };
 
 /* ---------- Component ---------- */
@@ -65,7 +65,13 @@ const PinModal = ({ visible, mode, onComplete, onClose }: PinModalProps) => {
   const [confirmPin, setConfirm]  = useState('');
   const [error, setError]         = useState<string | null>(null);
 
-  /* -- handle numeric / control keys -- */
+  const resetAll = () => {
+    setStep(1);
+    setPin('');
+    setConfirm('');
+    setError(null);
+  };
+
   const press = (key: string) => {
     if (key === '⌫') {
       step === 1 ? setPin(p => p.slice(0, -1))
@@ -76,45 +82,64 @@ const PinModal = ({ visible, mode, onComplete, onClose }: PinModalProps) => {
     if (key === '✓') {
       if (mode === 'transaction' && pin.length === 4) {
         onComplete(pin);
-        onClose();                        // auto-dismiss
-      } else if (mode === 'update') {
-        if (step === 1 && pin.length === 4)      setStep(2);
-        else if (step === 2 && confirmPin.length === 4) {
+        onClose();
+        resetAll();
+      } 
+      else if (mode === 'update') {
+        if (step === 1 && pin.length === 4) {
+          setStep(2);
+        } else if (step === 2 && confirmPin.length === 4) {
           if (pin === confirmPin) {
             onComplete(pin);
-            onClose();                    // auto-dismiss
+            onClose();
+            resetAll();
           } else {
             setError('PINs do not match');
-            setPin(''); setConfirm(''); setStep(1);
+            resetAll();
           }
+        }
+      }
+      else if (mode === 'reset') {
+        if (step === 1 && pin.length === 4) {
+          setStep(2);
+        } else if (step === 2 && confirmPin.length === 4) {
+          // Send both old and new pin
+          const payload = { oldPin: pin, newPin: confirmPin };
+          onComplete(payload); // ✅ Pass as object
+          onClose();
+          resetAll();
         }
       }
       return;
     }
 
-    if (!/^\d$/.test(key)) return;        // ignore non-digits
+    if (!/^\d$/.test(key)) return;
 
     step === 1
-      ? pin.length      < 4 && setPin(pin + key)
+      ? pin.length < 4 && setPin(pin + key)
       : confirmPin.length < 4 && setConfirm(confirmPin + key);
   };
 
-  /* -- presentation -- */
+  const getTitle = () => {
+    if (mode === 'transaction') return 'Enter PIN to Authorise';
+    if (mode === 'update') return step === 1 ? 'Set New PIN' : 'Confirm PIN';
+    if (mode === 'reset') return step === 1 ? 'Enter Old PIN' : 'Enter New PIN';
+    return '';
+  };
+
   return (
     <Modal visible={visible} animationType="slide" transparent>
       {error && <AlertMessageBanner type="error" message={error} />}
       <ContainerTemplate>
         <View className="flex-1 items-center justify-center px-6">
           <ThemeText size={Textstyles.text_cmedium}>
-            {mode === 'transaction'
-              ? 'Enter PIN to Authorise'
-              : step === 1 ? 'Set New PIN' : 'Confirm PIN'}
+            {getTitle()}
           </ThemeText>
 
           <PinBoxes pinLength={step === 1 ? pin.length : confirmPin.length} />
           <Keypad onPress={press} />
 
-          <TouchableOpacity onPress={onClose} className="mt-6">
+          <TouchableOpacity onPress={() => { onClose(); resetAll(); }} className="mt-6">
             <Text style={{ color: primaryColor }}>Cancel</Text>
           </TouchableOpacity>
         </View>

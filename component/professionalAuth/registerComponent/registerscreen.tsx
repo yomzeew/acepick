@@ -57,9 +57,7 @@ function RegisterScreenProfession() {
     if (shouldProceed) {
       dispatch(setRegistrationData({ email, phone }));
       router.push("/verificationcode");
-   
-      
-      
+  
     }
   }, 2000, [shouldProceed]);
 

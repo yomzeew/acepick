@@ -15,6 +15,7 @@ import { loginUser } from "services/authServices";
 import { useMutation } from "@tanstack/react-query";
 import { AlertMessageBanner } from "component/AlertMessageBanner";
 import { useSecureAuth } from "hooks/useSecureAuth"
+import { AxiosError } from "axios";
 
 
 interface UserDetails {
@@ -60,7 +61,7 @@ function LoginComponent() {
       }
       
     },
-    onError: (error: any) => {
+    onError: (error:any) => {
       let msg = "An unexpected error occurred";
     
       if (error?.response?.data) {

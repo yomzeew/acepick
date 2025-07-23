@@ -28,7 +28,7 @@ import { fetchInvoice } from 'services/userService';
 import SliderModalTemplate from 'component/slideupModalTemplate';
 import { Material } from 'type';
 
-import store from 'redux/store';
+import {store} from 'redux/store';
   
   const currency = (n: number | null | undefined) =>
     `₦${(n ?? 0).toLocaleString()}`;
@@ -96,8 +96,9 @@ import store from 'redux/store';
       (acc, m) => acc + m.subTotal,
       0
     );
-    const workmanship    = invoice.workmanship ?? 0;
-    const grandTotal     = materialsTotal + workmanship;
+    const workmanship = parseFloat(String(invoice?.workmanship ?? "0"));
+    const grandTotal = parseFloat(String(materialsTotal)) + workmanship;
+    
   
     //----------------------------------------------------------------
     // UI

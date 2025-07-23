@@ -53,6 +53,16 @@ import {
     const [selectedJobId, setSelectedJobId]     = useState<number | null>(null);
   
     /* ────────────────────────────── fetch jobs   */
+    //  useEffect(() => {
+    //       if (banner) {
+    //         const timer = setTimeout(() => {
+    //           setBanner(null);
+    //         }, 4000); // 4 seconds
+        
+    //         return () => clearTimeout(timer); // cleanup if banner changes quickly
+    //       }
+    //     }, [banner]);
+
     const jobsMutation = useMutation({
       mutationFn: getAllJobs,
       onSuccess: (res) => setData(res.data),
@@ -219,8 +229,8 @@ import {
   
     return (
       <View
-        className="rounded-xl shadow-sm shadow-black px-4 py-5 items-center"
         style={{ backgroundColor: selectioncardColor, elevation: 4 }}
+        className="rounded-xl p-4 mb-4"
       >
         <JobStatusBar status={item.status} />
   
@@ -266,6 +276,7 @@ import {
       onSuccess: () => {
         setMessage({ type: 'success', text: 'Job marked as completed.' });
         onSuccess();        // refresh list
+        onClose();
       },
       onError: (err: any) => {
         const msg =
@@ -273,7 +284,7 @@ import {
           err?.response?.data?.error ??
           err?.message ??
           'An unexpected error occurred';
-        setMessage({ type: 'error', text: msg });
+          setMessage({ type: 'error', text: msg });
       },
     });
   

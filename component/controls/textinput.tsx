@@ -19,6 +19,9 @@ interface InputComponentProps {
     keyboardType?: KeyboardTypeOptions;
     fieldType?: "text" | "date";
     value: string | number | Date;
+    editable?:boolean
+    maxLength?:number
+    
 }
 
 const InputComponent = ({
@@ -32,6 +35,8 @@ const InputComponent = ({
   icon,
   keyboardType,
   fieldType = "text", // Default to normal input
+  editable,
+  maxLength
 }: InputComponentProps) => {
   const { theme } = useTheme();
   const { primaryColor, secondaryTextColor, backgroundColor } = getColors(theme);
@@ -73,6 +78,8 @@ const InputComponent = ({
           multiline={multiline}
           keyboardType={keyboardType}
           value={String(value)}
+          editable={editable}
+          maxLength={maxLength}
         />
       )}
 

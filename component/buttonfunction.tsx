@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 
-const ButtonFunction = ({ color, text, textcolor, onPress,style }: { color: string; text: string; textcolor: string; onPress:()=>void ,style?:string}) => {
+const ButtonFunction = ({ color, text, textcolor, onPress,style }: { color: string; text: any; textcolor: string; onPress:()=>void ,style?:string}) => {
   const router = useRouter()
   return (
     <View className="w-full justify-center items-center">

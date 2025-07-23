@@ -1,76 +1,55 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { View, ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
-import { useMutation } from "@tanstack/react-query";
-import { paymentVerify } from "services/userService";
+import { useEffect, useState } from "react";
 import ContainerTemplate from "component/dashboardComponent/containerTemplate";
 import HeaderComponent from "component/headerComp";
-import { useEffect, useState } from "react";
-import { baseUrl } from "utilizes/endpoints";
+import { useSocket } from "hooks/useSocket";
+
 
 const PaymentWebView = () => {
   const { url, reference } = useLocalSearchParams();
   const router = useRouter();
+  const {socket} = useSocket(); // your connected socket instance
 
   const paymentUrl = Array.isArray(url) ? url[0] : url;
   const paymentRef = Array.isArray(reference) ? reference[0] : reference;
 
   const [hasVerified, setHasVerified] = useState(false);
 
-  const mutation = useMutation({
-    mutationFn: paymentVerify,
-    onSuccess: (data) => {
-        console.log(data)
-      if (data.data.transaction?.status === "success") {
+  useEffect(() => {
+    if (!socket || !paymentRef) return;
+
+    const handlePaymentSuccess = (payload: any) => {
+      if (
+        payload?.data?.reference === paymentRef &&
+        payload?.data?.status === "success" &&
+        !hasVerified
+      ) {
+        setHasVerified(true);
         router.replace({
           pathname: "/paymentSuccess",
           params: { message: "Payment successful" },
         });
-      } else {
-        router.replace({
-          pathname: "/paymentFail",
-          params: { message: "Payment not successful. Try again." },
-        });
       }
-    },
-    onError: () => {
-      router.replace({
-        pathname: "/paymentFail",
-        params: { message: "Error verifying payment." },
-      });
-    },
-  });
+    };
+
+    socket.on("PAYMENT_SUCCESS", handlePaymentSuccess);
+
+    return () => {
+      socket.off("PAYMENT_SUCCESS", handlePaymentSuccess);
+    };
+  }, [socket, paymentRef, hasVerified]);
 
   const handleNavigationChange = (navState: any) => {
     const currentUrl = navState.url;
-
     const isRedirectToServer =
-      currentUrl.startsWith("https://acepickapi-g3hcbwe6f4hefjc5.canadacentral-01.azurewebsites.net") &&
+      currentUrl.startsWith("https://www.acepickdev.com") &&
       currentUrl.includes("reference=");
-      if (isRedirectToServer && !hasVerified) {
-        const urlObj = new URL(currentUrl);
-        const referenceFromUrl = urlObj.searchParams.get("reference");
-        if(referenceFromUrl===paymentRef){
-            router.replace({
-                pathname: "/paymentSuccess",
-                params: { message: "Payment successful" },
-              });
-
-        }
-        else{
-            router.replace({
-                pathname: "/paymentFail",
-                params: { message: "Payment not successful. Try again." },
-              });
-
-        }
-      }
-
-    // if (isRedirectToServer && !hasVerified) {
-    //   setHasVerified(true);
-    //   mutation.mutate(paymentRef);
-    // }
+    
+    // Optional: add a fallback navigation or loading indicator
   };
+
   if (!paymentUrl || !paymentRef) return <ActivityIndicator />;
 
   return (

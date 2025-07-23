@@ -1,3 +1,5 @@
+import { useMutation } from "@tanstack/react-query";
+import { AlertMessageBanner } from "component/AlertMessageBanner";
 import ButtonComponent from "component/buttoncomponent";
 import Checkbox from "component/controls/checkbox";
 import ContainerTemplate from "component/dashboardComponent/containerTemplate";
@@ -5,10 +7,11 @@ import HeaderComponent from "component/headerComp";
 import PinModal from "component/pinModal";
 import { SliderModalNoScrollview } from "component/slideupModalTemplate";
 import { ThemeText, ThemeTextsecond } from "component/ThemeText";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "hooks/useTheme";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TouchableOpacity, View } from "react-native";
+import { paymentInitiate, walletDebitFn } from "services/userService";
 import { getColors } from "static/color";
 import { Textstyles } from "static/textFontsize";
 
@@ -17,11 +20,14 @@ const PaymentScreen = () => {
   const {theme}=useTheme()
   const {primaryColor,selectioncardColor}=getColors(theme)
 
-  const [payMaterial, setPayMaterial] = useState(false);
-  const [payWorkmanship, setPayWorkmanship] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"wallet" | "cash" | null>('wallet');
+  const [payMaterial, setPayMaterial] = useState(true);
+  const [payWorkmanship, setPayWorkmanship] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState<"wallet" | "instant" | null>('wallet');
   const [pin,setPin]=useState('')
   const [showmodal,setshowmodal]=useState(false)
+  const [errorMessage,setErrorMessage]=useState<string| null>(null)
+  const [successMessage,setSuccessMessage]=useState<string | null>(null)
+  const [ref,setRef]=useState(null)
 
   const material = parseFloat(materialCost as string) || 0;
   const work = parseFloat(workmanship as string) || 0;
@@ -31,13 +37,120 @@ const PaymentScreen = () => {
 
   const isPaymentReady = total > 0 && paymentMethod !== null;
 
-  const handlepay=()=>{
-    console.log(pin)
-    setshowmodal(!showmodal)
-  }
+  
 
+  const router = useRouter();
+    useEffect(() => {
+      if (errorMessage) {
+        const timer = setTimeout(() => {
+          setErrorMessage(null);
+        }, 4000);
+        return () => clearTimeout(timer); // Cleanup on unmount or on new error
+      }
+    }, [errorMessage])
+    useEffect(() => {
+      if (errorMessage) {
+        const timer = setTimeout(() => {
+          setSuccessMessage(null);
+        }, 4000);
+        return () => clearTimeout(timer); // Cleanup on unmount or on new error
+      }
+    }, [successMessage])
+   
+  
+    // Clear error message after 4 seconds
+    useEffect(() => {
+      if (errorMessage) {
+        const timer = setTimeout(() => setErrorMessage(null), 4000);
+        return () => clearTimeout(timer);
+      }
+    }, [errorMessage]);
+  
+    const mutation = useMutation({
+      mutationFn: paymentInitiate,
+      onSuccess: (data) => {
+        const { reference, authorization_url } = data.data;
+        setRef(reference);
+        setSuccessMessage("Payment initiated");
+        console.log(authorization_url)
+        if (authorization_url && reference) {
+          router.push({
+            pathname: "/paystackViewLayout",
+            params: { url: authorization_url, reference },
+          });
+        }
+      },
+      onError: (error: any) => {
+        let msg = "An unexpected error occurred";
+        if (error?.response?.data) {
+          msg =
+            error.response.data.message ||
+            error.response.data.error ||
+            JSON.stringify(error.response.data);
+        } else if (error?.message) {
+          msg = error.message;
+        }
+        setErrorMessage(msg);
+        console.error(msg);
+      },
+    });
+
+    const mutationWallet = useMutation({
+      mutationFn: walletDebitFn,
+      onSuccess: (data) => {
+        if(data){
+          setSuccessMessage("Payment Successfull");
+          router.push('/paymentSuccess')
+        }
+     
+      },
+      onError: (error: any) => {
+        let msg = "An unexpected error occurred";
+        if (error?.response?.data) {
+          msg =
+            error.response.data.message ||
+            error.response.data.error ||
+            JSON.stringify(error.response.data);
+        } else if (error?.message) {
+          msg = error.message;
+        }
+        setErrorMessage(msg);
+        console.error(msg);
+      },
+    });
+
+  
+    const handleSubmit= () => {
+      if(paymentMethod==="instant"){
+        const payload={amount:total,description:"Job Payment",jobId:Number(jobId)}
+        mutation.mutate(payload);
+    }
+    else{
+      setshowmodal(!showmodal)
+
+    }
+    
+    };
+    const handlepay=(pin:any)=>{
+      const data={
+        "amount": total,
+        "pin": pin,
+        "reason": "job payment",
+        "jobId": parseInt(jobId as string)
+    }
+    mutationWallet.mutate(data)
+   
+
+    
+  }
   return (
     <>
+     {successMessage && (
+                        <AlertMessageBanner type="success" message={successMessage} />
+                      )}
+                      {errorMessage && (
+                        <AlertMessageBanner type="error" message={errorMessage} />
+                      )}
     <ContainerTemplate>
       <View className="h-full w-full px-6 py-4 flex-col">
         <HeaderComponent title="Payment" />
@@ -71,9 +184,9 @@ const PaymentScreen = () => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => setPaymentMethod("cash")}
+            onPress={() => setPaymentMethod("instant")}
             className={`px-4 py-2 rounded-lg border ${
-              paymentMethod === "cash" ? "bg-green-500" : selectioncardColor
+              paymentMethod === "instant" ? "bg-green-500" : selectioncardColor
             }`}
           >
             <ThemeTextsecond size={Textstyles.text_xsmall}>Instant Payment</ThemeTextsecond>
@@ -88,19 +201,20 @@ color={primaryColor}
 text={"Submit Payment"} 
 textcolor={"#ffffff"} 
 disabled={!isPaymentReady}
+isLoading={mutationWallet.isPending || mutation.isPending}
 
 onPress={() => {
     // Handle payment submission here
     console.log("Submitting payment for job", jobId);
     console.log("Total:", total);
     console.log("Method:", paymentMethod);
-    handlepay()
+    handleSubmit();
   }}
               />
     </View>
     </ContainerTemplate>
     <SliderModalNoScrollview showmodal={showmodal} modalHeight={'80%'} setshowmodal={setshowmodal}>
-        <PinModal mode={"transaction"} onComplete={(value: string) => setPin(value)} onClose={() => setshowmodal(!showmodal)} visible={showmodal}/>
+        <PinModal mode={"transaction"} onComplete={(pin: string) =>  handlepay(pin)} onClose={() => setshowmodal(!showmodal)} visible={showmodal}/>
     </SliderModalNoScrollview>
     </>
   );

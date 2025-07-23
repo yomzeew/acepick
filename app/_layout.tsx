@@ -9,6 +9,7 @@ import AppProvider from "./appProvider";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import { StatusBar } from "expo-status-bar";
+import IncomingCallModal from "component/incomingcallModal";
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -37,7 +38,11 @@ export default function RootLayout() {
 
   return (
     <AppProvider>
+    
       <RootContent onLayoutRootView={onLayoutRootView} />
+    
+
+
     </AppProvider>
   );
 }
@@ -56,6 +61,7 @@ const RootContent = ({ onLayoutRootView }: { onLayoutRootView: () => void }) => 
             <Stack.Screen name="(NotAuthenticated)" />
           )}
         </Stack>
+        <IncomingCallModal/>
       </View>
     </ThemeProvider>
   );

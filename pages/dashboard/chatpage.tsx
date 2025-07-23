@@ -1,9 +1,10 @@
-import ChatComponent from "component/menuComponent/chatMessaging/chatpage"
+import ContactListScreen from "component/menuComponent/chatMessaging/chatpage"
+
 
 const ChatPage=()=>{
     return(
         <>
-        <ChatComponent/>
+       <ContactListScreen/>
         </>
     )
 }

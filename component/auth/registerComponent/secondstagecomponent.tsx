@@ -28,8 +28,8 @@ function SecondStageComponent() {
   const [shouldProceed, setShouldProceed] = useState<boolean>(false);
 
   // Get phone number from Redux
-  const phone = useSelector((state: RootState) => state.register.userData?.phone ?? "");
-  const email = useSelector((state: RootState) => state.register.userData?.email ?? "");
+  const phone = useSelector((state: RootState) => state?.register.userData?.phone ?? "");
+  const email = useSelector((state: RootState) => state?.register.userData?.email ?? "");
  
 
   const masked = phone.length >= 6 ? phone.slice(0, 3) + "******" + phone.slice(-3) : phone.replace(/.(?=.{3})/g, "*");
