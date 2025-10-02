@@ -115,9 +115,15 @@ const dispatch=useDispatch()
       return;
     }
 
+    // Validate required fields
+    if (!registerData?.firstName || !registerData?.lastName || !registerData?.email || !registerData?.phone) {
+      setErrorMessage("Please complete all required fields");
+      return;
+    }
+
     // Proceed with registerData + password
     console.log("Final Registration Payload: ", { ...registerData, password,confirmPassword,role,agreed:isChecked });
-    const payload={ ...registerData, password,confirmPassword,role,agreed:isChecked }
+    const payload={ ...registerData, password,confirmPassword,role,agreed:isChecked } as any
     mutation.mutate(payload)
     dispatch(clearRegistrationData())
   };

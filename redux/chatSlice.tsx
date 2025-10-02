@@ -1,5 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { PreviousChatData, UserData } from 'type';
+import { ContactUser } from 'types/listofContactType';
+import { PreviousChatData, UserData } from 'types/type';
+
 
 // Chat message type
 export interface ChatMessage {
@@ -22,7 +24,7 @@ interface ChatState {
     [roomId: string]: ChatMessage[];
   };
   roomId: string;
-  previousChats: PreviousChatData[]; // ✅ Added
+  previousChats: ContactUser[]; // ✅ Added
 }
 
 // Initial state
@@ -49,10 +51,10 @@ const chatSlice = createSlice({
       state.roomId = action.payload;
     },
     // ✅ New reducers for previous chats
-    addPreviousChat(state, action: PayloadAction<PreviousChatData>) {
+    addPreviousChat(state, action: PayloadAction<ContactUser>) {
       state.previousChats.push(action.payload);
     },
-    setPreviousChats(state, action: PayloadAction<PreviousChatData[]>) {
+    setPreviousChats(state, action: PayloadAction<ContactUser[]>) {
       state.previousChats = action.payload;
     },
   },

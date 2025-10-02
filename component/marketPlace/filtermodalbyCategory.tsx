@@ -21,7 +21,7 @@ export const FilterModalByCategory = ({
   const categoryMutation = useMutation({
     mutationFn: getCategories,
     onSuccess: (response) => {
-      setCategoryData(response.data || []);
+      setCategoryData(response || []);
     },
     onError: (error: any) => {
       const msg =

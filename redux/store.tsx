@@ -6,7 +6,7 @@ import rootReducer from './rootReducer';
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
-  whitelist: ['chat', 'contacts'],
+  whitelist: ['auth', 'register', 'chat', 'contacts'],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -19,3 +19,9 @@ export const store = configureStore({
 
 export const persistor = persistStore(store);
 export type RootState = ReturnType<typeof store.getState>;
+
+// Export a hook that can be reused to resolve types
+export const useAppDispatch = () => store.dispatch;
+export const useAppSelector = <T,>(selector: (state: RootState) => T): T => {
+  return selector(store.getState());
+};

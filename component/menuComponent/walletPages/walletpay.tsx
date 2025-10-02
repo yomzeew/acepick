@@ -14,7 +14,7 @@ import PaymentmethodModal from "./paymentModal"
 import PinModal from "component/pinModal"
 import { useSelector } from "react-redux"
 import { RootState } from "redux/store"
-import { Wallet } from "type"
+import { Wallet } from "types/type"
 import { AlertMessageBanner } from "component/AlertMessageBanner"
 import { resetPinFn, setPinFn, walletView } from "services/userService"
 import { useMutation } from "@tanstack/react-query"
@@ -26,6 +26,7 @@ import TransferFund from "./transferfund"
 const WalletPay=()=>{
     const role=useSelector((state:RootState)=>state.auth.user?.role)
     const wallet: Wallet | null = useSelector((state: RootState) => state?.auth.user?.wallet) ?? null;
+    console.log(wallet,'wallet')
     const [showmodal, setshowmodal]=useState<boolean>(false)
     const [showmodalPin, setshowmodalPin]=useState<boolean>(false)
     const [showmodalbankdetails, setshowmodalbankdetails]=useState<boolean>(false)

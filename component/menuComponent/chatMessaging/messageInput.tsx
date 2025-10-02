@@ -1,5 +1,5 @@
 import { FontAwesome5 } from '@expo/vector-icons';
-import { TextInput, TouchableOpacity, View } from 'react-native';
+import { Platform, TextInput, TouchableOpacity, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import * as ImagePicker from 'expo-image-picker';
 import { RootState } from 'redux/store';
@@ -49,7 +49,7 @@ const MessageInput = ({ receiverId,message, setMessage,onSend }: {receiverId:str
   };
 
   return (
-    <View style={{backgroundColor:backgroundColor}} className="absolute bottom-0 left-0 right-0 px-4 py-2 flex-row items-center gap-x-1">
+    <View style={{backgroundColor:backgroundColor,position:Platform.OS==='ios'?'absolute':'relative',top:0, bottom:0}} className="px-4 py-2 flex-row items-center gap-x-1">
       <TouchableOpacity className='px-3 py-3 rounded-2xl' style={{backgroundColor:primaryColor}} onPress={onSend}>
         <FontAwesome5 name="paperclip" size={20} color="#fff" onPress={sendImage} />
       </TouchableOpacity>

@@ -6,14 +6,15 @@ import { useRouter } from "expo-router"
 import { useTheme } from "hooks/useTheme"
 import { useEffect, useState } from "react"
 import { Image } from "react-native"
-import { TouchableOpacity, View } from "react-native"
+import { TouchableOpacity, View,Text } from "react-native"
 import { useSelector } from "react-redux"
 import { RootState } from "redux/store"
-import { getClientDetailFn, getProfessionDetailFn, getProfessionDetailIDFn } from "services/userService"
+import { generalUserDetailFn, getClientDetailFn, getProfessionDetailFn, getProfessionDetailIDFn } from "services/userService"
 import { getColors } from "static/color"
 import { Textstyles } from "static/textFontsize"
-import { ClientDetail, ProfessionalData } from "type"
+import { ClientDetail, ProfessionalData } from "types/type"
 import { useDispatch } from "react-redux";
+import { getInitials } from "utilizes/initialsName"
 
 const ClientDetails = () => {
     const { theme } = useTheme()
@@ -81,7 +82,7 @@ export const ProfessionalDetails = ({professionalId}:ProfessionalDetailsProps) =
      const router=useRouter()
      const dispatch=useDispatch()
      if (!professionalId) return null;
-     const userIDprofessionalId={userId:data?.profile.userId,professionalId}
+     const userIDprofessionalId={userId:data?.profile.userId,professionalId:""}
 
         const mutation = useMutation({
             mutationFn:getProfessionDetailFn,
@@ -212,7 +213,7 @@ export const ClientDetailsWithoutChat = () => {
     const { theme } = useTheme()
     const { selectioncardColor,primaryColor } = getColors(theme)
     const router=useRouter()
-    const user=useSelector((state:RootState)=>state?.auth.user)
+    const user=useSelector((state:RootState)=>state?.auth?.user)
 
     const avatar:string=user?.profile.avatar || ' '
     const clientName:string= user?.profile.firstName +' '+ user?.profile.lastName || ' '
@@ -308,14 +309,18 @@ export const ClientDetailsForProf = ({clientId}:ClientDetailsForProf) => {
                     </View>
                     <View>
                     <ThemeText size={Textstyles.text_small}>
-                        {data.profile.firstName} {data.profile.firstName}
+                        {data.profile.firstName} {data.profile.lastName}
                     </ThemeText>
                     </View>
                
 
                 </View>
                 <View className="flex-row gap-x-2">
-                    <TouchableOpacity style={{backgroundColor:"red"}} className="w-8 h-8 rounded-full justify-center items-center">
+                    <TouchableOpacity 
+                     onPress={() => {
+                        router.push(`/callchat/${JSON.stringify(userIDprofessionalId)}`);
+                      }} 
+                    style={{backgroundColor:"red"}} className="w-8 h-8 rounded-full justify-center items-center">
                         <FontAwesome5 color="#ffffff" name="phone"/>
                     </TouchableOpacity>
                     <TouchableOpacity  onPress={() => router.push(`/mainchat/${JSON.stringify(userIDprofessionalId)}`)} style={{backgroundColor:primaryColor}} className="w-8 h-8 rounded-full justify-center items-center">
@@ -402,4 +407,97 @@ export const ClientDetailsForProfWithoutChat = ({clientId}:ClientDetailsForProf)
         </>
     )
 }
+interface GeneralUserDetailsProps{
+   userId:string
+}
+export const GeneralUserDetails = ({userId}:GeneralUserDetailsProps) => {
+    const { theme } = useTheme()
+    const { selectioncardColor,primaryColor } = getColors(theme)
+    const [imageError,setImageError]=useState<boolean>(false)
 
+    const [data, setData] = useState<any| null>(null);
+
+    
+    const mutation = useMutation({
+        mutationFn:generalUserDetailFn,
+        onSuccess: async (response) => {
+            console.log(response)
+            setData(response.data);
+        },
+        onError: (error: any) => {
+            let msg = "An unexpected error occurred";
+        
+            if (error?.response?.data) {
+                msg =
+                error.response.data.message ||
+                error.response.data.error ||
+                JSON.stringify(error.response.data);
+            } else if (error?.message) {
+                msg = error.message;
+            }
+    
+            console.error("failed:", msg);
+        },
+    });
+
+    useEffect(() => {
+        mutation.mutate(userId); 
+    }, [])
+
+    if (!data) {
+        return null; // or loading indicator
+    }
+    const router=useRouter()
+
+    const userIDprofessionalId={userId,professionalId:''}
+    return (
+        <>
+            <View
+                style={{ backgroundColor: selectioncardColor, elevation: 4 }}
+                className="w-full h-auto py-3 px-3 shadow-sm shadow-black rounded-xl"
+            >
+                <View className="w-full flex-row justify-between items-center">
+                <View className="flex-row gap-x-2 items-center">
+                      <View className="w-10 h-10 rounded-full bg-white overflow-hidden justify-center items-center">
+                              {data.avatar && !imageError ? (
+                                <Image
+                                  resizeMode="cover"
+                                  source={{ uri: data.avatar }}
+                                  className="h-full w-full"
+                                  onError={() => setImageError(true)}
+                                />
+                              ) : (
+                                <Text style={{ color: primaryColor }} className="text-xl">
+                                  {getInitials({ firstName: data.firstName, lastName: data.lastName })}
+                                </Text>
+                              )}
+                            </View>
+                    <View>
+                    <ThemeText size={Textstyles.text_xxxsmall}>
+                        {data.firstName} {data.lastName}
+                    </ThemeText>
+                    </View>
+               
+
+                </View>
+                <View className="flex-row gap-x-2">
+                    <TouchableOpacity style={{backgroundColor:"red"}} className="w-6 h-6 rounded-full justify-center items-center">
+                        <FontAwesome5 color="#ffffff" name="phone"/>
+                    </TouchableOpacity>
+                    <TouchableOpacity  onPress={() => router.push(`/mainchat/${JSON.stringify(userIDprofessionalId)}`)} style={{backgroundColor:primaryColor}} className="w-6 h-6 rounded-full justify-center items-center">
+                    <Ionicons name="chatbubbles-sharp" color={"#ffffff"} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={()=>router.push('/clientProfileLayout')} style={{borderColor:primaryColor,borderWidth:1}} className="w-6 h-6 rounded-full justify-center items-center">
+                        <FontAwesome5 color={primaryColor} name="user"/>
+                    </TouchableOpacity>
+
+                </View>
+
+                </View>
+    
+
+
+            </View>
+        </>
+    )
+}

@@ -26,7 +26,7 @@ import {
   import React, { useState } from 'react';
 import { fetchInvoice } from 'services/userService';
 import SliderModalTemplate from 'component/slideupModalTemplate';
-import { Material } from 'type';
+import { Material } from 'types/type';
 
 import {store} from 'redux/store';
   

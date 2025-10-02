@@ -17,7 +17,7 @@ import {
 } from "react-native";
 import { useSelector } from "react-redux";
 import { RootState } from "redux/store";
-import { getClientDetailFn,  getProfessionDetailFnBYUserID } from "services/userService";
+import { generalUserDetailFn, getClientDetailFn,  getProfessionDetailFnBYUserID } from "services/userService";
 import { getColors } from "static/color";
 import { Textstyles } from "static/textFontsize";
 import { getInitials } from "utilizes/initialsName";
@@ -48,7 +48,7 @@ const CallAnswer=({ userId, route }: CallAnswerProps & { route?: any })=>{
       }, [isCalling, partnerId, remoteStream]);
     
       
-      const user = useSelector((state: RootState) => state?.auth.user);
+      const user = useSelector((state: RootState) => state?.auth?.user);
       const role = user?.role;
      
 
@@ -68,7 +68,7 @@ const CallAnswer=({ userId, route }: CallAnswerProps & { route?: any })=>{
     
       const [callDuration, setCallDuration] = useState(0);
       const callTimerRef = useRef<NodeJS.Timeout | null>(null);
-      const functionToUse = role === "client" ? getProfessionDetailFnBYUserID: getClientDetailFn;
+      
     
       
       const formatTime = (seconds: number) => {
@@ -81,7 +81,7 @@ const CallAnswer=({ userId, route }: CallAnswerProps & { route?: any })=>{
 
       
       const mutation = useMutation({
-        mutationFn: functionToUse,
+        mutationFn: generalUserDetailFn,
         onSuccess: (response) => setData(response.data),
         onError: (error: any) => {
           let msg = "An unexpected error occurred";
@@ -101,7 +101,7 @@ const CallAnswer=({ userId, route }: CallAnswerProps & { route?: any })=>{
         mutation.mutate(partnerId);
       }, []);
     
-      const profile = data?.profile;
+     
      
       
     
@@ -129,7 +129,7 @@ const CallAnswer=({ userId, route }: CallAnswerProps & { route?: any })=>{
         <>
         <ImageBackground className="h-full w-full" source={require("../../../assets/callbg.png")}> 
               <View className="py-[50px] items-center">
-                <ThemeText size={Textstyles.text_cmedium}>{profile?.firstName}</ThemeText>
+                <ThemeText size={Textstyles.text_cmedium}>{data?.firstName}</ThemeText>
                 <Text style={[Textstyles.text_xsmall]} className="text-white">
           {isCalling ? `Calling - ${formatTime(callDuration)}` : !incomingCall ? "Incoming Call" : "Idle"}
         </Text>
@@ -137,16 +137,16 @@ const CallAnswer=({ userId, route }: CallAnswerProps & { route?: any })=>{
         
               <View className="flex-1 items-center w-full">
                 <View className="w-36 h-36 rounded-full bg-white overflow-hidden justify-center items-center">
-                  {profile?.avatar && !imageError ? (
+                  {data?.avatar && !imageError ? (
                     <Image
                       resizeMode="cover"
-                      source={{ uri: profile.avatar }}
+                      source={{ uri: data.avatar }}
                       className="h-full w-full"
                       onError={() => setImageError(true)}
                     />
                   ) : (
                     <Text style={{ color: primaryColor }} className="text-6xl">
-                      {getInitials({ firstName: profile?.firstName, lastName: profile?.lastName })}
+                      {getInitials({ firstName: data?.firstName, lastName: data?.lastName })}
                     </Text>
                   )}
                 </View>

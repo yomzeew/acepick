@@ -79,10 +79,10 @@ export const SwitchModalMarket=({activePage,setActivePage}:SwitchProps) => {
  
   const { theme } = useTheme();
 
-  const activestylebg = activePage === "Inventory" ? "#033A62" : "transparent";
-  const activestylesbgtwo = activePage === "Orders" ? "#033A62" : "transparent";
-  const activestyletext = activePage === "Inventory" ? "#ffffff" : "#b5b3b3";
-  const activestylesbgtexttwo = activePage === "Orders" ? "#ffffff" : "#b5b3b3";
+  const activestylebg = activePage === "Bought" ? "#033A62" : "transparent";
+  const activestylesbgtwo = activePage === "Sold" ? "#033A62" : "transparent";
+  const activestyletext = activePage === "Bought" ? "#ffffff" : "#b5b3b3";
+  const activestylesbgtexttwo = activePage === "Sold" ? "#ffffff" : "#b5b3b3";
 
   // Create a PanResponder to handle horizontal swipe gestures.
   const panResponder = useRef(
@@ -97,12 +97,12 @@ export const SwitchModalMarket=({activePage,setActivePage}:SwitchProps) => {
         if (gestureState.dx < -20) {
           // Swiping left - go to professional view
          
-          setActivePage("Inventory");
+          setActivePage("Bought");
         } else if (gestureState.dx > 20) {
           // Swiping right - go to corporate view
          
           
-          setActivePage("Orders");
+          setActivePage("Sold");
         }
       },
     })
@@ -117,23 +117,23 @@ export const SwitchModalMarket=({activePage,setActivePage}:SwitchProps) => {
         } rounded-3xl h-12 flex-row`}
       >
              <TouchableOpacity
-          onPress={() => setActivePage("Orders")}
+          onPress={() => setActivePage("Sold")}
           style={{ backgroundColor: activestylesbgtwo }}
           className="rounded-3xl h-full items-center justify-center w-1/2"
         >
           <Text
             style={[Textstyles.text_cmedium, { color: activestylesbgtexttwo }]}
           >
-            Orders
+            Sold
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => setActivePage("Inventory")}
+          onPress={() => setActivePage("Bought")}
           style={{ backgroundColor: activestylebg }}
           className="rounded-3xl h-full items-center justify-center w-1/2"
         >
           <Text style={[Textstyles.text_cmedium, { color: activestyletext }]}>
-            Inventory
+            Bought
           </Text>
         </TouchableOpacity>
    

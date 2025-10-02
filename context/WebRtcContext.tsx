@@ -10,6 +10,8 @@ const CallContext = createContext<CallContextType | undefined>(undefined);
 
 export const CallProvider = ({ children }: { children: ReactNode }) => {
   const { socket } = useSocket();
+  
+  if (!socket) return null; // or a loader/fallback
   const callState = useWebRtc(socket);
 
   return (

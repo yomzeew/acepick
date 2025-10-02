@@ -81,11 +81,11 @@ function SecondStageComponent() {
   const mutation = useMutation({
     mutationFn: verifyOtp,
     onSuccess: (data) => {
-      if(data.status){
+      if(data?.success){
         setShouldProceed(true)
       }
       else{
-        setErrorMessage(data.message);
+        setErrorMessage(data.message || "Verification failed");
       }
       
     },
@@ -148,7 +148,7 @@ function SecondStageComponent() {
         "phone": phone,
         "code": otpphone
       }
-    }
+    } as any
     mutation.mutate(payload)
 
   }

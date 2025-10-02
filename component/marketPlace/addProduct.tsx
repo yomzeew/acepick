@@ -14,7 +14,7 @@ import { ActivityIndicator, ScrollView, TouchableOpacity, View, Image, Platform 
 import { addproductFn, getCategories, uploadProduct } from "services/marketplaceServices";
 import { getColors } from "static/color";
 import { Textstyles } from "static/textFontsize";
-import { categoryProduct } from "type";
+import { Category, categoryProduct } from "types/type";
 import * as ImagePicker from "expo-image-picker";
 import { baseUrl } from "utilizes/endpoints";
 import { useSelector } from "react-redux";
@@ -23,7 +23,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 const Addproduct = () => {
   const [category, setCategory] = useState<string>("");
-  const [categoryData, setCategoryData] = useState<categoryProduct[]>([]);
+  const [categoryData, setCategoryData] = useState<any[]>([]);
   const [name, setName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [price, setPrice] = useState<string>("");
@@ -51,7 +51,7 @@ const Addproduct = () => {
   const categoryMutation = useMutation({
     mutationFn: getCategories,
     onSuccess: (response) => {
-      setCategoryData(response.data || []);
+      setCategoryData(response || []);
     },
     onError: (error: any) => {
       const msg = error?.response?.data?.message || error?.response?.data?.error || error?.message || "Failed to load categories";
@@ -277,7 +277,7 @@ const Addproduct = () => {
   {images.map((url, index) => (
     <View key={index} className="relative">
       <Image
-        source={{ uri: `${baseUrl + url}` }}
+        source={{ uri:url }}
         className="h-12 w-12 rounded-xl"
         resizeMode="cover"
       />

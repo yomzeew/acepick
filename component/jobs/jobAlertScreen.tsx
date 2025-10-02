@@ -9,7 +9,7 @@ import { TouchableOpacity, View,Text } from "react-native"
 import { getClientDetailFn, jobAcceptDelineFn } from "services/userService"
 import { getColors } from "static/color"
 import { Textstyles } from "static/textFontsize"
-import { ClientDetail, JobLatest } from "type"
+import { ClientDetail, JobLatest } from "types/type"
 interface JobAlertScreenProps{
     setshowalertModal:(value:boolean)=>void
     showalertModal:boolean

@@ -30,7 +30,14 @@ function EmailPhoneNumberVerification() {
   const {state}=useRole()
 
   const role=state.role
-  const routes=role==="artisan"?"/artisankyclayout":"professionalkyconelayout"
+  const routes =
+  role === "artisan"
+    ? "/artisankyclayout"
+    : role === "corperate"
+    ? "/professionalkyconelayout"
+    : role === "delivery"
+    ? "/deliverykyclayout"
+    : "/NotFound";
    
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);

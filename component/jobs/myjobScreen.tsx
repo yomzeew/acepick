@@ -3,7 +3,8 @@ import {
     Text,
     ScrollView,
     RefreshControl,
-    TouchableOpacity
+    TouchableOpacity,
+    Modal
   } from 'react-native'
   import { useEffect, useState, memo } from 'react';
   import { useRouter } from 'expo-router';
@@ -36,10 +37,11 @@ import {
   import {
     getAllJobs,
     approvedJobFn,
+    ratingGiveFn,
   } from 'services/userService';
   import { getColors } from 'static/color';
   import { Textstyles } from 'static/textFontsize';
-  import type { JobProps } from 'type';
+  import type { JobProps } from 'types/type';
 import JobAlertScreen from './jobAlertScreen';
 import InputComponent, { InputComponentTextarea } from 'component/controls/textinput';
 import Divider from 'component/divider';
@@ -48,6 +50,7 @@ import { ProfessionalDetails } from 'component/dashboardComponent/clientdetail';
 import { useSocket } from 'hooks/useSocket';
 import { RootState } from 'redux/store';
 import { useSelector } from 'react-redux';
+import StarRating from 'component/starRating';
 
   
   /* -------------------------------------------------------------------------- */
@@ -68,6 +71,8 @@ import { useSelector } from 'react-redux';
     const [refreshing,        setRefreshing]   = useState(false);
     const [selectedJobId,     setSelectedJob]  = useState<number | null>(null);
     const [banner, setBanner]              = useState<{type:'error'|'success';msg:string}|null>(null);
+    const [rating ,setRating]               = useState(0);
+    const [showModalRate,setShowModalRate]   = useState(false);
   
   
     /* ──────────────── fetch jobs from API ──────────────── */
@@ -111,6 +116,7 @@ import { useSelector } from 'react-redux';
         setBanner({type:'success', msg:'Job approved successfully'});
         setConfirmModal(false);
         loadJobs();
+        setShowModalRate(true)
       },
       onError    : (err: any) =>
         setBanner({
@@ -127,11 +133,52 @@ import { useSelector } from 'react-redux';
       if (selectedJobId) approveMutation.mutate(selectedJobId);
     };
   
+    /* ──────────────── rating give mutation ──────────────── */
+    const ratingGiveMutation = useMutation({
+      mutationFn : ratingGiveFn,
+      onSuccess  : () => {
+        setBanner({type:'success', msg:'Rating given successfully'});
+        setShowModalRate(false);
+        setRating(0);
+      },
+      onError    : (err: any) =>
+        setBanner({
+          type:'error',
+          msg:
+            err?.response?.data?.message ??
+            err?.response?.data?.error   ??
+            err?.message                 ??
+            'Unable to give rating',
+        }),
+    });
+
+    const handleRate = () => {
+      
+      if (selectedJobId) ratingGiveMutation.mutate({jobId:selectedJobId,rating});
+    };
+
     /* ------------------------------------------------------------------ */
     /*                            RENDER                                  */
     /* ------------------------------------------------------------------ */
     return (
       <>
+      <Modal visible={showModalRate} animationType='slide'>
+  <View className="flex-1 justify-center items-center bg-white">
+    <Text className="text-lg font-semibold mb-4">Rate Job</Text>
+    <StarRating
+      maxStars={5}
+      rating={rating}
+      onChange={(val: number) => setRating(val)}
+    />
+    <TouchableOpacity
+      className="mt-6 bg-blue-500 px-4 py-2 rounded-lg"
+      onPress={handleRate}
+    >
+      <Text className="text-white">Submit Rating</Text>
+    </TouchableOpacity>
+  </View>
+</Modal>
+
         {/* banners */}
         {banner && (
           <AlertMessageBanner

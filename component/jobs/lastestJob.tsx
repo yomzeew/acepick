@@ -8,7 +8,7 @@ import { memo } from "react";
 import { TouchableOpacity, View,Text } from "react-native";
 import { getColors } from "static/color";
 import { Textstyles } from "static/textFontsize";
-import { JobProps } from "type";
+import { JobProps } from "types/type";
 
 
 

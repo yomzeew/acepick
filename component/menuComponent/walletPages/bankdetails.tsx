@@ -11,7 +11,7 @@ import SearchableSelectComponent from "component/dashboardComponent/searchableSe
 import { useMutation } from "@tanstack/react-query";
 import { addAccountFn, deleteAccountFn, getAccountFn, getBanksFn, resolveAccountFn } from "services/userService";
 import ButtonComponent from "component/buttoncomponent";
-import { BankRecipient } from "type";
+import { BankRecipient } from "types/type";
 import { ScrollView } from "react-native-gesture-handler";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { useDelay } from "hooks/useDelay";

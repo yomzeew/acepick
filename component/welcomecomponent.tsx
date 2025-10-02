@@ -51,7 +51,7 @@ const { dispatch } = useRole(); // use the dispatch
 
       <TouchableOpacity
         style={{ backgroundColor: primaryColor }}
-        className="w-11/12 rounded-lg py-4"
+        className="w-11/12 rounded-lg py-4 mb-4"
         onPress={() => {
           dispatch({ type: "SET_ROLE", payload: "artisan" });
           router.navigate("/(professionAuth)/loginprofession");
@@ -62,6 +62,21 @@ const { dispatch } = useRole(); // use the dispatch
           className="text-center text-lg font-semibold"
         >
           Professional
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+         onPress={() => {
+          dispatch({ type: "SET_ROLE", payload: "delivery" });
+          router.navigate("/(professionAuth)/loginprofession");
+        }}
+        style={{ borderColor: primaryColor }}
+        className="w-11/12 border rounded-lg py-4 mb-4"
+      >
+        <Text
+          style={[Textstyles.text_cmedium, { color: primaryColor }]}
+          className="text-center text-lg font-semibold"
+        >
+          Delivery
         </Text>
       </TouchableOpacity>
       </View>

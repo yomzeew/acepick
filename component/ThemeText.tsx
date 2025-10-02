@@ -1,35 +1,50 @@
 import { ReactNode } from "react"
-import { Text } from "react-native"
+import { Text, TextStyle } from "react-native"
 import { useTheme } from "../hooks/useTheme"
 import { getColors } from "../static/color";
 
-export const ThemeText=({children,size,type='',className=""}:{children:ReactNode,size:any,type?:string,className?:string})=>{
-    const { theme } = useTheme(); // Theme state and toggle function
+interface ThemeTextProps {
+  children: ReactNode;
+  size: TextStyle;
+  type?: 'primary' | 'secondary';
+  className?: string;
+}
+
+export const ThemeText: React.FC<ThemeTextProps> = ({ 
+  children, 
+  size, 
+  type = 'primary', 
+  className = "" 
+}) => {
+  const { theme } = useTheme();
   const { primaryColor, backgroundColor, primaryTextColor, secondaryTextColor } = getColors(theme);
-    return(
-        <>
-        <Text 
-        style={[size,{color:type==='secondary'?secondaryTextColor:primaryTextColor}]}
-        className={className}
-        //allowFontScaling={false}
-        >
-        {children}
-        </Text>
-       
-        </>
-    )
+  
+  return (
+    <Text 
+      style={[size, { color: type === 'secondary' ? secondaryTextColor : primaryTextColor }]}
+      className={className}
+      allowFontScaling={false}
+    >
+      {children}
+    </Text>
+  );
+};
+
+interface ThemeTextSecondProps {
+  children: ReactNode;
+  size?: TextStyle;
 }
-export const ThemeTextsecond=({children,size}:{children:ReactNode,size:any})=>{
-    const { theme } = useTheme(); // Theme state and toggle function
+
+export const ThemeTextsecond: React.FC<ThemeTextSecondProps> = ({ children, size }) => {
+  const { theme } = useTheme();
   const { textColor } = getColors(theme);
-    return(
-        <>
-        <Text 
-        style={[size,{color:textColor}]}
-        >
-        {children}
-        </Text>
-       
-        </>
-    )
-}
+  
+  return (
+    <Text 
+      style={[size, { color: textColor }]}
+      allowFontScaling={false}
+    >
+      {children}
+    </Text>
+  );
+};

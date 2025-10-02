@@ -23,7 +23,7 @@ import { RootState } from "redux/store"
 import { SaveTokenFunction, updateLocation, walletView } from "services/userService"
 import { getColors } from "static/color"
 import { Textstyles } from "static/textFontsize"
-import { JobLatest, Wallet } from "type"
+import { JobLatest, Wallet } from "types/type"
 import { formatAmount, formatNaira } from "utilizes/amountFormat"
 
 const HomeComponentProfession = () => {
@@ -33,7 +33,7 @@ const HomeComponentProfession = () => {
     const { primaryColor, backgroundColor, primaryTextColor, secondaryTextColor } = getColors(theme);
     const [balanceRefreshTrigger, setBalanceRefreshTrigger] = useState(false); // 👈 Trigger to re-fetch wallet
     const [refreshing, setRefreshing] = useState(false);
-    const fcmToken=useSelector((state:RootState)=>(state.auth.fcmToken))
+    const fcmToken=useSelector((state:RootState)=>(state?.auth.fcmToken))
 
     const saveFcmToken=async()=>{
                  try {

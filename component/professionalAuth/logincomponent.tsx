@@ -52,6 +52,10 @@ function LoginComponentP() {
       if(user.role==='client'){
         router.replace("/homelayout");
       }
+      else if(user.role==='delivery'){
+        router.replace("/deliverydashboardlayout")
+
+      }
       else{
         router.replace("/homeprofessionalayout");
       }

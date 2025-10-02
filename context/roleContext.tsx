@@ -1,7 +1,7 @@
 import React, { createContext, useReducer, useContext, Dispatch, ReactNode } from "react";
 
 // Define role types
-type RoleType = "client" | "artisan" | 'corperate' |null;
+type RoleType = "client" | "artisan" | 'corperate' | 'delivery' |null;
 
 // State type
 interface RoleState {

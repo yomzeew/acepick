@@ -15,9 +15,10 @@ import {
 } from "react-native";
 import { useSelector } from "react-redux";
 import { RootState } from "redux/store";
-import { getClientDetailFn, getProfessionDetailFn } from "services/userService";
+import { generalUserDetailFn} from "services/userService";
 import { getColors } from "static/color";
 import { Textstyles } from "static/textFontsize";
+import { Profile } from "types/userDetailsType";
 import { getInitials } from "utilizes/initialsName";
 
 
@@ -44,10 +45,10 @@ setModalVisible(false)
   const user = useSelector((state: RootState) => state?.auth.user);
   const role = user?.role;
   const ids = JSON.parse(userDetails);
-  const receiverId = ids?.userId;
-  const professionalId = ids.professionalId;
+  const partnerId = ids?.userId;
 
-  const [data, setData] = useState<any>(null);
+
+  const [data, setData] = useState<Profile | null>(null);
   const [imageError, setImageError] = useState(false);
 
   const [callDuration, setCallDuration] = useState(0);
@@ -64,34 +65,33 @@ const callTimerRef = useRef<NodeJS.Timeout | null>(null);
   };
 
 
-  const payload = role === "client" ? professionalId : receiverId;
-  const functionToUse = role === "client" ? getProfessionDetailFn : getClientDetailFn;
+  
 
   const { theme } = useTheme();
   const { primaryColor, selectioncardColor } = getColors(theme);
 
   const mutation = useMutation({
-    mutationFn: functionToUse,
-    onSuccess: (response) => setData(response.data),
-    onError: (error: any) => {
-      let msg = "An unexpected error occurred";
-      if (error?.response?.data) {
-        msg =
-          error.response.data.message ||
-          error.response.data.error ||
-          JSON.stringify(error.response.data);
-      } else if (error?.message) {
-        msg = error.message;
-      }
-      console.error("failed:", msg);
-    },
-  });
+      mutationFn: generalUserDetailFn,
+      onSuccess: (response) => setData(response.data),
+      onError: (error: any) => {
+        let msg = "An unexpected error occurred";
+        if (error?.response?.data) {
+          msg =
+            error.response.data.message ||
+            error.response.data.error ||
+            JSON.stringify(error.response.data);
+        } else if (error?.message) {
+          msg = error.message;
+        }
+        console.error("failed;;:", msg);
+      },
+    });
+  
+    useEffect(() => {
+      mutation.mutate(partnerId);
+    }, []);
 
-  useEffect(() => {
-    mutation.mutate(payload);
-  }, []);
 
-  const profile = data?.profile;
   
   
 
@@ -117,7 +117,7 @@ const callTimerRef = useRef<NodeJS.Timeout | null>(null);
   return (
     <ImageBackground className="h-full w-full" source={require("../../../assets/callbg.png")}> 
       <View className="py-[50px] items-center">
-        <ThemeText size={Textstyles.text_cmedium}>{profile?.firstName}</ThemeText>
+        <ThemeText size={Textstyles.text_cmedium}>{data?.firstName}</ThemeText>
         <Text style={[Textstyles.text_xsmall]} className="text-white">
   {isCalling ? `Calling - ${formatTime(callDuration)}` : incomingCall ? "Incoming Call" : "Idle"}
 </Text>
@@ -126,16 +126,16 @@ const callTimerRef = useRef<NodeJS.Timeout | null>(null);
 
       <View className="flex-1 items-center w-full">
         <View className="w-36 h-36 rounded-full bg-white overflow-hidden justify-center items-center">
-          {profile?.avatar && !imageError ? (
+          {data?.avatar && !imageError ? (
             <Image
               resizeMode="cover"
-              source={{ uri: profile.avatar }}
+              source={{ uri: data.avatar }}
               className="h-full w-full"
               onError={() => setImageError(true)}
             />
           ) : (
             <Text style={{ color: primaryColor }} className="text-6xl">
-              {getInitials({ firstName: profile?.firstName, lastName: profile?.lastName })}
+              {getInitials({ firstName: data?.firstName, lastName: data?.lastName})}
             </Text>
           )}
         </View>
@@ -146,7 +146,7 @@ const callTimerRef = useRef<NodeJS.Timeout | null>(null);
     <TouchableOpacity
       style={{ backgroundColor: primaryColor }}
       className="rounded-full h-12 w-12 justify-center items-center"
-      onPress={()=>callUser(profile.userId)}
+      onPress={()=>callUser(data?.userId || "")}
     >
       <FontAwesome5 color="#ffffff" name="phone" size={24} />
     </TouchableOpacity>

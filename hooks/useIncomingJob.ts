@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getLatestJobs } from 'services/userService';
-import { JobLatest } from 'type';
+import { JobLatest } from 'types/type';
 
 export const useIncomingJob = () => {
   const [job, setJob] = useState<JobLatest | null>(null);

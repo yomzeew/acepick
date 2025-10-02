@@ -508,3 +508,120 @@ export interface JobMaterial {
     category: categoryProduct;
     location: Location;
   }
+
+
+  export interface ApiResponse {
+    status: boolean;
+    message: string;
+    data: Product;
+  }
+  
+  export interface Product {
+    id: number;
+    name: string;
+    description: string;
+    images: string[];
+    categoryId: number;
+    quantity: number;
+    price: string;
+    discount: number;
+    userId: string;
+    locationId: number;
+    category: Category;
+    location: Location;
+    user: User;
+  }
+  
+  export interface Category {
+    id: number;
+    name: string;
+    description: string;
+  }
+  
+  export interface Location {
+    id: number;
+    address: string;
+    lga: string;
+    state: string;
+    latitude: number;
+    longitude: number;
+    zipcode: string | null;
+    userId: string;
+    createdAt: string;
+    updatedAt: string;
+  }
+  
+  export interface User {
+    id: string;
+    email: string;
+    phone: string;
+    status: string;
+    role: string;
+    agreed: boolean;
+    createdAt: string;
+    updatedAt: string;
+    profile: UserProfile;
+  }
+
+  export interface DeliveryData {
+    id: number;
+    productTransactionId: number;
+    status: string;
+    cost: string;
+    distance: number;
+    weight: string;
+    locationId: number;
+    riderId: number | null;
+    createdAt: string; // ISO Date string
+    updatedAt: string; // ISO Date string
+    dropoffLocation:{
+      id: number;
+  address: string | null;
+  lga: string | null; // Local Government Area
+  state: string | null;
+  latitude: number;
+  longitude: number;
+  zipcode: string | null;
+  userId: string;
+  createdAt: string; // ISO 8601 date string
+  updatedAt: string; // ISO 8601 date string
+    }
+    productTransaction: {
+      id: number;
+      productId: number;
+      buyerId: string;
+      sellerId: string;
+      quantity: number;
+      price: string;
+      status: string;
+      orderMethod: string;
+      date: string; // ISO Date string
+      createdAt: string; // ISO Date string
+      updatedAt: string; // ISO Date string
+      product: {
+        id: number;
+        name: string;
+        description: string;
+        images: string; // JSON string of array of URLs
+        categoryId: number;
+        weightPerUnit: number | null;
+        quantity: number;
+        price: string;
+        discount: number;
+        userId: string;
+        locationId: number;
+        pickupLocation: {
+          latitude: number;
+          longitude: number;
+          
+        };
+        destinationLocation:{
+
+        }
+      };
+    };
+  };
+
+  
+  
+  

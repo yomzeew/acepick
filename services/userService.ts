@@ -1,7 +1,7 @@
 import axios from "axios"
 import { store } from "redux/store"; 
-import { JobInvoice } from "type"
-import { addbankDetailsUrl, certificationUrl, clientDetailUrl, debitWallet, educationUrl, experienceUrl, getbanksDetails, getBanksUrl, getProfessionByUserIdUrl, getProfessionUrl, initiatepayment, initiatetransfer, invoiceUrl, jobsUrl, jobUrlAcceptDecline, jobUrlApproved, jobUrlatest, jobUrlComplete, listofArtisan, locationUrl, portfolioUrl, pushTokenUrl, resetPinUrl, resolveUrl, sectorUrlDetails, setPinUrl, updatebanksDetails, verifypayment, verifytransfer, viewWalletUrl } from "utilizes/endpoints"
+import { JobInvoice } from "types/type"
+import { addbankDetailsUrl, certificationUrl, clientDetailUrl, debitWallet, educationUrl, experienceUrl, getbanksDetails, getBanksUrl, getLocationUrl, getProfessionByUserIdUrl, getProfessionUrl, initiatepayment, initiatetransfer, invoiceUrl, jobsUrl, jobUrlAcceptDecline, jobUrlApproved, jobUrlatest, jobUrlComplete, listofArtisan, listofContactUrl, locationUrl, portfolioUrl, pushTokenUrl, ratingUrl, resetPinUrl, resolveUrl, sectorUrlDetails, setPinUrl, updatebanksDetails, userDetailsgeneralUrl, verifypayment, verifytransfer, viewWalletUrl } from "utilizes/endpoints"
 
 
 
@@ -762,6 +762,64 @@ export const portfoliosUpdateFn=async(data:any)=>{
 export const portfoliosDeleteFn=async(id:number)=>{
   const token = store.getState().auth.token; // get token inside function
   const response=await axios.delete(`${portfolioUrl}/${id}`,
+      {
+        headers:{
+          Authorization:`Bearer ${token}`
+        }
+  
+    })
+    return response.data
+
+
+}
+
+  export const generalUserDetailFn=async(userid:string)=>{
+    const token = store.getState().auth.token; // get token inside function
+
+    console.log(userDetailsgeneralUrl+`/${userid}`,token)
+    const response=await axios.get(userDetailsgeneralUrl+`/${userid}`,
+        {
+          headers:{
+            Authorization:`Bearer ${token}`
+          }
+    
+      })
+      console.log('jjjj')
+      return response.data
+  }
+
+
+export const getContactListFn = async (params: {
+  search?: string;
+  role?: string;
+  page?: number;
+  limit?: number;
+}) => {
+  const token = store.getState().auth.token;
+
+  const response = await axios.get(listofContactUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    params, // Axios auto builds the query string
+  });
+
+  return response.data;
+};
+
+export const getLocationFn=async()=>{
+  const token=store.getState().auth.token
+  const response=await axios.get(getLocationUrl, {
+    headers:{
+      Authorization:`Bearer ${token}`
+    }
+  });
+  return response.data
+}
+
+export const ratingGiveFn=async(data:any)=>{
+  const token = store.getState().auth.token; // get token inside function
+  const response=await axios.post(`${ratingUrl}`,data,
       {
         headers:{
           Authorization:`Bearer ${token}`

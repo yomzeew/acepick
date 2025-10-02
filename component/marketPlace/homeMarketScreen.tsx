@@ -26,7 +26,7 @@ import { FilterModalByCategory } from "./filtermodalbyCategory";
 import { useMutation } from "@tanstack/react-query";
 import { getproductFn } from "services/marketplaceServices";
 import { baseUrl } from "utilizes/endpoints";
-import { Product } from "type";
+import { Product } from "types/type";
 import { formatAmount } from "utilizes/amountFormat";
 
 const HomeMarketScreen = () => {
@@ -43,7 +43,7 @@ const HomeMarketScreen = () => {
   const [lga, setlga] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [showOption, setShowOption] = useState(false);
   const [isStateSelection, setIsStateSelection] = useState(true);
   const [data, setData] = useState<string[]>([]);
@@ -57,8 +57,8 @@ const [page, setPage] = useState(1);
   const productMutation = useMutation({
     mutationFn: getproductFn,
     onSuccess: (response) => {
-      setProducts(response.data || []);
-      setHasMore(response.data.length === limit); // if less than limit, it’s the last page
+      setProducts(response || []);
+      setHasMore(response.length === limit); // if less than limit, it’s the last page
       
     },
     onError: (error: any) => {
@@ -88,12 +88,12 @@ const [page, setPage] = useState(1);
   const renderProductCard = ({ item }: { item: Product }) => {
     const imageSource =
       Array.isArray(item.images) && item.images.length > 0 && item.images[0]
-        ? { uri: `${baseUrl}${item.images[0]}` }
+        ? { uri: `${item.images[0]}` }
         : require("../../assets/homebg.png"); // 👈 Your local fallback image
   
     return (
 <TouchableOpacity
-  onPress={() => router.push("/productdetailsLayout")}
+  onPress={() => router.push(`/productdetailsLayout?id=${item.id}`)}
   style={{
     backgroundColor: selectioncardColor,
     elevation: 4, 

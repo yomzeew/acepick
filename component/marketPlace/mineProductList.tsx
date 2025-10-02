@@ -19,7 +19,7 @@ import { RootState } from "redux/store";
 import { getMineProduct } from "services/marketplaceServices";
 import { getColors } from "static/color";
 import { Textstyles } from "static/textFontsize";
-import { Product } from "type";
+import { Product } from "types/type";
 
 const MineProduct = () => {
   const router = useRouter();
@@ -40,7 +40,7 @@ const MineProduct = () => {
   const mutation = useMutation({
     mutationFn: getMineProduct,
     onSuccess: (response) => {
-      setProductData(response.data || []);
+      setProductData(response || []);
     },
     onError: (error: any) => {
       const msg =

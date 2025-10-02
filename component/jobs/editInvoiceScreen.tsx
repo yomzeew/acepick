@@ -39,7 +39,7 @@ import {
 
 import { currency } from './invoiceScreen'; // reuse helper
 import { MaterialCard,AddMaterial } from './invoiceScreen';
-import { Material } from 'type';
+import { Material } from 'types/type';
 import ButtonComponent from 'component/buttoncomponent';
 import { data } from 'autoprefixer';
 

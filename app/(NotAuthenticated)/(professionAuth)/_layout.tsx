@@ -26,6 +26,10 @@ export default function ProfessionAuthLayout() {
         name="(professionalAuth)" 
         options={{ title: "Professional Screens" }}
       />
+       <Stack.Screen 
+        name="(deliveryAuth)" 
+        options={{ title: "Professional Screens" }}
+      />
       <Stack.Screen 
         name="recoverpasswordprofessional" 
         options={{ title: "recover password Screen" }}

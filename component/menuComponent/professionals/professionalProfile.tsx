@@ -16,7 +16,7 @@ import { useLocalSearchParams, useRouter } from "expo-router"
 import { useMutation } from "@tanstack/react-query"
 import { getProfessionDetailFn } from "services/userService"
 import { useEffect, useState } from "react"
-import { ProfessionalData } from "type"
+import { ProfessionalData } from "types/type"
 
 
 

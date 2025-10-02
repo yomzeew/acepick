@@ -41,7 +41,8 @@ const HomeComp = () => {
   const [filterData, setFilterData] = useState<any[]>([])
   const [refreshing, setRefreshing] = useState(false);
   const [balanceRefreshTrigger, setBalanceRefreshTrigger] = useState(false); // 👈 Trigger to re-fetch wallet
-  const fcmToken=useSelector((state:RootState)=>(state.auth.fcmToken))
+  const fcmToken=useSelector((state:RootState)=>(state.auth.user?.fcmToken))
+
   const saveFcmToken=async()=>{
                  try {
                    const response = await SaveTokenFunction(fcmToken);

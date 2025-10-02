@@ -17,7 +17,7 @@ import {
   transferVerify
 } from "services/userService";
 import ButtonComponent from "component/buttoncomponent";
-import { BankRecipient } from "type";
+import { BankRecipient } from "types/type";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { useDelay } from "hooks/useDelay";
 import { AlertMessageBanner } from "component/AlertMessageBanner";

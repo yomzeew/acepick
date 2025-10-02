@@ -1,8 +1,10 @@
+import IncomingCallModal from "component/incomingcallModal";
 import JobAlertScreen from "component/jobs/jobAlertScreen";
+import { CallProvider } from "context/WebRtcContext";
 import { Stack } from "expo-router";
 import { useSocket } from "hooks/useSocket";
 import { useEffect, useState } from "react";
-import { JobLatest } from "type";
+import { JobLatest } from "types/type";
 
 
 export default function AuthenticatedLayout() {
@@ -37,7 +39,7 @@ export default function AuthenticatedLayout() {
   
   return (
     <>
-   
+  
       <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen  name="(dashboard)" />
       <Stack.Screen name="(profile)" />
@@ -48,6 +50,7 @@ export default function AuthenticatedLayout() {
       <Stack.Screen name="(jobs)" />
     </Stack>
     {showalertModal &&<JobAlertScreen item={job} showalertModal={showalertModal} setshowalertModal={setshowalertModal}/>}
+   
     </>
 
  

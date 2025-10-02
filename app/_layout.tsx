@@ -10,6 +10,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import { StatusBar } from "expo-status-bar";
 import IncomingCallModal from "component/incomingcallModal";
+import ErrorBoundary from "../component/ErrorBoundary";
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -38,11 +39,9 @@ export default function RootLayout() {
 
   return (
     <AppProvider>
-    
-      <RootContent onLayoutRootView={onLayoutRootView} />
-    
-
-
+      <ErrorBoundary>
+        <RootContent onLayoutRootView={onLayoutRootView} />
+      </ErrorBoundary>
     </AppProvider>
   );
 }

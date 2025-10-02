@@ -27,7 +27,7 @@ import {
   import { getColors } from 'static/color';
   import { Textstyles } from 'static/textFontsize';
   import { ThemeText, ThemeTextsecond } from 'component/ThemeText';
-  import { MyJob } from 'type';
+  import { MyJob } from 'types/type';
   import { useTheme } from 'hooks/useTheme';
   import { useIncomingJob } from 'hooks/useIncomingJob';
   import {
