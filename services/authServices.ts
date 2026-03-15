@@ -18,7 +18,15 @@ interface LoginData {
 interface OtpData {
   email?: string;
   phone?: string;
-  otp: string;
+  otp?: string;
+  emailCode?: {
+    email: string;
+    code: string;
+  };
+  smsCode?: {
+    phone: string;
+    code: string;
+  };
 }
 
 interface RegisterData {
@@ -36,18 +44,15 @@ interface CorporateData extends RegisterData {
 
 interface ApiResponse<T = any> {
   success: boolean;
+  status?: boolean;
   data: T;
   message?: string;
 }
 
 // API functions with proper typing and error handling
 export const loginUser = async (data: LoginData): Promise<ApiResponse> => {
-  try {
-    const response: AxiosResponse<ApiResponse> = await axios.post(loginUrl, data);
-    return response.data;
-  } catch (error: any) {
-    throw new Error(error?.response?.data?.message || 'Login failed');
-  }
+  const response: AxiosResponse<ApiResponse> = await axios.post(loginUrl, data);
+  return response.data;
 };
 
 export const sendOtp = async (data: { email?: string; phone?: string }): Promise<ApiResponse> => {

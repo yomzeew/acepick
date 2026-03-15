@@ -343,6 +343,7 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   ActivityIndicator,
+  Share,
 } from "react-native";
 import { AntDesign, FontAwesome5, FontAwesome6 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -352,7 +353,8 @@ import { addMessage, setMessages, setRoom } from "redux/chatSlice";
 import { useSocket } from "hooks/useSocket";
 import { selectChatMessages } from "utilizes/chatselector";
 import ContainerTemplate from "component/dashboardComponent/containerTemplate";
-
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { useMutation } from "@tanstack/react-query";
 import { generalUserDetailFn, getClientDetailFn, getProfessionDetailFn } from "services/userService";
 import { useTheme } from "hooks/useTheme";
@@ -378,16 +380,16 @@ interface Message {
 }
 
 interface MainProps {
-  userDetails: string;
+  userDetails?: string;
 }
 
-const MainChatScreen = ({ userDetails }: MainProps) => {
+const MainChatScreen = ({ userDetails = '{}' }: MainProps) => {
   console.log('ohhj')
     const user = useSelector((state: RootState) => state?.auth.user);
     const receiverId = user?.id || '';
     const role=user?.role
 
-  const ids = JSON.parse(userDetails);
+  const ids = JSON.parse(userDetails || '{}');
   const partnerId=ids.userId
   
 
@@ -527,9 +529,26 @@ socket.on("reconnect", () => {
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollToEnd({ animated: true });
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     }
   }, [messages]);
+
+  const handleOpenAttachment = async (base64: string, fileName?: string) => {
+    try {
+      const name = fileName || 'attachment.jpg';
+      const fileUri = `${FileSystem.cacheDirectory}${name}`;
+      await FileSystem.writeAsStringAsync(fileUri, base64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri);
+      }
+    } catch (err) {
+      console.error('Failed to open attachment:', err);
+    }
+  };
 
   if (!data) return <ContainerTemplate><View className="justify-center items-center w-full h-full"><ActivityIndicator/></View></ContainerTemplate>
 
@@ -557,10 +576,16 @@ socket.on("reconnect", () => {
                   {data.firstName}
                 </ThemeText>
               </View>
-              <View className="flex-row gap-x-2">
-                <FontAwesome5 name="video" size={20} color={primaryColor} />
-                <FontAwesome5 name="phone" size={20} color={primaryColor} />
-                <FontAwesome5 name="search" size={20} color={primaryColor} />
+              <View className="flex-row gap-x-4 items-center">
+                <TouchableOpacity onPress={() => router.push(`/callchat/${JSON.stringify({userId: partnerId})}`)}>     
+                  <FontAwesome5 name="video" size={20} color={primaryColor} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => router.push(`/callchat/${JSON.stringify({userId: partnerId})}`)}>     
+                  <FontAwesome5 name="phone" size={20} color={primaryColor} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => {}}>
+                  <FontAwesome5 name="search" size={20} color={primaryColor} />
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -627,9 +652,7 @@ socket.on("reconnect", () => {
                 >
                   {msg.image ? (
                     <TouchableOpacity
-                      onPress={() =>
-                        Linking.openURL(`data:image/jpeg;base64,${msg.image}`)
-                      }
+                      onPress={() => handleOpenAttachment(msg.image!, msg.fileName)}
                     >
                       <Image
                         source={{ uri: `data:image/jpeg;base64,${msg.image}` }}

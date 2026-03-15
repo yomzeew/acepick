@@ -5,7 +5,7 @@ type ButtonComponentProps = {
   text: string;
   textcolor: string;
   route?: string;
-  onPress: () => void;
+  onPress?: () => void;
   isLoading?: boolean;
   disabled?: boolean;
   customStyle?: ViewStyle;

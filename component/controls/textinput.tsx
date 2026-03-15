@@ -18,10 +18,10 @@ interface InputComponentProps {
     icon?: ReactNode;
     keyboardType?: KeyboardTypeOptions;
     fieldType?: "text" | "date";
-    value: string | number | Date;
+    value?: string | number | Date;
     editable?:boolean
     maxLength?:number
-    
+    maxDate?: Date;
 }
 
 const InputComponent = ({
@@ -36,7 +36,8 @@ const InputComponent = ({
   keyboardType,
   fieldType = "text", // Default to normal input
   editable,
-  maxLength
+  maxLength,
+  maxDate
 }: InputComponentProps) => {
   const { theme } = useTheme();
   const { primaryColor, secondaryTextColor, backgroundColor } = getColors(theme);
@@ -45,6 +46,10 @@ const InputComponent = ({
 
   const handleDateChange = (_event: any, selectedDate?: Date) => {
     if (selectedDate) {
+      // Check if selected date is beyond maxDate
+      if (maxDate && selectedDate > maxDate) {
+        return; // Don't allow selection of future dates beyond maxDate
+      }
       setDate(selectedDate);
       onChange?.(selectedDate.toISOString().split("T")[0]); // Format date (YYYY-MM-DD)
     }
@@ -93,6 +98,7 @@ const InputComponent = ({
               mode="date"
               display={Platform.OS === "ios" ? "spinner" : "default"}
               onChange={handleDateChange}
+              maximumDate={maxDate}
             />
             <View className="items-center">
             <TouchableOpacity onPress={() => setShowModal(false)} >

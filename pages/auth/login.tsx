@@ -3,7 +3,7 @@ import LoginComponent from "../../component/auth/logincomponent";
 
 const LoginPage=()=>{
     return(
-        <View>  
+        <View className="flex-1">  
             <LoginComponent/>
         </View>
     )

@@ -52,15 +52,39 @@ interface AddCertificationProps{
 const AddCertification=({setShowSlideUp}:AddCertificationProps)=>{
     const {theme}=useTheme()
         const { primaryColor, secondaryTextColor, selectioncardColor, } = getColors(theme)
+        const [certificateTitle, setCertificateTitle] = useState("")
+        const [issuingOrganization, setIssuingOrganization] = useState("")
+        const [issueDate, setIssueDate] = useState("")
+        const [errors, setErrors] = useState<{[key: string]: string}>({})
+
+        const validateForm = () => {
+            const newErrors: {[key: string]: string} = {};
+            
+            if (!certificateTitle.trim()) {
+                newErrors.certificateTitle = 'Certificate title is required';
+            }
+            if (!issuingOrganization.trim()) {
+                newErrors.issuingOrganization = 'Issuing organization is required';
+            }
+            if (!issueDate) {
+                newErrors.issueDate = 'Issue date is required';
+            }
+            
+            setErrors(newErrors);
+            return Object.keys(newErrors).length === 0;
+        }
+
         const handleSubmit=()=>{
-            setShowSlideUp(false)
+            if (validateForm()) {
+                setShowSlideUp(false)
+            }
         }
     return(
         <>
         <View className="w-full h-auto px-3 py-5">
             <View className="items-center">
                 <ThemeText size={Textstyles.text_medium}>
-                    Add Education
+                    Add Certification
                 </ThemeText>
 
             </View>
@@ -69,24 +93,53 @@ const AddCertification=({setShowSlideUp}:AddCertificationProps)=>{
                 <InputComponent 
                 color={primaryColor} 
                 placeholder={"Certificate title"} 
-                placeholdercolor={secondaryTextColor}  
+                placeholdercolor={secondaryTextColor}
+                value={certificateTitle}
+                onChange={(value) => {
+                    setCertificateTitle(value);
+                    setErrors(prev => ({ ...prev, certificateTitle: '' }));
+                }}
                 />
+                {errors.certificateTitle && (
+                    <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                        {errors.certificateTitle}
+                    </Text>
+                )}
                 <EmptyView height={20}/>
                 <InputComponent 
                 color={primaryColor} 
-                placeholder={"Company Issue"} 
-                placeholdercolor={secondaryTextColor}  
+                placeholder={"Issuing Organization"} 
+                placeholdercolor={secondaryTextColor}
+                value={issuingOrganization}
+                onChange={(value) => {
+                    setIssuingOrganization(value);
+                    setErrors(prev => ({ ...prev, issuingOrganization: '' }));
+                }}
                 />
+                {errors.issuingOrganization && (
+                    <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                        {errors.issuingOrganization}
+                    </Text>
+                )}
                  <EmptyView height={20}/>
-                <ThemeTextsecond size={Textstyles.text_xsma}>Issue Date</ThemeTextsecond>
                 <InputComponent 
                 color={primaryColor} 
                 placeholder={"Issue Date"} 
                 placeholdercolor={secondaryTextColor}  
                 prefix={true}
                 fieldType="date"
+                value={issueDate}
+                onChange={(value) => {
+                    setIssueDate(value);
+                    setErrors(prev => ({ ...prev, issueDate: '' }));
+                }}
                 icon={<FontAwesome5 name="calendar" size={20} color="#ffffff"/>}
                 />
+                {errors.issueDate && (
+                    <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                        {errors.issueDate}
+                    </Text>
+                )}
 
             </View>
             <EmptyView height={40} />

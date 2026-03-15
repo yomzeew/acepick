@@ -1,18 +1,19 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
-import { ScrollView, View, Text, TouchableOpacity, Image } from "react-native";
+import { ScrollView, View, Text, TouchableOpacity, Image, TextInput } from "react-native";
 import { AntDesign, FontAwesome5, FontAwesome6 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "redux/store";
 import { setPreviousChats} from "redux/chatSlice";
 import { useSocket } from "hooks/useSocket";
-import { PreviousChatData } from "types/type"; // Add MessageData type
+import { PreviousChatData } from "types/type";
 import { useTheme } from "hooks/useTheme";
 import { getColors } from "static/color";
 import EmptyView from "component/emptyview";
 import ContainerTemplate from "component/dashboardComponent/containerTemplate";
 import { ThemeText, ThemeTextsecond } from "component/ThemeText";
 import { Textstyles } from "static/textFontsize";
+import { useDebounce } from "hooks/useDebounce";
 
 
 const ContactListScreen = () => {
@@ -29,6 +30,19 @@ const ContactListScreen = () => {
     const { selectioncardColor, primaryColor } = getColors(theme);
 
   const [receiverIds, setReceiverIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
+  const filteredChats = useMemo(() => {
+    if (!debouncedSearch.trim()) return previousChats;
+    const q = debouncedSearch.toLowerCase();
+    return previousChats.filter((chat: any) => {
+      const first = (chat.profile?.firstName || '').toLowerCase();
+      const last = (chat.profile?.lastName || '').toLowerCase();
+      return first.includes(q) || last.includes(q) || `${first} ${last}`.includes(q);
+    });
+  }, [previousChats, debouncedSearch]);
 
   // Extract all receiver IDs from previous chats
   useEffect(() => {
@@ -59,7 +73,7 @@ const ContactListScreen = () => {
     // Update Redux with latest chat data
     socket.on("got_previous_chats", (data: PreviousChatData[]) => {
       console.log(data,'okk')
-      dispatch(setPreviousChats(data));
+      dispatch(setPreviousChats(data as any));
     });
   
     // Set interval to re-fetch online status every 10 seconds
@@ -107,17 +121,36 @@ const ContactListScreen = () => {
                   <AntDesign name="left" size={20} color={primaryColor} />
                 </TouchableOpacity>
               </View>
-              <View className="flex-row gap-x-2">
-                <FontAwesome5 name="video" size={20} color={primaryColor} />
-                <FontAwesome5 name="phone" size={20} color={primaryColor} />
-                <FontAwesome5 name="search" size={20} color={primaryColor} />
+              <View className="flex-row gap-x-4 items-center">
+                <TouchableOpacity onPress={() => {}}>
+                  <FontAwesome5 name="video" size={20} color={primaryColor} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => {}}>
+                  <FontAwesome5 name="phone" size={20} color={primaryColor} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowSearch(!showSearch)}>
+                  <FontAwesome5 name="search" size={20} color={primaryColor} />
+                </TouchableOpacity>
               </View>
             </View>
+            {showSearch && (
+              <View className="px-4 mt-2">
+                <TextInput
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder="Search by name..."
+                  placeholderTextColor="#9ca3af"
+                  className="border border-gray-300 rounded-xl px-4 py-2 text-base"
+                  style={{ color: primaryColor }}
+                  autoFocus
+                />
+              </View>
+            )}
             <EmptyView height={20}/>
 <View className="flex-1">
    {/* Contacts List */}
    <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-      {previousChats.map((chat:any,index:any) => {
+      {filteredChats.map((chat:any,index:any) => {
   const lastMessage = "Start a conversation";
 
           return (

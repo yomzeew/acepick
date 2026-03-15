@@ -72,7 +72,7 @@ const SliderModalTemplate = ({ children, showmodal, setshowmodal, modalHeight }:
           {/* 🔹 Wrap everything to avoid keyboard overlap */}
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-              <ScrollView keyboardShouldPersistTaps="handled">
+              <ScrollView  keyboardShouldPersistTaps="handled">
                 {children}
               </ScrollView>
             </TouchableWithoutFeedback>

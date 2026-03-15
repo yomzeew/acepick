@@ -16,8 +16,8 @@ export const UserDetail = () => {
 
     const avatar:string=user?.profile.avatar || ' '
     const fullName:string= user?.profile.firstName +' '+ user?.profile.lastName || ' '
-    const lga:string=user?.profile.lga || ' '
-    const state:string=user?.profile.state || ' '
+    const lga:string=(user as any)?.location?.lga || ' '
+    const state:string=(user as any)?.location?.state || ' '
     const numberOfStars:number=user?.profile.rate || 1
     const currentBalance:number | string=user?.wallet.currentBalance || ' '
 

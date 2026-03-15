@@ -37,6 +37,7 @@ const HomeDelivery = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [getId,setgetId]=useState<number>()
     const fcmToken = useSelector((state: RootState) => (state.auth.fcmToken))
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
     const saveFcmToken = async () => {
         try {
@@ -86,7 +87,7 @@ const HomeDelivery = () => {
     const { location, address, state, lga, loading, error } = useCurrentLocation();
 
     const mutation = useMutation({
-        mutationFn: updateLocation,
+        mutationFn: ({ locationId, data }: { locationId: string; data: any }) => updateLocation(locationId, data),
         onSuccess: async (response) => {
             //console.log(response,'okkk');
         },
@@ -109,11 +110,13 @@ const HomeDelivery = () => {
 
 
     const updateLocationFn = () => {
+        const locationId = user?.location?.id?.toString();
+        if (!locationId) return;
         const { latitude, longitude } = location?.coords ?? {};
         const data = { latitude, longitude, address, state, lga };
         console.log(data)
 
-        mutation.mutate(data); // ✅ Wrap both in one object
+        mutation.mutate({ locationId, data });
     };
     useEffect(() => {
         saveFcmToken()
@@ -630,9 +633,6 @@ const CurrentDelivery = ({ balanceRefreshTrigger }: CurrentDeliveryProps) => {
 };
 
 
-function setErrorMessage(msg: string) {
-    throw new Error("Function not implemented.")
-}
 const styles = StyleSheet.create({
     container: { flex: 1, justifyContent: "center", alignItems: "center" },
     overlay: {

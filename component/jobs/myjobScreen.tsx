@@ -416,8 +416,8 @@ import StarRating from 'component/starRating';
     // const [manualaddress, setManualAddress] = useState('')
   
     return (
-     <>
-      <View className="flex-row justify-between items-center">
+     <View className='px-5'>
+      <View className="flex-row justify-between items-center ">
                     <ThemeTextsecond size={Textstyles.text_cmedium}>
                         Update Details
                     </ThemeTextsecond>
@@ -462,7 +462,7 @@ import StarRating from 'component/starRating';
                     />
 
                 </View>
-     </>
+     </View>
     );
   };
   

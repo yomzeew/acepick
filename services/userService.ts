@@ -53,21 +53,53 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
    
   }
 
-  export const updateLocation=async(data:any)=>{
-    const token = store.getState().auth.token; // get token inside function
+  export const updateLocation=async(locationId: string, data:any)=>{
+    const token = store.getState().auth.token;
+    const url = `${locationUrl}/${locationId}`;
+    
+    try {
+      console.log('📍 Location Update Request:', {
+        url,
+        method: 'PUT',
+        payload: data,
+        hasToken: !!token
+      });
 
-        const response=await axios.put(locationUrl,data,
-            {
-              headers:{
-                Authorization:`Bearer ${token}`
-              }
-        
-          })
-          return response.data
-
-       
-   
-   
+      const response = await axios.put(url, data, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      console.log('✅ Location Update Success:', response.data);
+      return response.data;
+      
+    } catch (error: any) {
+      // Detailed error logging for backend engineer
+      const errorDetails = {
+        endpoint: url,
+        method: 'PUT',
+        requestPayload: data,
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        errorData: error?.response?.data,
+        errorMessage: error?.message,
+        headers: error?.config?.headers ? { 
+          ...error.config.headers, 
+          Authorization: error.config.headers.Authorization ? '[REDACTED]' : 'missing' 
+        } : 'N/A'
+      };
+      
+      console.error('❌ Location Update Failed:', JSON.stringify(errorDetails, null, 2));
+      
+      // Re-throw with detailed message
+      const backendMessage = error?.response?.data?.message 
+        || error?.response?.data?.error 
+        || error?.response?.data?.errors?.join(', ')
+        || `HTTP ${error?.response?.status}: ${error?.response?.statusText}`;
+      
+      throw new Error(`Location update failed: ${backendMessage}`);
+    }
   }
 
   export const getSectorByUser=async(token:string)=>{
@@ -87,20 +119,41 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
   }
 
   export const getProfessionDetailFn=async(professionalId:any)=>{
+    const token = store.getState().auth?.token;
+    const url = `${getProfessionUrl}/${professionalId}`;
+    
+    try {
+      console.log('👤 Get Professional Details Request:', {
+        url,
+        professionalId,
+        hasToken: !!token
+      });
 
-        const token = store.getState().auth?.token; // get token inside function
-        const response=await axios.get(`${getProfessionUrl}/${professionalId}`,
-            {
-              headers:{
-                Authorization:`Bearer ${token}`
-              }
-        
-          })
-          return response.data
-
-       
-   
-   
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      console.log('✅ Professional Details Success');
+      return response.data;
+      
+    } catch (error: any) {
+      const errorDetails = {
+        endpoint: url,
+        method: 'GET',
+        professionalId,
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        errorData: error?.response?.data,
+        errorMessage: error?.message,
+      };
+      
+      console.error('❌ Get Professional Details Failed:', JSON.stringify(errorDetails, null, 2));
+      
+      // Re-throw with the error object intact for component to handle
+      throw error;
+    }
   }
 
   export const getProfessionDetailFnBYUserID=async(professionalId:any)=>{

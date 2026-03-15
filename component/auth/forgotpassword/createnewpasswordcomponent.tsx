@@ -102,7 +102,7 @@ useDelay(() => {
       setErrorMessage("Passwords do not match");
       return;
     }
-  const email=registerData?.email
+  const email=registerData?.email || ''
     // Proceed with registerData + password
     console.log("Final Registration Payload: ", { email, password,confirmPassword });
     const payload={ email, password,confirmPassword}

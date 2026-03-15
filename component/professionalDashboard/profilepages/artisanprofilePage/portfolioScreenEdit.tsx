@@ -8,7 +8,7 @@ import SliderModalTemplate from "component/slideupModalTemplate"
 import { ThemeText, ThemeTextsecond } from "component/ThemeText"
 import { useTheme } from "hooks/useTheme"
 import { useEffect, useState } from "react"
-import { TouchableOpacity, View, Text } from "react-native"
+import { TouchableOpacity, View, Text, Image, ScrollView } from "react-native"
 import { getColors } from "static/color"
 import { Textstyles } from "static/textFontsize"
 
@@ -52,9 +52,71 @@ interface AddNewPprtfolioProps {
 const AddPortfolio = ({ setShowSlideUp }: AddNewPprtfolioProps) => {
     const { theme } = useTheme()
     const { primaryColor, secondaryTextColor, selectioncardColor, } = getColors(theme)
+    
+    const [projectTitle, setProjectTitle] = useState("")
+    const [description, setDescription] = useState("")
+    const [duration, setDuration] = useState("")
+    const [projectDate, setProjectDate] = useState("")
+    const [chargeAmount, setChargeAmount] = useState("")
+    const [portfolioImages, setPortfolioImages] = useState<string[]>([])
+    const [errors, setErrors] = useState<{[key: string]: string}>({})
+
+    const formatCurrency = (value: string) => {
+        const digits = value.replace(/\D/g, '');
+        if (digits === '') return '';
+        const number = parseInt(digits);
+        return number.toLocaleString();
+    }
+
+    const handleChargeAmountChange = (value: string) => {
+        const formatted = formatCurrency(value);
+        setChargeAmount(formatted);
+        setErrors(prev => ({ ...prev, chargeAmount: '' }));
+    }
+
+    const validateForm = () => {
+        const newErrors: {[key: string]: string} = {};
+        
+        if (!projectTitle.trim()) {
+            newErrors.projectTitle = 'Project title is required';
+        }
+        if (!description.trim()) {
+            newErrors.description = 'Description is required';
+        } else if (description.length > 120) {
+            newErrors.description = 'Description must be 120 characters or less';
+        }
+        if (!duration.trim()) {
+            newErrors.duration = 'Duration is required';
+        }
+        if (!projectDate) {
+            newErrors.projectDate = 'Project date is required';
+        }
+        if (!chargeAmount) {
+            newErrors.chargeAmount = 'Charge amount is required';
+        }
+        if (portfolioImages.length === 0) {
+            newErrors.images = 'At least one portfolio image is required';
+        }
+        
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    }
 
     const handleSubmit = () => {
-        setShowSlideUp(false)
+        if (validateForm()) {
+            setShowSlideUp(false)
+        }
+    }
+
+    const handleImageUpload = () => {
+        // Simulate image upload - in real app, this would use ImagePicker
+        const newImage = `https://via.placeholder.com/100x100/59C5E0/FFFFFF?text=${portfolioImages.length + 1}`;
+        setPortfolioImages(prev => [...prev, newImage]);
+        setErrors(prev => ({ ...prev, images: '' }));
+    }
+
+    const handleRemoveImage = (index: number) => {
+        setPortfolioImages(prev => prev.filter((_, i) => i !== index));
     }
 
     return (
@@ -71,7 +133,17 @@ const AddPortfolio = ({ setShowSlideUp }: AddNewPprtfolioProps) => {
                         color={primaryColor}
                         placeholder={"Project title"}
                         placeholdercolor={secondaryTextColor}
+                        value={projectTitle}
+                        onChange={(value) => {
+                            setProjectTitle(value);
+                            setErrors(prev => ({ ...prev, projectTitle: '' }));
+                        }}
                     />
+                    {errors.projectTitle && (
+                        <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                            {errors.projectTitle}
+                        </Text>
+                    )}
                 </View>
                 <EmptyView height={20} />
                 <View className="w-full">
@@ -80,15 +152,24 @@ const AddPortfolio = ({ setShowSlideUp }: AddNewPprtfolioProps) => {
                         placeholder={"Brief description"}
                         placeholdercolor={secondaryTextColor}
                         multiline
+                        value={description}
+                        onChange={(value) => {
+                            setDescription(value);
+                            setErrors(prev => ({ ...prev, description: '' }));
+                        }}
                     />
-
                 </View>
                 <EmptyView height={10} />
                 <View className="w-full items-end">
-                    <ThemeText size={Textstyles.text_small}>
-                        0/120 words
-                    </ThemeText>
+                    <ThemeTextsecond size={Textstyles.text_xsma}>
+                        {description.length}/120 characters
+                    </ThemeTextsecond>
                 </View>
+                {errors.description && (
+                    <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                        {errors.description}
+                    </Text>
+                )}
                 <EmptyView height={20} />
                 <View className="w-full flex-row gap-x-2">
                     <View className="w-1/2">
@@ -96,7 +177,17 @@ const AddPortfolio = ({ setShowSlideUp }: AddNewPprtfolioProps) => {
                             color={primaryColor}
                             placeholder={"Duration of project"}
                             placeholdercolor={secondaryTextColor}
+                            value={duration}
+                            onChange={(value) => {
+                                setDuration(value);
+                                setErrors(prev => ({ ...prev, duration: '' }));
+                            }}
                         />
+                        {errors.duration && (
+                            <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                                {errors.duration}
+                            </Text>
+                        )}
                     </View>
                     <View className="w-1/2">
                         <InputComponent
@@ -105,12 +196,22 @@ const AddPortfolio = ({ setShowSlideUp }: AddNewPprtfolioProps) => {
                             placeholdercolor={secondaryTextColor}
                             prefix={true}
                             fieldType="date"
+                            value={projectDate}
+                            onChange={(value) => {
+                                setProjectDate(value);
+                                setErrors(prev => ({ ...prev, projectDate: '' }));
+                            }}
                             icon={<FontAwesome5 name="calendar" size={20} color="#ffffff" />}
                         />
+                        {errors.projectDate && (
+                            <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                                {errors.projectDate}
+                            </Text>
+                        )}
                     </View>
                 </View>
                 <View className="w-full items-end">
-                <ThemeTextsecond size={Textstyles.text_xsma}>Project Date</ThemeTextsecond>
+                    <ThemeTextsecond size={Textstyles.text_xsma}>Project Date</ThemeTextsecond>
                 </View>
                 <EmptyView height={20} />
                 <View className="w-full">
@@ -121,36 +222,57 @@ const AddPortfolio = ({ setShowSlideUp }: AddNewPprtfolioProps) => {
                         prefix={true}
                         icon={<Text style={[Textstyles.text_medium]} className="text-white">₦</Text>}
                         keyboardType="numeric"
+                        value={chargeAmount}
+                        onChange={handleChargeAmountChange}
                     />
-
+                    {errors.chargeAmount && (
+                        <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                            {errors.chargeAmount}
+                        </Text>
+                    )}
                 </View>
                 <EmptyView height={20} />
                 <ThemeText size={Textstyles.text_small}>
-                    Your portfolio
+                    Your portfolio images
                 </ThemeText>
                 <EmptyView height={10} />
-                <View className="flex-row gap-x-2 w-full items-center justify-center">
-                    <TouchableOpacity className="w-16 h-16 rounded-lg items-center justify-center bg-slate-400">
-                        <FontAwesome5 size={20} name="camera" />
-                    </TouchableOpacity>
-                    <View className="w-16 h-16 rounded-lg items-center justify-center bg-slate-300">
-                        <FontAwesome5 size={20} name="plus" />
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <View className="flex-row gap-x-2">
+                        {portfolioImages.map((image, index) => (
+                            <View key={index} className="relative">
+                                <Image 
+                                    source={{ uri: image }} 
+                                    className="w-16 h-16 rounded-lg"
+                                    resizeMode="cover"
+                                />
+                                <TouchableOpacity 
+                                    onPress={() => handleRemoveImage(index)}
+                                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full items-center justify-center"
+                                >
+                                    <FontAwesome5 size={8} name="times" color="#ffffff" />
+                                </TouchableOpacity>
+                            </View>
+                        ))}
+                        {portfolioImages.length < 5 && (
+                            <TouchableOpacity onPress={handleImageUpload} className="w-16 h-16 rounded-lg items-center justify-center bg-slate-300 border-2 border-dashed border-slate-400">
+                                <FontAwesome5 size={16} name="plus" color="#6b7280" />
+                            </TouchableOpacity>
+                        )}
                     </View>
-                    <View className="w-16 h-16 rounded-lg items-center justify-center bg-slate-300">
-                        <FontAwesome5 size={20} name="plus" />
-                    </View>
-                    <View className="w-16 h-16 rounded-lg items-center justify-center bg-slate-300">
-                        <FontAwesome5 size={20} name="plus" />
-                    </View>
-                    <View className="w-16 h-16 rounded-lg items-center justify-center bg-slate-300">
-                        <FontAwesome5 size={20} name="plus" />
-                    </View>
-
-
-                </View>
+                </ScrollView>
+                {errors.images && (
+                    <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-2 text-center">
+                        {errors.images}
+                    </Text>
+                )}
                 <EmptyView height={10} />
-                <View>
-                    <Text style={[Textstyles.text_xsmall, { color: "red" }]}>JPEG (Maximum upload size 5mb)</Text>
+                <View className="w-full flex-row justify-between items-center">
+                    <Text style={[Textstyles.text_xsmall, { color: secondaryTextColor }]}>
+                        JPEG, PNG (Max 5mb each)
+                    </Text>
+                    <Text style={[Textstyles.text_xsmall, { color: secondaryTextColor }]}>
+                        {portfolioImages.length}/5 images
+                    </Text>
                 </View>
                 <EmptyView height={40} />
                 <ButtonFunction color={primaryColor} text={"Finish"} textcolor={"#ffffff"} onPress={handleSubmit} />
@@ -212,27 +334,45 @@ const Portfolio = () => {
 }
 
 const GalleryView = () => {
+    const [portfolioImages, setPortfolioImages] = useState([
+        { id: 1, uri: 'https://via.placeholder.com/100x100/59C5E0/FFFFFF?text=1' },
+        { id: 2, uri: 'https://via.placeholder.com/100x100/59C5E0/FFFFFF?text=2' },
+        { id: 3, uri: 'https://via.placeholder.com/100x100/59C5E0/FFFFFF?text=3' },
+        { id: 4, uri: 'https://via.placeholder.com/100x100/59C5E0/FFFFFF?text=4' },
+        { id: 5, uri: 'https://via.placeholder.com/100x100/59C5E0/FFFFFF?text=5' },
+    ])
+
+    const handleImagePress = (imageId: number) => {
+        // Handle image press for full view or editing
+        console.log('Image pressed:', imageId)
+    }
+
     return (
-        <>
-            <View className="flex-row gap-x-2 w-full items-center justify-center">
-                <View className="w-16 h-16 rounded-lg items-center justify-center bg-slate-300">
-
-                </View>
-                <View className="w-16 h-16 rounded-lg items-center justify-center bg-slate-300">
-
-                </View>
-                <View className="w-16 h-16 rounded-lg items-center justify-center bg-slate-300">
-
-                </View>
-                <View className="w-16 h-16 rounded-lg items-center justify-center bg-slate-300">
-
-                </View>
-                <View className="w-16 h-16 rounded-lg items-center justify-center bg-slate-300">
-
-                </View>
-
-
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View className="flex-row gap-x-2">
+                {portfolioImages.map((image) => (
+                    <TouchableOpacity 
+                        key={image.id} 
+                        onPress={() => handleImagePress(image.id)}
+                        className="w-16 h-16 rounded-lg overflow-hidden"
+                        style={{ backgroundColor: '#f3f4f6' }}
+                    >
+                        <Image 
+                            source={{ uri: image.uri }} 
+                            className="w-full h-full"
+                            resizeMode="cover"
+                            style={{ backgroundColor: '#e5e7eb' }}
+                        />
+                    </TouchableOpacity>
+                ))}
+                {/* Add more button */}
+                <TouchableOpacity 
+                    className="w-16 h-16 rounded-lg items-center justify-center bg-slate-300"
+                    onPress={() => console.log('Add more images')}
+                >
+                    <FontAwesome5 size={16} name="plus" color="#6b7280" />
+                </TouchableOpacity>
             </View>
-        </>
+        </ScrollView>
     )
 }

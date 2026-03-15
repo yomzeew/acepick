@@ -7,7 +7,7 @@ import FooterComponent from "../dashboardComponent/footerComponent"
 import { getColors } from "../../static/color"
 import { useTheme } from "../../hooks/useTheme"
 import EmptyView from "../emptyview"
-import {  ReactNode } from "react"
+import {  ReactNode, useState } from "react"
 import LineChartgraphy from "../chart/linechart"
 import {Feather,Entypo, AntDesign,FontAwesome} from '../icons'
 import { useRouter } from "expo-router"
@@ -17,18 +17,34 @@ import HeaderComponent from "component/headerComp"
 import JobStatistics from "component/jobStatistics"
 import { useSelector } from "react-redux"
 import { RootState } from "redux/store"
+import { useFocusEffect } from "@react-navigation/native"
+import { useCallback } from "react"
 
 
 const ProfileComponent = () => {
     const { theme } = useTheme()
     const { primaryTextColor, selectioncardColor, primaryColor } = getColors(theme)
     const routes=useRouter()
+    const [refreshKey, setRefreshKey] = useState(0)
+    
     const handleNavigation=()=>{
         routes.push('/reviewlayout')
     }
     const handleNavigationSettings=()=>{
         routes.push('/profilesettinglayout')
     }
+    
+    // Refresh profile data when screen comes into focus
+    useFocusEffect(
+        useCallback(() => {
+            // This will be called when the screen comes into focus
+            setRefreshKey((prev: number) => prev + 1)
+            return () => {
+                // Cleanup if needed
+            }
+        }, [])
+    )
+    
     const user=useSelector((state:RootState)=>state?.auth.user)
     const numberofDisputes=user?.profile.totalDisputes || 0
     const numberofReview=user?.profile.totalReview || 0
@@ -42,14 +58,14 @@ const ProfileComponent = () => {
                     </TouchableOpacity>
                 </View>
                 <EmptyView height={10} />
-                <UserDetail />
+                <UserDetail key={`userdetail-${refreshKey}`} />
                 <EmptyView height={10} />
 
-                <AnalyticDiagram/>
-                <JobStatistics/>
+                <AnalyticDiagram key={`analytics-${refreshKey}`}/>
+                <JobStatistics key={`jobstats-${refreshKey}`}/>
 
                 <View  className="w-full">
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={() => routes.push('/jobstatusLayout/DISPUTED')}>
                     <ListTab>
                         <FontAwesome name="warning" size={20} color="red" /> {'Disputes'}({numberofDisputes})
                     </ListTab>

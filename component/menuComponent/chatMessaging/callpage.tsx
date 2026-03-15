@@ -23,10 +23,10 @@ import { getInitials } from "utilizes/initialsName";
 
 
 interface MainProps {
-  userDetails: string;
+  userDetails?: string;
 }
 
-const CallChat = ({ userDetails }: MainProps) => {
+const CallChat = ({ userDetails = '{}' }: MainProps) => {
   const {socket}=useSocket()
   const {
     isCalling,
@@ -50,7 +50,7 @@ setModalVisible(false)
 
   const [data, setData] = useState<Profile | null>(null);
   const [imageError, setImageError] = useState(false);
-
+  const [callStatus, setCallStatus] = useState<'idle' | 'ringing' | 'connecting' | 'connected' | 'failed'>('idle');
   const [callDuration, setCallDuration] = useState(0);
 const callTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -97,10 +97,20 @@ const callTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (isCalling) {
+      if (callDuration === 0) {
+        setCallStatus('connecting');
+      } else if (callDuration < 5) {
+        setCallStatus('ringing');
+      } else {
+        setCallStatus('connected');
+      }
       callTimerRef.current = setInterval(() => {
         setCallDuration((prev) => prev + 1);
       }, 1000);
     } else {
+      if (callDuration > 0) {
+        setCallStatus('idle');
+      }
       clearInterval(callTimerRef.current!);
       setCallDuration(0);
     }
@@ -108,7 +118,15 @@ const callTimerRef = useRef<NodeJS.Timeout | null>(null);
     return () => {
       clearInterval(callTimerRef.current!);
     };
-  }, [isCalling]);
+  }, [isCalling, callDuration]);
+
+  useEffect(() => {
+    if (incomingCall) {
+      setCallStatus('ringing');
+    } else if (!isCalling && !incomingCall) {
+      setCallStatus('idle');
+    }
+  }, [incomingCall, isCalling]);
 
  
 
@@ -118,10 +136,27 @@ const callTimerRef = useRef<NodeJS.Timeout | null>(null);
     <ImageBackground className="h-full w-full" source={require("../../../assets/callbg.png")}> 
       <View className="py-[50px] items-center">
         <ThemeText size={Textstyles.text_cmedium}>{data?.firstName}</ThemeText>
-        <Text style={[Textstyles.text_xsmall]} className="text-white">
-  {isCalling ? `Calling - ${formatTime(callDuration)}` : incomingCall ? "Incoming Call" : "Idle"}
-</Text>
-   
+        <View className="flex-row items-center">
+          {callStatus === 'ringing' && (
+            <View className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse" />
+          )}
+          {callStatus === 'connecting' && (
+            <View className="w-2 h-2 bg-yellow-400 rounded-full mr-2 animate-pulse" />
+          )}
+          {callStatus === 'connected' && (
+            <View className="w-2 h-2 bg-green-500 rounded-full mr-2" />
+          )}
+          {callStatus === 'failed' && (
+            <View className="w-2 h-2 bg-red-500 rounded-full mr-2" />
+          )}
+          <Text style={[Textstyles.text_xsmall]} className="text-white">
+            {callStatus === 'idle' && "Ready"}
+            {callStatus === 'ringing' && (incomingCall ? "Incoming Call..." : "Ringing...")}
+            {callStatus === 'connecting' && "Connecting..."}
+            {callStatus === 'connected' && `Connected - ${formatTime(callDuration)}`}
+            {callStatus === 'failed' && "Call Failed"}
+          </Text>
+        </View>
       </View>
 
       <View className="flex-1 items-center w-full">
@@ -135,7 +170,7 @@ const callTimerRef = useRef<NodeJS.Timeout | null>(null);
             />
           ) : (
             <Text style={{ color: primaryColor }} className="text-6xl">
-              {getInitials({ firstName: data?.firstName, lastName: data?.lastName})}
+              {getInitials({ firstName: data?.firstName || '', lastName: data?.lastName || ''})}
             </Text>
           )}
         </View>
@@ -145,49 +180,70 @@ const callTimerRef = useRef<NodeJS.Timeout | null>(null);
   {!isCalling && !incomingCall && (
     <TouchableOpacity
       style={{ backgroundColor: primaryColor }}
-      className="rounded-full h-12 w-12 justify-center items-center"
-      onPress={()=>callUser(data?.userId || "")}
+      className="rounded-full h-12 w-12 justify-center items-center shadow-lg"
+      onPress={() => {
+        setCallStatus('connecting');
+        callUser(data?.userId || "");
+      }}
     >
       <FontAwesome5 color="#ffffff" name="phone" size={24} />
     </TouchableOpacity>
   )}
 
   {isCalling && (
-    <TouchableOpacity
-      style={{ backgroundColor: "red" }}
-      className="rounded-full h-12 w-12 justify-center items-center"
-      onPress={hangUp}
-    >
-      <FontAwesome5 color="#ffffff" name="phone-slash" size={24} />
-    </TouchableOpacity>
+    <>
+      <TouchableOpacity
+        style={{ backgroundColor: "#ef4444" }}
+        className="rounded-full h-12 w-12 justify-center items-center shadow-lg"
+        onPress={async () => {
+          setCallStatus('idle');
+          await hangUp();
+        }}
+      >
+        <FontAwesome5 color="#ffffff" name="phone-slash" size={24} />
+      </TouchableOpacity>
+      
+      <TouchableOpacity
+        style={{ backgroundColor: primaryColor }}
+        className="rounded-full h-12 w-12 justify-center items-center shadow-lg"
+      >
+        <FontAwesome5 color="#ffffff" name="microphone" size={24} />
+      </TouchableOpacity>
+      
+      <TouchableOpacity
+        style={{ backgroundColor: primaryColor }}
+        className="rounded-full h-12 w-12 justify-center items-center shadow-lg"
+      >
+        <FontAwesome5 color="#ffffff" name="volume-up" size={24} />
+      </TouchableOpacity>
+    </>
   )}
 
-{incomingCall && !isCalling && (
-  <>
-    <TouchableOpacity
-      style={{ backgroundColor: "green" }}
-      className="rounded-full h-12 w-12 justify-center items-center"
-      onPress={acceptCall} // ✅ This is how you use it
-    >
-      <FontAwesome5 color="#ffffff" name="phone" size={24} />
-    </TouchableOpacity>
+  {incomingCall && !isCalling && (
+    <>
+      <TouchableOpacity
+        style={{ backgroundColor: "#10b981" }}
+        className="rounded-full h-12 w-12 justify-center items-center shadow-lg"
+        onPress={async () => {
+          setCallStatus('connecting');
+          await acceptCall();
+        }}
+      >
+        <FontAwesome5 color="#ffffff" name="phone" size={24} />
+      </TouchableOpacity>
 
-    <TouchableOpacity
-      style={{ backgroundColor: "red" }}
-      className="rounded-full h-12 w-12 justify-center items-center"
-      onPress={rejectCall}
-    >
-      <FontAwesome5 color="#ffffff" name="phone-slash" size={24} />
-    </TouchableOpacity>
-  </>
-)}
-
-  <TouchableOpacity
-    style={{ backgroundColor: primaryColor }}
-    className="rounded-full h-12 w-12 justify-center items-center"
-  >
-    <FontAwesome5 color="#ffffff" name="volume-up" size={24} />
-  </TouchableOpacity>
+      <TouchableOpacity
+        style={{ backgroundColor: "#ef4444" }}
+        className="rounded-full h-12 w-12 justify-center items-center shadow-lg"
+        onPress={async () => {
+          setCallStatus('idle');
+          await rejectCall();
+        }}
+      >
+        <FontAwesome5 color="#ffffff" name="phone-slash" size={24} />
+      </TouchableOpacity>
+    </>
+  )}
 </View>
 
     </ImageBackground>

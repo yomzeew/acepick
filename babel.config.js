@@ -3,9 +3,19 @@ module.exports = function (api) {
     return {
         presets: [
             ["babel-preset-expo", { jsxImportSource: "nativewind" }],
-            "nativewind/babel",
           ],
-          plugins: ['react-native-reanimated/plugin'], // ✅ Important
+          plugins: [
+            // NativeWind css-interop plugins (without worklets - reanimated 3.x has its own)
+            require("react-native-css-interop/dist/babel-plugin").default,
+            [
+              "@babel/plugin-transform-react-jsx",
+              {
+                runtime: "automatic",
+                importSource: "react-native-css-interop",
+              },
+            ],
+            'react-native-reanimated/plugin', // ✅ Must be last
+          ],
     };
   };
   

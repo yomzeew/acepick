@@ -80,7 +80,8 @@ const ListofAPmodal=({professionalValue}:ListofApmodalProps)=>{
 
         useEffect(() => {
             if (debouncedProfessionSearch) {
-                mutation.mutate(`profession=${debouncedProfessionSearch}`);
+                const encoded = encodeURIComponent(debouncedProfessionSearch);
+                mutation.mutate(`profession=${encoded}&name=${encoded}`);
             }
         }, [debouncedProfessionSearch]);
         useEffect(()=>{
@@ -106,7 +107,7 @@ const ListofAPmodal=({professionalValue}:ListofApmodalProps)=>{
             <EmptyView height={20}/>
             <View className="w-full justify-center flex-row gap-x-3">
             <View className="w-4/5">
-            <InputComponent value={professionSearch} onChange={setprofessionSearch} color={primaryColor} placeholder={"Search by Profession"} placeholdercolor={secondaryTextColor}/>
+            <InputComponent value={professionSearch} onChange={setprofessionSearch} color={primaryColor} placeholder={"Search by name or profession"} placeholdercolor={secondaryTextColor}/>
             </View>
           
             <TouchableOpacity onPress={()=>setshowFilter(!showFilter)} style={{backgroundColor:primaryColor}} className="px-2 py-2 w-16 h-16 items-center justify-center rounded-full">

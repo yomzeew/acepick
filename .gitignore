@@ -34,3 +34,14 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# Build artifacts
+*.apk
+build-*.apk
+*.ipa
+*.aab
+
+# Documentation files
+*.html
+*.pdf
+*.md

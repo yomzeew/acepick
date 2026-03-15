@@ -14,12 +14,17 @@ import { useRouter } from "expo-router"
 import RatingStar from "component/rating"
 import { UserDetail } from "component/dashboardComponent/userdetails"
 import HeaderComponent from "component/headerComp"
+import { useSelector } from "react-redux"
+import { RootState } from "redux/store"
 
 
 const ProfileProfessional = () => {
     const { theme } = useTheme()
     const { primaryTextColor, selectioncardColor, primaryColor } = getColors(theme)
     const routes=useRouter()
+    const user=useSelector((state:RootState)=>state?.auth.user)
+    const numberofDisputes=user?.profile?.totalDisputes || 0
+    const numberofReview=user?.profile?.totalReview || 0
     const handleNavigation=()=>{
         routes.push('/reviewlayout')
     }
@@ -43,24 +48,34 @@ const ProfileProfessional = () => {
                 <View  className="w-full  mt-2">
                     <ScrollView  horizontal   showsHorizontalScrollIndicator={false}>
                     <View className="flex-row gap-x-4">
-                        <Cardcomponent Title={"Completed Jobs"} totalnumber={4} />
-                        <Cardcomponent Title={"Jobs in Progress"} totalnumber={6} />
-                        <Cardcomponent Title={"Pending Jobs"} totalnumber={5} />
-                        <Cardcomponent Title={"Cancelled Jobs"} totalnumber={1} />
-                        <Cardcomponent Title={"Rejected Jobs"} totalnumber={0} />
+                        <TouchableOpacity onPress={() => routes.push('/jobstatusLayout/COMPLETED')}>
+                            <Cardcomponent Title={"Completed Jobs"} totalnumber={user?.profile?.totalJobsCompleted || 0} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => routes.push('/jobstatusLayout/ONGOING')}>
+                            <Cardcomponent Title={"Jobs in Progress"} totalnumber={user?.profile?.totalJobsOngoing || 0} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => routes.push('/jobstatusLayout/PENDING')}>
+                            <Cardcomponent Title={"Pending Jobs"} totalnumber={user?.profile?.totalJobsPending || 0} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => routes.push('/jobstatusLayout/CANCELED')}>
+                            <Cardcomponent Title={"Cancelled Jobs"} totalnumber={user?.profile?.totalJobsCanceled || 0} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => routes.push('/jobstatusLayout/REJECTED')}>
+                            <Cardcomponent Title={"Rejected Jobs"} totalnumber={user?.profile?.totalJobsDeclined || 0} />
+                        </TouchableOpacity>
                         </View>
                        
                     </ScrollView>
                 </View>
                 <View  className="w-full">
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={() => routes.push('/jobstatusLayout/DISPUTED')}>
                     <ListTab>
-                        <FontAwesome name="warning" size={20} color="red" /> {'Disputes'}({4})
+                        <FontAwesome name="warning" size={20} color="red" /> {'Disputes'}({numberofDisputes})
                     </ListTab>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={handleNavigation}>
                     <ListTab>
-                        <FontAwesome name="star" size={20} color="gold" /> {'Reviews & Ratings'}({10})
+                        <FontAwesome name="star" size={20} color="gold" /> {'Reviews & Ratings'}({numberofReview})
                     </ListTab>
                     </TouchableOpacity>
                     

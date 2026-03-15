@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AcePick Bug Fix Report</title>
+  <style>
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page-break { page-break-before: always; }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #1a1a2e;
+      background: #fff;
+      line-height: 1.6;
+      padding: 40px;
+    }
+    .header {
+      text-align: center;
+      padding: 30px 0;
+      border-bottom: 3px solid #33658A;
+      margin-bottom: 30px;
+    }
+    .header h1 {
+      font-size: 28px;
+      color: #33658A;
+      margin-bottom: 6px;
+    }
+    .header p {
+      font-size: 14px;
+      color: #666;
+    }
+    .summary-box {
+      display: flex;
+      justify-content: space-around;
+      margin: 25px 0;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    .stat-card {
+      text-align: center;
+      padding: 18px 24px;
+      border-radius: 10px;
+      min-width: 140px;
+      flex: 1;
+    }
+    .stat-card.total { background: #e8f4fd; border: 1px solid #33658A; }
+    .stat-card.high { background: #fde8e8; border: 1px solid #e53e3e; }
+    .stat-card.medium { background: #fefce8; border: 1px solid #d69e2e; }
+    .stat-card .number { font-size: 32px; font-weight: 700; }
+    .stat-card.total .number { color: #33658A; }
+    .stat-card.high .number { color: #e53e3e; }
+    .stat-card.medium .number { color: #d69e2e; }
+    .stat-card .label { font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+
+    .section {
+      margin: 30px 0;
+    }
+    .section-title {
+      font-size: 20px;
+      color: #fff;
+      background: #33658A;
+      padding: 10px 20px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+    th {
+      background: #f0f4f8;
+      color: #33658A;
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 2px solid #33658A;
+      font-weight: 600;
+    }
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    tr:hover { background: #f7fafc; }
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-high { background: #fed7d7; color: #c53030; }
+    .badge-medium { background: #fefcbf; color: #975a16; }
+    .badge-completed { background: #c6f6d5; color: #276749; }
+    .file-tag {
+      display: inline-block;
+      background: #edf2f7;
+      color: #4a5568;
+      padding: 1px 8px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      margin: 1px 2px;
+    }
+    .detail-section {
+      background: #f7fafc;
+      border-left: 4px solid #33658A;
+      padding: 15px 20px;
+      margin: 10px 0 20px 0;
+      border-radius: 0 6px 6px 0;
+    }
+    .detail-section h4 {
+      color: #33658A;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    .detail-section ul {
+      padding-left: 20px;
+      font-size: 13px;
+    }
+    .detail-section li {
+      margin: 4px 0;
+    }
+    .footer {
+      text-align: center;
+      padding: 20px 0;
+      margin-top: 40px;
+      border-top: 2px solid #e2e8f0;
+      color: #999;
+      font-size: 12px;
+    }
+    .status-done {
+      color: #276749;
+      font-weight: 600;
+    }
+    .dep-note {
+      background: #fffbeb;
+      border: 1px solid #f6e05e;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin: 15px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>AcePick &mdash; Bug Fix Report</h1>
+    <p>Date: March 5, 2026 &nbsp;|&nbsp; Version: 1.0 &nbsp;|&nbsp; Platform: React Native (Expo)</p>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="summary-box">
+    <div class="stat-card total">
+      <div class="number">19</div>
+      <div class="label">Total Bugs Fixed</div>
+    </div>
+    <div class="stat-card high">
+      <div class="number">6</div>
+      <div class="label">High Priority</div>
+    </div>
+    <div class="stat-card medium">
+      <div class="number">13</div>
+      <div class="label">Medium Priority</div>
+    </div>
+  </div>
+
+  <div class="dep-note">
+    <strong>Dependency Added:</strong> <code>expo-sharing</code> was installed to support file attachment sharing in chat (Issue #19).
+  </div>
+
+  <!-- ===================== AUTHENTICATION ===================== -->
+  <div class="section">
+    <div class="section-title">1. Authentication Screens (Issues 1&ndash;5)</div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Issue</th>
+          <th>Priority</th>
+          <th>Fix Applied</th>
+          <th>Files Modified</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>OTP resend timer too long (10 min), stops in background, user forced to enter code twice</td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>Reduced timer from 600s &rarr; 60s. Replaced <code>setInterval</code> with <code>Date.now()</code>-based timer that uses <code>AppState</code> listener to recalculate on resume. Fixed OTP backspace clearing logic and <code>returnKeyType</code> index.</td>
+          <td>
+            <span class="file-tag">otpcomponent.tsx</span>
+            <span class="file-tag">secondstagecomponent.tsx</span>
+            <span class="file-tag">verificationemailphone.tsx</span>
+          </td>
+          <td class="status-done">&#10003; Done</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Login button overlaps "Forgot Password" text when typing password</td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>Wrapped layout in <code>KeyboardAvoidingView</code> + <code>ScrollView</code>. Changed login button from <code>absolute bottom-10</code> positioning to flex-based layout with <code>flex-1</code> spacer.</td>
+          <td><span class="file-tag">logincomponent.tsx</span></td>
+          <td class="status-done">&#10003; Done</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>Shows "User does not exist" instead of "Invalid email or password"</td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>Added error message normalization. Backend messages containing "user does not exist", "invalid password", "wrong password", or "not found" are replaced with the generic "Invalid email or password".</td>
+          <td><span class="file-tag">logincomponent.tsx</span></td>
+          <td class="status-done">&#10003; Done</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>No validation message when login fields are empty</td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>Added missing <code>return</code> statement after the password-empty validation check. Previously, <code>mutation.mutate</code> was called even when the password field was empty.</td>
+          <td><span class="file-tag">logincomponent.tsx</span></td>
+          <td class="status-done">&#10003; Done</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>Forgot Password UX issues &ndash; resend timer too long, stops in background</td>
+          <td><span class="badge badge-medium">Medium</span></td>
+          <td>Same Date-based timer fix as Issue #1: reduced 600s &rarr; 60s, added <code>AppState</code> listener for background resilience.</td>
+          <td><span class="file-tag">forgetotp.tsx</span></td>
+          <td class="status-done">&#10003; Done</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="detail-section">
+      <h4>Technical Details &mdash; OTP Timer Fix</h4>
+      <ul>
+        <li>Stores <code>endTimeRef = Date.now() + RESEND_TIMER * 1000</code> as the target timestamp.</li>
+        <li>Each tick calculates <code>remaining = Math.max(0, (endTime - Date.now()) / 1000)</code>, so even after the screen goes off, the countdown is accurate on resume.</li>
+        <li><code>AppState.addEventListener('change', ...)</code> triggers an immediate tick when the app returns to the foreground.</li>
+        <li>On resend, <code>endTimeRef</code> is reset to a new future timestamp.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ===================== DASHBOARD ===================== -->
+  <div class="section page-break">
+    <div class="section-title">2. Dashboard UI Issues (Issues 6&ndash;11)</div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Issue</th>
+          <th>Priority</th>
+          <th>Fix Applied</th>
+          <th>Files Modified</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>6</td>
+          <td>Dashboard UI looks cluttered, not aligned with professional style</td>
+          <td><span class="badge badge-medium">Medium</span></td>
+          <td>Removed fixed-height constraint on <code>SectorsComponent</code> that was clipping content. Improved spacing between sections. Added <code>JobStatistics</code> horizontal scroll cards between wallet and filter.</td>
+          <td><span class="file-tag">homecomponet.tsx</span></td>
+          <td class="status-done">&#10003; Done</td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td>Search bar only searches by role, not by name</td>
+          <td><span class="badge badge-medium">Medium</span></td>
+          <td>Updated search query to send both <code>profession</code> and <code>name</code> parameters. Changed placeholder to "Search by name or profession".</td>
+          <td><span class="file-tag">listofA&amp;Pmodal.tsx</span></td>
+          <td class="status-done">&#10003; Done</td>
+        </tr>
+        <tr>
+          <td>8</td>
+          <td>Profile picture not clickable</td>
+          <td><span class="badge badge-medium">Medium</span></td>
+          <td>Wrapped the avatar <code>Image</code> and initials fallback with <code>TouchableOpacity</code> that navigates to the profile page (client or professional).</td>
+          <td><span class="file-tag">headercomponent.tsx</span></td>
+          <td class="status-done">&#10003; Done</td>
+        </tr>
+        <tr>
+          <td>9</td>
+          <td>Job status sections (Completed, In Progress, Pending) are static, not clickable</td>
+          <td><span class="badge badge-medium">Medium</span></td>
+          <td>Added <code>onPress</code> prop to <code>CardRow</code> interface. Changed wrapper from <code>View</code> to <code>TouchableOpacity</code>. Each card now navigates to <code>/jobstatusLayout/{STATUS}</code>.</td>
+          <td><span class="file-tag">homeprofessional.tsx</span></td>
+          <td class="status-done">&#10003; Done</td>
+        </tr>
+        <tr>
+          <td>10</td>
+          <td>Dispute section not clickable, no interaction</td>
+          <td><span class="badge badge-medium">Medium</span></td>
+          <td>Added <code>onPress</code> handler to dispute <code>TouchableOpacity</code> in both client and professional profile screens, navigating to <code>/jobstatusLayout/DISPUTED</code>.</td>
+          <td>
+            <span class="file-tag">profile.tsx</span>
+            <span class="file-tag">professionalProfile.tsx</span>
+          </td>
+          <td class="status-done">&#10003; Done</td>
+        </tr>
+        <tr>
+          <td>11</td>
+          <td>Job status panels not visible on dashboard</td>
+          <td><span class="badge badge-medium">Medium</span></td>
+          <td>Added <code>JobStatistics</code> component to the client dashboard home screen. Made all job status <code>Cardcomponent</code>s clickable with navigation. Replaced hardcoded job counts with real user data from Redux.</td>
+          <td>
+            <span class="file-tag">homecomponet.tsx</span>
+            <span class="file-tag">jobStatistics.tsx</span>
+            <span class="file-tag">professionalProfile.tsx</span>
+          </td>
+          <td class="status-done">&#10003; Done</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===================== BOOKING ===================== -->
+  <div class="section">
+    <div class="section-title">3. Booking Screen Issues (Issues 12&ndash;14)</div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Issue</th>
+          <th>Priority</th>
+          <th>Fix Applied</th>
+          <th>Files Modified</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>12</td>
+          <td>Users cannot rate professionals</td>
+          <td><span class="badge badge-medium">Medium</span></td>
+          <td>Rating system was already implemented in <code>myjobScreen.tsx</code> with a <code>StarRating</code> component and <code>ratingGiveFn</code> mutation. A modal appears after approving a job to allow rating submission. No changes needed.</td>
+          <td><span class="file-tag">myjobScreen.tsx</span> (existing)</td>
+          <td class="status-done">&#10003; Verified</td>
+        </tr>
+        <tr>
+          <td>13</td>
+          <td>Call / Message / More action buttons don't work</td>
+          <td><span class="badge badge-medium">Medium</span></td>
+          <td>Added missing <code>onPress</code> handler to the Call button in <code>ClientDetails</code> component, navigating to <code>/callchat/{userId}</code>. Message and profile buttons already had handlers.</td>
+          <td><span class="file-tag">clientdetail.tsx</span></td>
+          <td class="status-done">&#10003; Done</td>
+        </tr>
+        <tr>
+          <td>14</td>
+          <td>Submit button returns error; automatic location detection not working</td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>
+            &bull; Converted <code>professionalId</code> from string to <code>Number()</code> for API payload.<br>
+            &bull; Added location loading indicator, error feedback, and detected address display.<br>
+            &bull; Removed duplicate <code>successMessage</code> useEffect.<br>
+            &bull; Improved validation error message: "Please fill in all required fields".<br>
+            &bull; Added check for empty address with fallback guidance.
+          </td>
+          <td><span class="file-tag">JobOrderScreen.tsx</span></td>
+          <td class="status-done">&#10003; Done</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===================== CHAT ===================== -->
+  <div class="section page-break">
+    <div class="section-title">4. Chat UI Issues (Issues 15&ndash;19)</div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Issue</th>
+          <th>Priority</th>
+          <th>Fix Applied</th>
+          <th>Files Modified</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>15</td>
+          <td>Call &amp; search icons not clickable</td>
+          <td><span class="badge badge-medium">Medium</span></td>
+          <td>Wrapped all video, phone, and search <code>FontAwesome5</code> icons with <code>TouchableOpacity</code> and added navigation handlers. Call/video icons navigate to <code>/callchat/{userId}</code>. Search icon toggles a search bar in the contact list.</td>
+          <td>
+            <span class="file-tag">mainChat.tsx</span>
+            <span class="file-tag">chatpage3.tsx</span>
+            <span class="file-tag">chatdelivery.tsx</span>
+          </td>
+          <td class="status-done">&#10003; Done</td>
+        </tr>
+        <tr>
+          <td>16</td>
+          <td>Each typed letter takes ~2 seconds to respond in name search</td>
+          <td><span class="badge badge-medium">Medium</span></td>
+          <td>Added a debounced search bar (300ms) to the contact list screen using <code>useDebounce</code> hook. Filtering is done client-side with <code>useMemo</code> matching first/last name, avoiding unnecessary re-renders.</td>
+          <td><span class="file-tag">chatpage3.tsx</span></td>
+          <td class="status-done">&#10003; Done</td>
+        </tr>
+        <tr>
+          <td>17</td>
+          <td>Messages do not auto-scroll to latest</td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>Added <code>setTimeout(..., 100)</code> delay before <code>scrollToEnd</code> to ensure the layout has completed. Also retained <code>onContentSizeChange</code> handler on the <code>ScrollView</code> as a secondary trigger.</td>
+          <td>
+            <span class="file-tag">mainChat.tsx</span>
+            <span class="file-tag">chatdelivery.tsx</span>
+          </td>
+          <td class="status-done">&#10003; Done</td>
+        </tr>
+        <tr>
+          <td>18</td>
+          <td>Video call / call buttons not clickable</td>
+          <td><span class="badge badge-medium">Medium</span></td>
+          <td>Same fix as #15 &mdash; wrapped icons with <code>TouchableOpacity</code> and added call route navigation.</td>
+          <td>
+            <span class="file-tag">mainChat.tsx</span>
+            <span class="file-tag">chatdelivery.tsx</span>
+          </td>
+          <td class="status-done">&#10003; Done</td>
+        </tr>
+        <tr>
+          <td>19</td>
+          <td>Receiver cannot click/open attachments</td>
+          <td><span class="badge badge-medium">Medium</span></td>
+          <td>Replaced broken <code>Linking.openURL('data:image/jpeg;base64,...')</code> with a proper flow: write base64 to a temp file using <code>expo-file-system</code>, then open via <code>expo-sharing</code>. Installed <code>expo-sharing</code> as a new dependency.</td>
+          <td>
+            <span class="file-tag">mainChat.tsx</span>
+            <span class="file-tag">chatdelivery.tsx</span>
+          </td>
+          <td class="status-done">&#10003; Done</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="detail-section">
+      <h4>Technical Details &mdash; Attachment Fix</h4>
+      <ul>
+        <li>Base64 image data is written to <code>FileSystem.cacheDirectory</code> as a temporary file.</li>
+        <li><code>Sharing.shareAsync(fileUri)</code> opens the native share/preview dialog, allowing the user to view, save, or share the attachment.</li>
+        <li>This approach works on both iOS and Android, unlike <code>data:</code> URI schemes which are unsupported by <code>Linking.openURL</code> on mobile.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ===================== FILES MODIFIED ===================== -->
+  <div class="section page-break">
+    <div class="section-title">5. Complete List of Modified Files</div>
+    <table>
+      <thead>
+        <tr>
+          <th>File Path</th>
+          <th>Issues Addressed</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>component/controls/otpcomponent.tsx</code></td><td>#1</td></tr>
+        <tr><td><code>component/auth/registerComponent/secondstagecomponent.tsx</code></td><td>#1</td></tr>
+        <tr><td><code>component/professionalAuth/registerComponent/verificationemailphone.tsx</code></td><td>#1</td></tr>
+        <tr><td><code>component/auth/logincomponent.tsx</code></td><td>#2, #3, #4</td></tr>
+        <tr><td><code>component/auth/forgotpassword/forgetotp.tsx</code></td><td>#5</td></tr>
+        <tr><td><code>component/dashboardComponent/homecomponet.tsx</code></td><td>#6, #11</td></tr>
+        <tr><td><code>component/dashboardComponent/listofA&amp;Pmodal.tsx</code></td><td>#7</td></tr>
+        <tr><td><code>component/dashboardComponent/headercomponent.tsx</code></td><td>#8</td></tr>
+        <tr><td><code>component/professionalDashboard/homeprofessional.tsx</code></td><td>#9</td></tr>
+        <tr><td><code>component/menuComponent/profile.tsx</code></td><td>#10</td></tr>
+        <tr><td><code>component/professionalDashboard/professionalProfile.tsx</code></td><td>#10, #11</td></tr>
+        <tr><td><code>component/jobStatistics.tsx</code></td><td>#11</td></tr>
+        <tr><td><code>component/dashboardComponent/clientdetail.tsx</code></td><td>#13</td></tr>
+        <tr><td><code>component/jobs/JobOrderScreen.tsx</code></td><td>#14</td></tr>
+        <tr><td><code>component/menuComponent/chatMessaging/mainChat.tsx</code></td><td>#15, #17, #18, #19</td></tr>
+        <tr><td><code>component/menuComponent/chatMessaging/chatpage3.tsx</code></td><td>#15, #16</td></tr>
+        <tr><td><code>component/delivery/chatdelivery.tsx</code></td><td>#15, #17, #18, #19</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <p>AcePick Bug Fix Report &mdash; Generated March 5, 2026</p>
+    <p>Total files modified: 17 &nbsp;|&nbsp; Total issues resolved: 19/19</p>
+  </div>
+
+</body>
+</html>

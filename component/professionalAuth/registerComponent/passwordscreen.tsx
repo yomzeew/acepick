@@ -123,7 +123,7 @@ function PasswordPageComp() {
       // Proceed with registerData + password
       console.log("Final Registration Payload: ", { ...registerData, password,confirmPassword,role,agreed:isChecked,cooperation:corporateData });
       const payload=role==='artisan'?{ ...registerData, password,confirmPassword,role,agreed:isChecked }:{ ...registerData, password,confirmPassword,role,agreed:isChecked,cooperation:corporateData }
-      mutation.mutate(payload)
+      mutation.mutate(payload as any)
       //dispatch(clearRegistrationData())
       
     };

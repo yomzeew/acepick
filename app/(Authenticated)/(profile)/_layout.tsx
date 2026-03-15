@@ -17,6 +17,9 @@ export default function ProfileLayout() {
       <Stack.Screen name="billhistorylayout" />
       <Stack.Screen name="faqlayout" />
       <Stack.Screen name="passwordchangelayout" />
+      <Stack.Screen name="supportlayout" />
+      <Stack.Screen name="termsandprivacylayout" />
+      <Stack.Screen name="switchtoprofessionallayout" />
     </Stack>
   
     

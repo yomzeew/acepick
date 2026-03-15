@@ -25,10 +25,44 @@ function FirstStagecomponent() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [shouldProceed, setShouldProceed] = useState<boolean>(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
 
   const dispatch = useDispatch();
   const router = useRouter();
+
+  // Phone validation function
+  const validatePhone = (phone: string): string | null => {
+    // Remove all non-numeric characters
+    const cleanPhone = phone.replace(/[^0-9+]/g, '');
+    
+    // Check if empty
+    if (!cleanPhone) {
+      return "Phone number is required";
+    }
+    
+    // Check for special characters (should be numeric only)
+    if (phone !== cleanPhone) {
+      return "Phone number should contain only numbers and +";
+    }
+    
+    // Validate Nigerian phone format
+    const phoneRegex = /^\+234[0-9]{10}$/;
+    const normalizedPhone = normalizePhone(cleanPhone);
+    
+    if (!phoneRegex.test(normalizedPhone)) {
+      return "Please enter a valid Nigerian phone number (+234 followed by 10 digits)";
+    }
+    
+    return null;
+  };
+
+  // Handle phone input with real-time validation
+  const handlePhoneChange = (value: string) => {
+    setPhone(value);
+    const error = validatePhone(value);
+    setPhoneError(error);
+  };
   
   useEffect(() => {
     if (errorMessage) {
@@ -90,19 +124,23 @@ function FirstStagecomponent() {
       setErrorMessage('Please fill both fields')
       return;
     }
+    
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const phoneRegex = /^\+234[0-9]{10}$/; // Ensures +234 followed by 10 digits
-
+  
   if (!emailRegex.test(email)) {
     setErrorMessage("Please enter a valid email address");
     return;
   }
- const phoneformat=normalizePhone(phone)
-  if (!phoneRegex.test(phoneformat)) {
-    setErrorMessage("Please enter a valid phone number");
+  
+  // Validate phone number
+  const phoneValidationError = validatePhone(phone);
+  if (phoneValidationError) {
+    setErrorMessage(phoneValidationError);
     return;
   }
-  const payload={email,phone,"type": "BOTH","reason": "verification",}
+  
+  const phoneformat = normalizePhone(phone);
+  const payload={email,phone: phoneformat,"type": "BOTH","reason": "verification",}
   mutation.mutate(payload) 
   };
 
@@ -139,8 +177,15 @@ function FirstStagecomponent() {
             placeholder="Phone Number"
             placeholdercolor={secondaryTextColor}
             value={phone}
-            onChange={setPhone}
+            onChange={handlePhoneChange}
+            keyboardType="phone-pad"
+            maxLength={14} // +234 + 10 digits = 14 characters
           />
+          {phoneError && (
+            <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1 w-full">
+              {phoneError}
+            </Text>
+          )}
         </View>
       </AuthComponent>
 
@@ -151,7 +196,7 @@ function FirstStagecomponent() {
   textcolor="#fff"
   onPress={handleNext}
   isLoading={mutation.isPending}
-  disabled={!email || !phone}
+  disabled={!email || !phone || !!phoneError}
 />
 
         <View className="h-5" />

@@ -1,65 +1,76 @@
 // src/hooks/useChat.ts
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../redux/store';
-import { socketService } from '../services/socket.service';
+import { getSocket } from '../services/socket';
 
 export const useChat = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) =>state.auth);
-  const { room, partner } = useSelector((state: RootState) => state.chat);
+  const { roomId } = useSelector((state: RootState) => state.chat);
+  const [partner, setPartner] = React.useState<any>(null);
 
   // Initialize socket connection
   useEffect(() => {
-    if (user?.id) {
-      socketService.connectUser(user.id);
-      socketService.getContacts(user.id);
-      socketService.getPreviousChats(user.id);
+    const socket = getSocket();
+    if (user?.id && socket) {
+      socket.emit('connectUser', user.id);
     }
 
     return () => {
-      socketService.disconnectUser();
+      if (socket) {
+        socket.emit('disconnectUser');
+      }
     };
   }, [user?.id]);
 
   // Join room when it changes
   useEffect(() => {
-    if (room) {
-      socketService.joinRoom(room);
-      socketService.getMessages(room);
+    const socket = getSocket();
+    if (roomId && socket) {
+      socket.emit('joinRoom', roomId);
+      socket.emit('getMessages', roomId);
     }
-  }, [room]);
+  }, [roomId]);
 
-  const sendMessage = (text: string) => {
-    if (!room || !user?.id || !partner?.id) return;
+  const sendMessage = (text: string, partnerId?: string) => {
+    if (!roomId || !user?.id) return;
+    const socket = getSocket();
 
     const messageData = {
       text,
-      to: partner.id,
+      to: partnerId || partner?.id,
       from: user.id,
-      room,
+      room: roomId,
       time: new Date().toISOString(),
     };
 
-    socketService.sendMessage(messageData);
+    if (socket) {
+      socket.emit('sendMessage', messageData);
+    }
   };
 
-  const sendFile = (fileData: any) => {
-    if (!room || !user?.id || !partner?.id) return;
+  const sendFile = (fileData: any, partnerId?: string) => {
+    if (!roomId || !user?.id) return;
+    const socket = getSocket();
 
     const completeFileData = {
       ...fileData,
-      to: partner.id,
+      to: partnerId || partner?.id,
       from: user.id,
-      room,
+      room: roomId,
       time: new Date().toISOString(),
     };
 
-    socketService.uploadFile(completeFileData);
+    if (socket) {
+      socket.emit('uploadFile', completeFileData);
+    }
   };
 
   return {
     sendMessage,
     sendFile,
+    setPartner,
+    roomId,
   };
 };

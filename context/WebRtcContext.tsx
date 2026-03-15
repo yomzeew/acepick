@@ -1,30 +1,40 @@
 // contexts/CallContext.tsx
 import { useSocket } from 'hooks/useSocket';
 import { useWebRtc } from 'hooks/useWebRTCCall';
-import { createContext, useContext, ReactNode } from 'react';
-
+import { createContext, useContext, ReactNode, useRef } from 'react';
 
 type CallContextType = ReturnType<typeof useWebRtc>;
 
-const CallContext = createContext<CallContextType | undefined>(undefined);
+// Default context value when socket is not available
+const defaultCallContext: CallContextType = {
+  isCalling: false,
+  setIsCalling: () => {},
+  incomingCall: null,
+  callUser: async () => {},
+  acceptCall: async () => {},
+  rejectCall: async () => {},
+  modalVisible: false,
+  setModalVisible: () => {},
+  hangUp: async () => {},
+  setPartnerId: () => {},
+  partnerId: '',
+  localStream: { current: null },
+  remoteStream: { current: null },
+};
+
+const CallContext = createContext<CallContextType>(defaultCallContext);
 
 export const CallProvider = ({ children }: { children: ReactNode }) => {
   const { socket } = useSocket();
-  
-  if (!socket) return null; // or a loader/fallback
   const callState = useWebRtc(socket);
 
   return (
-    <CallContext.Provider value={callState}>
+    <CallContext.Provider value={socket ? callState : defaultCallContext}>
       {children}
     </CallContext.Provider>
   );
 };
 
 export const useCall = () => {
-  const context = useContext(CallContext);
-  if (!context) {
-    throw new Error('useCall must be used within a CallProvider');
-  }
-  return context;
+  return useContext(CallContext);
 };

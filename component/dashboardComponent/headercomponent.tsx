@@ -27,7 +27,7 @@ const HeaderComponent: React.FC<HeaderComponentProps> = memo(({
   const [avatarError, setAvatarError] = useState(false)
 
   const navRoute = useMemo(() => 
-    role === 'professional' ? '/profileprofessionlayout' : '/profilelayout', 
+    role === 'professional' ? '/professionalSettingLayout' : '/profilesettinglayout', 
     [role]
   );
 
@@ -66,6 +66,12 @@ const HeaderComponent: React.FC<HeaderComponentProps> = memo(({
   return (
         <View className="h-32 pt-10 w-full flex-row justify-between items-center">
             <View className="flex-row gap-2 items-center">
+        <TouchableOpacity 
+          onPress={() => router.push(navRoute)}
+          accessible={true}
+          accessibilityLabel="Profile picture"
+          accessibilityHint="Opens your profile"
+        >
         {!avatarError ? (
           <Image 
             className="w-16 h-16 rounded-full" 
@@ -82,6 +88,7 @@ const HeaderComponent: React.FC<HeaderComponentProps> = memo(({
             </ThemeText>
           </View>
         )}
+        </TouchableOpacity>
             <View>
           {showGreeting && (
             <ThemeText type="secondary" size={Textstyles.text_xsma}>

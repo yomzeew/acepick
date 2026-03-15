@@ -1,11 +1,16 @@
-
 import { config, logger } from '../config/environment';
 import { io, Socket } from 'socket.io-client';
 
 let socket: Socket | null = null;
 
-const createSocket = (): Socket => {
-  if (socket) {
+const createSocket = (token?: string): Socket | null => {
+  // Don't create socket without authentication token
+  if (!token) {
+    logger.warn('Cannot create socket without auth token');
+    return null;
+  }
+
+  if (socket?.connected) {
     return socket;
   }
 
@@ -17,6 +22,7 @@ const createSocket = (): Socket => {
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
+      auth: { token },
     });
 
     socket.on('connect', () => {
@@ -46,8 +52,8 @@ const createSocket = (): Socket => {
   }
 };
 
-export const getSocket = (): Socket => {
-  return createSocket();
+export const getSocket = (token?: string): Socket | null => {
+  return createSocket(token);
 };
 
 export const disconnectSocket = (): void => {
@@ -57,4 +63,5 @@ export const disconnectSocket = (): void => {
   }
 };
 
-export default getSocket();
+// Don't auto-connect - require explicit initialization with token
+export default null;

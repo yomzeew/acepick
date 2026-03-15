@@ -29,6 +29,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "redux/store";
 import PaymentModal from "component/menuComponent/walletPages/paymentModal";
 import { AlertMessageBanner } from "component/AlertMessageBanner";
+import JobStatistics from "component/jobStatistics";
 
 const HomeComp = () => {
   const router = useRouter()
@@ -41,14 +42,13 @@ const HomeComp = () => {
   const [filterData, setFilterData] = useState<any[]>([])
   const [refreshing, setRefreshing] = useState(false);
   const [balanceRefreshTrigger, setBalanceRefreshTrigger] = useState(false); // 👈 Trigger to re-fetch wallet
+  const user = useSelector((state: RootState) => state.auth?.user) ?? null;
   const fcmToken=useSelector((state:RootState)=>(state.auth.user?.fcmToken))
 
   const saveFcmToken=async()=>{
                  try {
                    const response = await SaveTokenFunction(fcmToken);
-                   console.log('SaveTokenUrl response:', response.data);
                  } catch (error) {
-                   console.error('SaveTokenUrl error:', error);
                  }
     }
 
@@ -71,7 +71,7 @@ const HomeComp = () => {
   const { location, address, state, lga, loading, error } = useCurrentLocation();
 
   const mutation = useMutation({
-    mutationFn: updateLocation,
+    mutationFn: ({ locationId, data }: { locationId: string; data: any }) => updateLocation(locationId, data),
     onSuccess: async (response) => {
       //console.log(response,'okkk');
     },
@@ -92,11 +92,13 @@ const HomeComp = () => {
     },
   });
   const updateLocationFn = () => {
+    const locationId = user?.location?.id?.toString();
+    if (!locationId) return;
     const { latitude, longitude } = location?.coords ?? {};
     const data = { latitude, longitude, address, state, lga };
     console.log(data)
 
-    mutation.mutate(data); // ✅ Wrap both in one object
+    mutation.mutate({ locationId, data });
   };
   useEffect(() => {
     saveFcmToken();
@@ -148,48 +150,52 @@ const HomeComp = () => {
         </SliderModalNoScrollview>}
       <ContainerTemplate>
         <HeaderComponent />
-        <EmptyView height={20} />
-        <View className="flex-1">
-        <ScrollView
-      refreshControl={
-        <RefreshControl 
-        refreshing={refreshing} 
-        onRefresh={onRefresh}
-
-         />
-         
-      }
-      showsVerticalScrollIndicator={false}
-    >
-      <WalletCard 
-      setshowmodal={setshowmodal} 
-      showmodal={showmodal}  
-      refreshTrigger={balanceRefreshTrigger}
-      />
-        <EmptyView height={20} />
-        <FilterCard
-          showprofession={showprofession}
-          setshowprofession={setshowprofession}
-          setProfessionValue={setProfessionValue}
-          professionalValue={professionalValue}
-        />
-        <EmptyView height={20} />
-        <ThemeText size={Textstyles.text_medium} type="secondary">
-          Professional
-        </ThemeText>
-        <View style={{height:height*0.55}}>
-        <SectorsComponent
-          setErrorMessage={setErrorMessage}
-        />
-
-        </View>
-       
-      </ScrollView>
-        </View>
+        <EmptyView height={15} />
         
-
-
-
+        <ScrollView
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 20 }}
+        >
+          {/* Wallet Section */}
+          <View className="mb-4">
+            <WalletCard 
+              setshowmodal={setshowmodal} 
+              showmodal={showmodal}  
+              refreshTrigger={balanceRefreshTrigger}
+            />
+          </View>
+          
+          {/* Statistics Section */}
+          <View className="mb-4">
+            <JobStatistics />
+          </View>
+          
+          {/* Filter Section */}
+          <View className="mb-4">
+            <FilterCard
+              showprofession={showprofession}
+              setshowprofession={setshowprofession}
+              setProfessionValue={setProfessionValue}
+              professionalValue={professionalValue}
+            />
+          </View>
+          
+          {/* Professional Section */}
+          <View className="mb-4">
+            <ThemeText size={Textstyles.text_medium} type="secondary" className="mb-3">
+              Professional
+            </ThemeText>
+            <SectorsComponent
+              setErrorMessage={setErrorMessage}
+            />
+          </View>
+        </ScrollView>
       </ContainerTemplate>
     </>
   )

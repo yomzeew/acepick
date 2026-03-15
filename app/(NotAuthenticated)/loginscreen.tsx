@@ -3,7 +3,7 @@ import LoginPage from "@pages/auth/login"
 const loginScreen=()=>{
     return(
         <>
-        <View>
+        <View className="flex-1">
            <LoginPage/>
         </View>
         </>

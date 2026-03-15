@@ -29,6 +29,7 @@ export default function DeliveryLayout()  {
                if (route.name === "deliverydashboardlayout") iconName = "home";
                else if (route.name === "chatlayout") iconName = "comment-dots";
                else if (route.name === "myOrderLayout") iconName = "toolbox";
+               else if (route.name === "deliverysettingslayout") iconName = "cog";
      
                return (
                  <View className="items-center justify-center w-10 h-10 rounded-full" style={{backgroundColor:focused ? activeBg : "transparent"}}>
@@ -53,6 +54,9 @@ export default function DeliveryLayout()  {
       <Tabs.Screen name="deliverydashboardlayout" options={{ title: "Home" }} />
       <Tabs.Screen name="chatlayout" options={{ title: "Chat" }} />
       <Tabs.Screen name="myOrderLayout" options={{ title: "My Order" }} />
+      <Tabs.Screen name="deliverysettingslayout" options={{ title: "Settings" }} />
+      <Tabs.Screen name="supportlayout" options={{ href: null }} />
+      <Tabs.Screen name="termsandprivacylayout" options={{ href: null }} />
     </Tabs>
   );
 }

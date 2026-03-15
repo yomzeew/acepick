@@ -37,11 +37,18 @@ const OtpComponent = ({
 
   // Handle backspace
   const handleKeyPress = (e: any, index: number) => {
-    if (e.nativeEvent.key === "Backspace" && index > 0) {
+    if (e.nativeEvent.key === "Backspace") {
       const newOtp = [...otp];
-      newOtp[index] = "";
-      setOtp(newOtp);
-      inputs.current[index - 1]?.focus();
+      if (otp[index]) {
+        newOtp[index] = "";
+        setOtp(newOtp);
+        onOtpComplete("");
+      } else if (index > 0) {
+        newOtp[index - 1] = "";
+        setOtp(newOtp);
+        inputs.current[index - 1]?.focus();
+        onOtpComplete("");
+      }
     }
   };
 
@@ -64,8 +71,8 @@ const OtpComponent = ({
                 value={otp[index]}
                 onChangeText={(value) => handleChange(value, index)}
                 onKeyPress={(e) => handleKeyPress(e, index)}
-                returnKeyType={index === 5 ? "done" : "next"}
-                blurOnSubmit={index === 5}
+                returnKeyType={index === 3 ? "done" : "next"}
+                blurOnSubmit={index === 3}
               />
             ))}
         </View>

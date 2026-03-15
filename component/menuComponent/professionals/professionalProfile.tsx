@@ -46,19 +46,26 @@ const ProfessionalProfile = () => {
             setData(response.data);
         },
         onError: (error: any) => {
-            let msg = "An unexpected error occurred";
+            // Build detailed error for backend engineer
+            const status = error?.response?.status || 'N/A';
+            const statusText = error?.response?.statusText || '';
+            const backendMsg = error?.response?.data?.message 
+                || error?.response?.data?.error 
+                || (error?.response?.data ? JSON.stringify(error.response.data) : '');
+            const networkMsg = error?.message || '';
+            
+            const fullError = `[HTTP ${status}${statusText ? ' ' + statusText : ''}] ${backendMsg || networkMsg || 'Unknown error'}`;
+            
+            console.error("❌ Professional Details Error:", {
+                professionalId: professionalIdValue,
+                status,
+                statusText,
+                backendResponse: error?.response?.data,
+                networkError: networkMsg,
+                fullError
+            });
         
-            if (error?.response?.data) {
-                msg =
-                error.response.data.message ||
-                error.response.data.error ||
-                JSON.stringify(error.response.data);
-            } else if (error?.message) {
-                msg = error.message;
-            }
-        
-            setErrorMessage(msg);
-            console.error("failed:", msg);
+            setErrorMessage(fullError);
         },
     });
 
@@ -102,8 +109,18 @@ const ProfessionalProfile = () => {
                             <Text style={[Textstyles.text_xsma, { color: "#ffffff" }]}>{data.profile.user.location.lga}, {data.profile.user.location.state} State</Text>
                         </View>
                         <EmptyView height={5} />
-                        <View>
-                            <RatingStar numberOfStars={data.avgRating} />
+                        <View className="flex-row items-center gap-x-3">
+                            <View>
+                                <RatingStar numberOfStars={data.avgRating} />
+                            </View>
+                            <View className="flex-col">
+                                <Text style={[Textstyles.text_small, { color: "#ffffff", fontWeight: 'bold' }]}>
+                                    {data.avgRating.toFixed(1)} out of 5
+                                </Text>
+                                <Text style={[Textstyles.text_xxxsmall, { color: "#ffffff80" }]}>
+                                    {data.profile.totalJobsCompleted > 0 ? `Based on ${data.profile.totalJobsCompleted} jobs` : 'No jobs yet'}
+                                </Text>
+                            </View>
                         </View>
                         <EmptyView height={5} />
                         <View>

@@ -14,7 +14,7 @@ import { useLocalSearchParams } from "expo-router"
 import { useCurrentLocation } from "hooks/useLocation"
 import { useTheme } from "hooks/useTheme"
 import { useEffect, useState } from "react"
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native"
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native"
 import { createJobFn } from "services/userService"
 import { getColors } from "static/color"
 import { Textstyles } from "static/textFontsize"
@@ -28,7 +28,7 @@ const JobOrderScreen = () => {
     const [numOfJobs, setNumOfJobs] = useState(0)
     const [description, setDescription] = useState('')
     const [manualaddress, setManualAddress] = useState('')
-    const { address } = useCurrentLocation()
+    const { address, loading: locationLoading, error: locationError } = useCurrentLocation()
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [shouldProceed, setShouldProceed] = useState<boolean>(false);
@@ -59,16 +59,6 @@ const JobOrderScreen = () => {
 
 
 
-
-
-    useEffect(() => {
-        if (successMessage) {
-            const timer = setTimeout(() => {
-                setSuccessMessage(null);
-            }, 4000);
-            return () => clearTimeout(timer); // Cleanup on unmount or on new error
-        }
-    }, [successMessage])
 
 
     const mutation = useMutation({
@@ -109,12 +99,16 @@ const JobOrderScreen = () => {
             finaladdress=address
         }
         if(!title || !description){
-            setErrorMessage('Please enter empty field')
+            setErrorMessage('Please fill in all required fields')
             return
-
         }
 
-        const payload = { title, description, address:finaladdress, professionalId }
+        if(!finaladdress){
+            setErrorMessage('Location not available. Please enter address manually or wait for auto-detection.')
+            return
+        }
+
+        const payload = { title, description, address:finaladdress, professionalId: Number(safeProfessionalId) }
         mutation.mutate(payload)
 
     };
@@ -183,9 +177,20 @@ const JobOrderScreen = () => {
                                         <Checkbox isChecked={showmanuallocation} onToggle={() => setShowmanuallocation(!showmanuallocation)} />
                                         <ThemeTextsecond size={Textstyles.text_small}>Pick location automatic</ThemeTextsecond>
                                     </View>
-                                    <View>
-
-                                    </View>
+                                    {showmanuallocation && (
+                                        <View className="mt-2">
+                                            {locationLoading ? (
+                                                <View className="flex-row items-center gap-x-2">
+                                                    <ActivityIndicator size="small" />
+                                                    <Text className="text-gray-500 text-sm">Detecting location...</Text>
+                                                </View>
+                                            ) : locationError ? (
+                                                <Text className="text-red-500 text-sm">Location error: {locationError}. Please uncheck and enter manually.</Text>
+                                            ) : address ? (
+                                                <Text className="text-green-600 text-sm">📍 {address}</Text>
+                                            ) : null}
+                                        </View>
+                                    )}
 
                                 </View>
 

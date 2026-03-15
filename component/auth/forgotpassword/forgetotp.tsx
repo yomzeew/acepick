@@ -4,7 +4,8 @@ import { getColors } from "../../../static/color";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import OtpComponent from "../../controls/otpcomponent";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { AppState, AppStateStatus } from "react-native";
 import ButtonFunction from "../../buttonfunction";
 import SliderModal from "../../SlideUpModal";
 import AuthComponent from "../Authcontainer";
@@ -32,9 +33,11 @@ function ForgetOtp() {
  
 
   // Countdown timer logic
-  const [countdown, setCountdown] = useState(600);
+  const RESEND_TIMER = 60;
+  const [countdown, setCountdown] = useState(RESEND_TIMER);
   const [canResend, setCanResend] = useState(false);
   const [otpEmail, setOtpEmail] = useState('')
+  const endTimeRef = useRef<number>(Date.now() + RESEND_TIMER * 1000);
 
 
   useEffect(() => {
@@ -42,7 +45,7 @@ function ForgetOtp() {
       const timer = setTimeout(() => {
         setErrorMessage(null);
       }, 4000);
-      return () => clearTimeout(timer); // Cleanup on unmount or on new error
+      return () => clearTimeout(timer);
     }
   }, [errorMessage])
 
@@ -52,21 +55,33 @@ function ForgetOtp() {
       const timer = setTimeout(() => {
         setSuccessMessage(null);
       }, 4000);
-      return () => clearTimeout(timer); // Cleanup on unmount or on new error
+      return () => clearTimeout(timer);
     }
   }, [successMessage])
 
+  // Date-based timer that survives background/screen off
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (countdown > 0) {
-      interval = setInterval(() => {
-        setCountdown((prev) => prev - 1);
-      }, 1000);
-    } else {
-      setCanResend(true);
-    }
-    return () => clearInterval(interval);
-  }, [countdown]);
+    const tick = () => {
+      const remaining = Math.max(0, Math.round((endTimeRef.current - Date.now()) / 1000));
+      setCountdown(remaining);
+      if (remaining <= 0) {
+        setCanResend(true);
+      }
+    };
+
+    const interval = setInterval(tick, 1000);
+    tick();
+
+    const handleAppState = (state: AppStateStatus) => {
+      if (state === 'active') tick();
+    };
+    const sub = AppState.addEventListener('change', handleAppState);
+
+    return () => {
+      clearInterval(interval);
+      sub.remove();
+    };
+  }, [endTimeRef.current]);
 
    useDelay(() => {
       if (shouldProceed) {
@@ -82,7 +97,7 @@ function ForgetOtp() {
         setShouldProceed(true)
       }
       else{
-        setErrorMessage(data.message);
+        setErrorMessage(data.message || null);
       }
       
     },
@@ -127,7 +142,8 @@ function ForgetOtp() {
   });
 
   const handleResend = () => {
-    setCountdown(600);
+    endTimeRef.current = Date.now() + RESEND_TIMER * 1000;
+    setCountdown(RESEND_TIMER);
     setCanResend(false);
     if (!email ) {
       setErrorMessage('Enter email or phone number');

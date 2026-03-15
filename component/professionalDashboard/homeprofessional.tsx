@@ -34,6 +34,7 @@ const HomeComponentProfession = () => {
     const [balanceRefreshTrigger, setBalanceRefreshTrigger] = useState(false); // 👈 Trigger to re-fetch wallet
     const [refreshing, setRefreshing] = useState(false);
     const fcmToken=useSelector((state:RootState)=>(state?.auth.fcmToken))
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
     const saveFcmToken=async()=>{
                  try {
@@ -84,7 +85,7 @@ const HomeComponentProfession = () => {
     const { location, address, state, lga, loading, error } = useCurrentLocation();
 
     const mutation = useMutation({
-        mutationFn: updateLocation,
+        mutationFn: ({ locationId, data }: { locationId: string; data: any }) => updateLocation(locationId, data),
         onSuccess: async (response) => {
             //console.log(response,'okkk');
         },
@@ -105,11 +106,13 @@ const HomeComponentProfession = () => {
         },
     });
     const updateLocationFn = () => {
+        const locationId = user?.location?.id?.toString();
+        if (!locationId) return;
         const { latitude, longitude } = location?.coords ?? {};
         const data = { latitude, longitude, address, state, lga };
         console.log(data)
 
-        mutation.mutate(data); // ✅ Wrap both in one object
+        mutation.mutate({ locationId, data });
     };
     useEffect(() => {
         saveFcmToken()
@@ -159,6 +162,7 @@ const HomeComponentProfession = () => {
                                             </View>
                                         }
                                         description="Jobs Completed"
+                                        onPress={() => router.push('/jobstatusLayout/COMPLETED')}
                                     />
                                     <CardRow
                                         numberofjob={user?.profile?.totalJobsOngoing || 0}
@@ -168,7 +172,7 @@ const HomeComponentProfession = () => {
                                             </View>
                                         }
                                         description="Jobs in Progress"
-
+                                        onPress={() => router.push('/jobstatusLayout/ONGOING')}
                                     />
 
                                 </View>
@@ -182,6 +186,7 @@ const HomeComponentProfession = () => {
                                             </View>
                                         }
                                         description="Jobs rejected"
+                                        onPress={() => router.push('/jobstatusLayout/REJECTED')}
                                     />
                                     <CardRow
                                         numberofjob={user?.profile?.totalJobsPending || 0}
@@ -191,6 +196,7 @@ const HomeComponentProfession = () => {
                                             </View>
                                         }
                                         description="Jobs pending"
+                                        onPress={() => router.push('/jobstatusLayout/PENDING')}
                                     />
 
                                 </View>
@@ -204,7 +210,7 @@ const HomeComponentProfession = () => {
                                 <ThemeTextsecond size={Textstyles.text_medium}>
                                     Job in Progress
                                 </ThemeTextsecond>
-                                <TouchableOpacity className="bg-blue-200 py-1 px-2 rounded-2xl justify-center items-center">
+                                <TouchableOpacity onPress={() => router.push('/jobstatusLayout/ONGOING')} className="bg-blue-200 py-1 px-2 rounded-2xl justify-center items-center">
                                     <Text>see all</Text>
                                 </TouchableOpacity>
                             </View>
@@ -282,12 +288,13 @@ const VerificationBadge = () => {
 interface CardRowProps {
     numberofjob: number;
     icon: ReactNode;
-    description: string
+    description: string;
+    onPress?: () => void;
 }
-const CardRow = ({ numberofjob = 0, icon, description }: CardRowProps) => {
+const CardRow = ({ numberofjob = 0, icon, description, onPress }: CardRowProps) => {
     return (
         <>
-            <View className="w-36 h-44 rounded-2xl relative">
+            <TouchableOpacity onPress={onPress} activeOpacity={0.7} className="w-36 h-44 rounded-2xl relative">
                 <View className="opacity-30 bg-black h-full w-full  absolute" />
                 <View className="w-full h-full p-3">
                     {icon}
@@ -304,7 +311,7 @@ const CardRow = ({ numberofjob = 0, icon, description }: CardRowProps) => {
 
 
 
-            </View>
+            </TouchableOpacity>
         </>
     )
 }
@@ -349,6 +356,3 @@ const SlideupContent = () => {
     )
 }
 
-function setErrorMessage(msg: string) {
-    throw new Error("Function not implemented.")
-}

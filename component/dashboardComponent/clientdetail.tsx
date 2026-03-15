@@ -49,7 +49,7 @@ const ClientDetails = () => {
 
                 </View>
                 <View className="flex-row gap-x-2">
-                    <TouchableOpacity style={{backgroundColor:"red"}} className="w-8 h-8 rounded-full justify-center items-center">
+                    <TouchableOpacity onPress={() => router.push(`/callchat/${JSON.stringify({userId: user?.id})}`)} style={{backgroundColor:"red"}} className="w-8 h-8 rounded-full justify-center items-center">
                         <FontAwesome5 color="#ffffff" name="phone"/>
                     </TouchableOpacity>
                     <TouchableOpacity  onPress={() => router.push(`/mainchat/${user?.id}`)} style={{backgroundColor:primaryColor}} className="w-8 h-8 rounded-full justify-center items-center">

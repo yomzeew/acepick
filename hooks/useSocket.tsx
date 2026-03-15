@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../redux/store';
 import { baseUrl } from 'utilizes/endpoints';
 import { setSocket as setGlobalSocket } from '../services/socketInstance';
+import { initializeSocketListeners } from '../services/socketHandler';
 
 type SocketContextType = {
   socket: Socket | null;
@@ -21,14 +22,24 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isConnected, setIsConnected] = useState(false);
   
   useEffect(() => {
+    // Only create socket connection when token is available
+    if (!token) {
+      console.log('⏳ Waiting for auth token before connecting socket...');
+      return;
+    }
+
     const socketInstance: Socket = io(baseUrl, {
-      path: '/chat', // or your preferred path
+      path: '/chat',
       transports: ['websocket'],
+      auth: { token }, // Pass token during connection
+      autoConnect: true,
     });
 
     socketInstance.on('connect', () => {
       console.log('✅ Connected to socket server');
       setIsConnected(true);
+      // Initialize socket listeners after successful connection
+      initializeSocketListeners(socketInstance);
     });
 
     socketInstance.on('disconnect', () => {
@@ -47,16 +58,10 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => {
       socketInstance.disconnect();
       setGlobalSocket(null);
+      setSocket(null);
+      setIsConnected(false);
     };
-  }, []);
-
-  // Auth + connect once token is ready
-  useEffect(() => {
-    if (socket && token) {
-      socket.auth = { token };
-      socket.connect();
-    }
-  }, [token, socket]);
+  }, [token]); // Re-run when token changes
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

@@ -7,6 +7,9 @@ export default function ProfessionalProfilepagesLayout() {
       <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="professionalSettingLayout" />
       <Stack.Screen name="corporateReglayout" />
+      <Stack.Screen name="artisanSettingLayout" />
+      <Stack.Screen name="supportlayout" />
+      <Stack.Screen name="termsandprivacylayout" />
     </Stack> 
   );
 }

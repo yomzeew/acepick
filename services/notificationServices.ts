@@ -6,26 +6,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | unde
   try {
     let token: string | undefined;
 
-    if (Device.isDevice) {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-
-      if (finalStatus !== 'granted') {
-        console.warn('Failed to get push token for push notification!');
-        return undefined;
-      }
-
-      const pushTokenResponse = await Notifications.getExpoPushTokenAsync();
-      token = pushTokenResponse.data;
-    } else {
-      console.warn('Must use physical device for Push Notifications');
-    }
-
+    // Set up Android notification channel first
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
         name: 'default',
@@ -35,9 +16,39 @@ export async function registerForPushNotificationsAsync(): Promise<string | unde
       });
     }
 
+    if (!Device.isDevice) {
+      console.warn('Must use physical device for Push Notifications');
+      return undefined;
+    }
+
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== 'granted') {
+      console.warn('Failed to get push token for push notification!');
+      return undefined;
+    }
+
+    // Get Expo push token with projectId
+    const pushTokenResponse = await Notifications.getExpoPushTokenAsync({
+      projectId: 'a326550b-b6a8-4184-acd5-8cc999a18c4a',
+    });
+    token = pushTokenResponse.data;
+
     return token;
-  } catch (error) {
-    console.error('Error registering for push notifications:', error);
+  } catch (error: any) {
+    // Handle Firebase not initialized gracefully
+    if (error?.message?.includes('FirebaseApp') || error?.message?.includes('Firebase')) {
+      console.warn('Push notifications unavailable: Firebase not configured for this build');
+      console.warn('This is expected in development. Build with EAS for full push notification support.');
+    } else {
+      console.error('Error registering for push notifications:', error);
+    }
     return undefined;
   }
 }

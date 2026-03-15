@@ -1,8 +1,12 @@
 // hooks/useSecureAuth.ts
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const TOKEN_KEY = 'userToken';
 const USER_KEY = 'userData';
+const REMEMBER_EMAIL_KEY = 'rememberEmail';
+const REMEMBER_PASSWORD_KEY = 'rememberPassword';
+const REMEMBER_ME_KEY = 'rememberMe';
 
 export const useSecureAuth = () => {
   const saveAuthData = async (user: any, token: string) => {
@@ -24,10 +28,34 @@ export const useSecureAuth = () => {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
   };
 
+  const saveRememberedCredentials = async (email: string, password: string, remember: boolean) => {
+    if (remember) {
+      await AsyncStorage.setItem(REMEMBER_EMAIL_KEY, email);
+      await AsyncStorage.setItem(REMEMBER_PASSWORD_KEY, password);
+      await AsyncStorage.setItem(REMEMBER_ME_KEY, 'true');
+    } else {
+      await AsyncStorage.removeItem(REMEMBER_EMAIL_KEY);
+      await AsyncStorage.removeItem(REMEMBER_PASSWORD_KEY);
+      await AsyncStorage.removeItem(REMEMBER_ME_KEY);
+    }
+  };
+
+  const getRememberedCredentials = async () => {
+    const rememberMe = await AsyncStorage.getItem(REMEMBER_ME_KEY);
+    if (rememberMe === 'true') {
+      const email = await AsyncStorage.getItem(REMEMBER_EMAIL_KEY);
+      const password = await AsyncStorage.getItem(REMEMBER_PASSWORD_KEY);
+      return { email: email || '', password: password || '', rememberMe: true };
+    }
+    return { email: '', password: '', rememberMe: false };
+  };
+
   return {
     saveAuthData,
     getAuthData,
     deleteAuthData,
+    saveRememberedCredentials,
+    getRememberedCredentials,
   };
 };
  

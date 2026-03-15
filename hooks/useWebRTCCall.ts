@@ -12,7 +12,7 @@ const ICE_SERVERS = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
 
-export const useWebRtc = (socket: any) => {
+export const useWebRtc = (socket: any | null) => {
   const [isCalling, setIsCalling] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [incomingCall, setIncomingCall] = useState<any>(null);
@@ -127,21 +127,21 @@ export const useWebRtc = (socket: any) => {
       });
     }
 
-    peerConnection.current.ontrack = (event) => {
+    (peerConnection.current as any).ontrack = (event: any) => {
       if (!remoteStream.current) {
         remoteStream.current = new MediaStream();
       }
 
-      event.streams.forEach((stream) => {
-        stream.getTracks().forEach((track) => {
-          if (!remoteStream.current?.getTracks().some((t) => t.id === track.id)) {
+      event.streams.forEach((stream: any) => {
+        stream.getTracks().forEach((track: any) => {
+          if (!remoteStream.current?.getTracks().some((t: any) => t.id === track.id)) {
             remoteStream.current?.addTrack(track);
           }
         });
       });
     };
 
-    peerConnection.current.onicecandidate = (event) => {
+    (peerConnection.current as any).onicecandidate = (event: any) => {
       if (event.candidate && partnerId) {
         socket.emit("ice-candidate", { to: partnerId, candidate: event.candidate });
       }
@@ -155,7 +155,7 @@ export const useWebRtc = (socket: any) => {
     setPartnerId(id);
     initPeerConnection();
 
-    const offer = await peerConnection.current!.createOffer();
+    const offer = await peerConnection.current!.createOffer({});
     await peerConnection.current!.setLocalDescription(offer);
     await playCallTone();
 
@@ -239,6 +239,8 @@ export const useWebRtc = (socket: any) => {
 
   /** 🔌 Socket listeners */
   useEffect(() => {
+    if (!socket) return;
+
     const handleIncomingCall = async (data: any) => {
       setPartnerId(data.from);
       setIncomingCall({ from: data.from, offer: data.offer });

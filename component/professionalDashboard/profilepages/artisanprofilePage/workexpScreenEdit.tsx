@@ -92,8 +92,38 @@ interface AddworkExpProps{
 const AddworkExp=({setShowSlideUp}:AddworkExpProps)=>{
     const {theme}=useTheme()
         const { primaryColor, secondaryTextColor, selectioncardColor, } = getColors(theme)
+        const [jobTitle, setJobTitle] = useState("")
+        const [companyName, setCompanyName] = useState("")
+        const [startDate, setStartDate] = useState("")
+        const [endDate, setEndDate] = useState("")
+        const [errors, setErrors] = useState<{[key: string]: string}>({})
+
+        const validateForm = () => {
+            const newErrors: {[key: string]: string} = {};
+            
+            if (!jobTitle.trim()) {
+                newErrors.jobTitle = 'Job title is required';
+            }
+            if (!companyName.trim()) {
+                newErrors.companyName = 'Company name is required';
+            }
+            if (!startDate) {
+                newErrors.startDate = 'Start date is required';
+            }
+            if (!endDate) {
+                newErrors.endDate = 'End date is required';
+            } else if (startDate && new Date(endDate) < new Date(startDate)) {
+                newErrors.endDate = 'End date must be after start date';
+            }
+            
+            setErrors(newErrors);
+            return Object.keys(newErrors).length === 0;
+        }
+
         const handleSubmit=()=>{
-            setShowSlideUp(false)
+            if (validateForm()) {
+                setShowSlideUp(false)
+            }
         }
     return(
         <>
@@ -108,35 +138,73 @@ const AddworkExp=({setShowSlideUp}:AddworkExpProps)=>{
             <View className="w-full">
                 <InputComponent 
                 color={primaryColor} 
-                placeholder={"Post Held"} 
-                placeholdercolor={secondaryTextColor}  
+                placeholder={"Job Title"} 
+                placeholdercolor={secondaryTextColor}
+                value={jobTitle}
+                onChange={(value) => {
+                    setJobTitle(value);
+                    setErrors(prev => ({ ...prev, jobTitle: '' }));
+                }}
                 />
+                {errors.jobTitle && (
+                    <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                        {errors.jobTitle}
+                    </Text>
+                )}
                 <EmptyView height={20}/>
                 <InputComponent 
                 color={primaryColor} 
-                placeholder={"Place of work"} 
-                placeholdercolor={secondaryTextColor}  
+                placeholder={"Company Name"} 
+                placeholdercolor={secondaryTextColor}
+                value={companyName}
+                onChange={(value) => {
+                    setCompanyName(value);
+                    setErrors(prev => ({ ...prev, companyName: '' }));
+                }}
                 />
+                {errors.companyName && (
+                    <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                        {errors.companyName}
+                    </Text>
+                )}
                  <EmptyView height={20}/>
-                <ThemeTextsecond size={Textstyles.text_xsma}>Start Date</ThemeTextsecond>
                 <InputComponent 
                 color={primaryColor} 
                 placeholder={"Start Date"} 
                 placeholdercolor={secondaryTextColor} 
                 prefix={true}
                 fieldType="date"
+                value={startDate}
+                onChange={(value) => {
+                    setStartDate(value);
+                    setErrors(prev => ({ ...prev, startDate: '' }));
+                }}
                 icon={<FontAwesome5 name="calendar" size={20} color="#ffffff"/>} 
                 />
-                <EmptyView height={20}/>
-                <ThemeTextsecond size={Textstyles.text_xsma}>End Date</ThemeTextsecond>
+                {errors.startDate && (
+                    <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                        {errors.startDate}
+                    </Text>
+                )}
+                <EmptyView height={20} />
                 <InputComponent 
                 color={primaryColor} 
                 placeholder={"End Date"} 
                 placeholdercolor={secondaryTextColor}  
                 prefix={true}
                 fieldType="date"
+                value={endDate}
+                onChange={(value) => {
+                    setEndDate(value);
+                    setErrors(prev => ({ ...prev, endDate: '' }));
+                }}
                 icon={<FontAwesome5 name="calendar" size={20} color="#ffffff"/>}
                 />
+                {errors.endDate && (
+                    <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                        {errors.endDate}
+                    </Text>
+                )}
 
             </View>
             <EmptyView height={40} />

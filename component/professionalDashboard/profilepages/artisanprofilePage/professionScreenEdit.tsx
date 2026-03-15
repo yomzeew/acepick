@@ -81,6 +81,9 @@ const AddNewProfessional = ({setShowSlideUp}:AddNewProfessionalProps) => {
     const [sector, setSector] = useState("")
     const [profess, setProfess] = useState("")
     const [professionData, setProfessionData] = useState<any[]>([])
+    const [yearsOfExperience, setYearsOfExperience] = useState("")
+    const [chargeAmount, setChargeAmount] = useState("")
+    const [errors, setErrors] = useState<{[key: string]: string}>({})
 
     const professionalsectors: any[] = professionalSectors
     const getProssData = () => {
@@ -90,8 +93,48 @@ const AddNewProfessional = ({setShowSlideUp}:AddNewProfessionalProps) => {
     useEffect(() => {
         getProssData()
     }, [sector])
+
+    const formatCurrency = (value: string) => {
+        // Remove all non-digit characters
+        const digits = value.replace(/\D/g, '');
+        // Convert to number and format with commas
+        if (digits === '') return '';
+        const number = parseInt(digits);
+        return number.toLocaleString();
+    }
+
+    const handleChargeAmountChange = (value: string) => {
+        const formatted = formatCurrency(value);
+        setChargeAmount(formatted);
+        setErrors(prev => ({ ...prev, chargeAmount: '' }));
+    }
+
+    const validateForm = () => {
+        const newErrors: {[key: string]: string} = {};
+        
+        if (!sector) {
+            newErrors.sector = 'Please select a sector';
+        }
+        if (!profess) {
+            newErrors.profess = 'Please select a profession';
+        }
+        if (!yearsOfExperience) {
+            newErrors.yearsOfExperience = 'Please enter years of experience';
+        } else if (isNaN(Number(yearsOfExperience)) || Number(yearsOfExperience) < 0 || Number(yearsOfExperience) > 50) {
+            newErrors.yearsOfExperience = 'Please enter valid years (0-50)';
+        }
+        if (!chargeAmount) {
+            newErrors.chargeAmount = 'Please enter your charge amount';
+        }
+        
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    }
+
     const handleSubmit=()=>{
-        setShowSlideUp(false)
+        if (validateForm()) {
+            setShowSlideUp(false)
+        }
     }
 
     return (
@@ -108,21 +151,35 @@ const AddNewProfessional = ({setShowSlideUp}:AddNewProfessionalProps) => {
                         title="Professional Sector"
                         width="100%"
                         data={professionalsectors.map(item => item.sector)}
-                        setValue={setSector}
+                        setValue={(value) => {
+                            setSector(value);
+                            setErrors(prev => ({ ...prev, sector: '' }));
+                        }}
                         value={sector}
                     />
-
+                    {errors.sector && (
+                        <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                            {errors.sector}
+                        </Text>
+                    )}
                 </View>
                 <EmptyView height={20} />
                 <View className="w-full">
                     <SelectComponent
-                        title="Professional Sector"
+                        title="Profession"
                         width="100%"
                         data={professionData}
-                        setValue={setProfess}
+                        setValue={(value) => {
+                            setProfess(value);
+                            setErrors(prev => ({ ...prev, profess: '' }));
+                        }}
                         value={profess}
                     />
-
+                    {errors.profess && (
+                        <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                            {errors.profess}
+                        </Text>
+                    )}
                 </View>
                 <EmptyView height={20} />
                 <View className="w-full">
@@ -130,9 +187,18 @@ const AddNewProfessional = ({setShowSlideUp}:AddNewProfessionalProps) => {
                         color={primaryColor}
                         placeholder={"Years of Experience"}
                         placeholdercolor={secondaryTextColor}
-                         keyboardType="numeric"
+                        keyboardType="numeric"
+                        value={yearsOfExperience}
+                        onChange={(value) => {
+                            setYearsOfExperience(value);
+                            setErrors(prev => ({ ...prev, yearsOfExperience: '' }));
+                        }}
                     />
-
+                    {errors.yearsOfExperience && (
+                        <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                            {errors.yearsOfExperience}
+                        </Text>
+                    )}
                 </View>
                 <EmptyView height={20} />
                 <View className="w-full">
@@ -143,8 +209,14 @@ const AddNewProfessional = ({setShowSlideUp}:AddNewProfessionalProps) => {
                         prefix={true}
                         icon={<Text style={[Textstyles.text_medium]} className="text-white">₦</Text>}
                         keyboardType="numeric"
+                        value={chargeAmount}
+                        onChange={handleChargeAmountChange}
                     />
-
+                    {errors.chargeAmount && (
+                        <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                            {errors.chargeAmount}
+                        </Text>
+                    )}
                 </View>
                 <EmptyView height={20} />
                 <ThemeText size={Textstyles.text_small}>

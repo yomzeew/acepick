@@ -6,19 +6,51 @@ import { View, Text, ScrollView, TouchableOpacity } from "react-native"
 import { ThemeText, ThemeTextsecond } from "component/ThemeText"
 import { Textstyles } from "static/textFontsize"
 import EmptyView from "component/emptyview"
-import { TextInput } from "react-native"
-import { AntDesign } from "@expo/vector-icons"
+import { AntDesign, FontAwesome5 } from "@expo/vector-icons"
 import { useState } from "react"
 import SliderModalTemplate from "component/slideupModalTemplate"
 import SelectComponent from "component/dashboardComponent/selectComponent"
 import ButtonFunction from "component/buttonfunction"
+import InputComponent from "component/controls/textinput"
 
 const BillingHistory = () => {
-    const [showmodal,setshowmodal]=useState<boolean>(true)
+    const [showmodal,setshowmodal]=useState<boolean>(false)
     const [value,setValue]=useState<string>('')
+    const [fromDate, setFromDate] = useState<string>('')
+    const [toDate, setToDate] = useState<string>('')
+    const [errors, setErrors] = useState<{[key: string]: string}>({})
     const { theme } = useTheme()
     const { primaryColor, secondaryTextColor, selectioncardColor } = getColors(theme)
     const data=['Plumber','Construction','Mechanics']
+
+    const validateDateRange = () => {
+        const newErrors: {[key: string]: string} = {};
+        
+        if (!fromDate) {
+            newErrors.fromDate = 'From date is required';
+        }
+        if (!toDate) {
+            newErrors.toDate = 'To date is required';
+        } else if (fromDate && new Date(toDate) < new Date(fromDate)) {
+            newErrors.toDate = 'To date must be after from date';
+        }
+        
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    }
+
+    const handleFilter = () => {
+        if (validateDateRange()) {
+            setshowmodal(false)
+        }
+    }
+
+    const clearFilters = () => {
+        setFromDate('')
+        setToDate('')
+        setValue('')
+        setErrors({})
+    }
     return (
         <>
          {<SliderModalTemplate showmodal={showmodal} setshowmodal={setshowmodal} modalHeight={'80%'}>
@@ -29,16 +61,50 @@ const BillingHistory = () => {
                 </ThemeText>
               <View className="mt-5">
                <ThemeTextsecond size={Textstyles.text_cmedium}>
-                    By date range <ThemeTextsecond size={Textstyles.text_xsma}>(Date format:01-03-2024)</ThemeTextsecond>
+                    By date range <ThemeTextsecond size={Textstyles.text_xsma}>(Date format: DD-MM-YYYY)</ThemeTextsecond>
                 </ThemeTextsecond>
                 <View className="w-full gap-x-5 flex-row mt-5">
                 <View className="w-1/2">
                     <ThemeTextsecond size={Textstyles.text_xsma}>From:</ThemeTextsecond>
-                    <TextInput className={`h-12 rounded-lg px-2 ${theme==='dark'?'bg-slate-800 text-white':'bg-slate-200 text-black'}`} />
+                    <InputComponent 
+                        color={primaryColor}
+                        placeholder="Select from date"
+                        placeholdercolor={secondaryTextColor}
+                        prefix={true}
+                        fieldType="date"
+                        value={fromDate}
+                        onChange={(value) => {
+                            setFromDate(value);
+                            setErrors(prev => ({ ...prev, fromDate: '' }));
+                        }}
+                        icon={<FontAwesome5 name="calendar" size={20} color="#ffffff"/>}
+                    />
+                    {errors.fromDate && (
+                        <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                            {errors.fromDate}
+                        </Text>
+                    )}
                 </View>
                 <View className="w-1/2">
-                    <ThemeTextsecond size={Textstyles.text_xsma}>to:</ThemeTextsecond>
-                    <TextInput className={`h-12 px-2 rounded-lg ${theme==='dark'?'bg-slate-800 text-white':'bg-slate-200 text-black'}`} />
+                    <ThemeTextsecond size={Textstyles.text_xsma}>To:</ThemeTextsecond>
+                    <InputComponent 
+                        color={primaryColor}
+                        placeholder="Select to date"
+                        placeholdercolor={secondaryTextColor}
+                        prefix={true}
+                        fieldType="date"
+                        value={toDate}
+                        onChange={(value) => {
+                            setToDate(value);
+                            setErrors(prev => ({ ...prev, toDate: '' }));
+                        }}
+                        icon={<FontAwesome5 name="calendar" size={20} color="#ffffff"/>}
+                    />
+                    {errors.toDate && (
+                        <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                            {errors.toDate}
+                        </Text>
+                    )}
                 </View>
                 </View>
                 
@@ -56,7 +122,20 @@ const BillingHistory = () => {
                 
                 </View>
                 <EmptyView height={20} />
-                <ButtonFunction textcolor="#ffffff" onPress={()=>setshowmodal(false)}  color={primaryColor} text="Filter now" />
+                <View className="flex-row gap-x-3">
+                    <ButtonFunction 
+                        textcolor="#ffffff" 
+                        onPress={handleFilter}  
+                        color={primaryColor} 
+                        text="Filter now" 
+                    />
+                    <ButtonFunction 
+                        textcolor={primaryColor} 
+                        onPress={clearFilters}  
+                        color="transparent"
+                        text="Clear"
+                    />
+                </View>
                 
             </View>
 

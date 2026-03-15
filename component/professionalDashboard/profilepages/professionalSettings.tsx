@@ -40,6 +40,12 @@ const ProfessionalsSettingsComp = () => {
     const handlechangePassword=()=>{
         router.push('/passwordchangelayout')
     }
+    const handlesupportnav=()=>{
+        router.push('/supportlayout')
+    }
+    const handletermsandprivacynav=()=>{
+        router.push('/termsandprivacylayout')
+    }
     return (
         <>
             <ContainerTemplate>
@@ -124,14 +130,14 @@ const ProfessionalsSettingsComp = () => {
                                 </View>
                                 <AntDesign name="right" size={24} color={secondaryTextColor} />
                             </TouchableOpacity>
-                            <TouchableOpacity className="flex-row justify-between items-center h-20 border-b border-slate-400">
+                            <TouchableOpacity onPress={handlesupportnav} className="flex-row justify-between items-center h-20 border-b border-slate-400">
                                 <View className="flex-row gap-x-2 items-center">
                                     <Entypo name="chat" color={primaryColor} size={16} />
                                     <ThemeTextsecond size={Textstyles.text_xmedium}>Support</ThemeTextsecond>
                                 </View>
                                 <AntDesign name="right" size={24} color={secondaryTextColor} />
                             </TouchableOpacity>
-                            <TouchableOpacity className="flex-row justify-between items-center h-20 border-b border-slate-400">
+                            <TouchableOpacity onPress={handletermsandprivacynav} className="flex-row justify-between items-center h-20 border-b border-slate-400">
                                 <View className="flex-row gap-x-2 items-center">
                                     <MaterialIcons name="privacy-tip" size={16} color="gold" />
                                     <ThemeTextsecond size={Textstyles.text_xmedium}>Terms and Privacy</ThemeTextsecond>
