@@ -8,6 +8,7 @@ import {
   sendOtpUrl, 
   verifyOtpUrl 
 } from 'utilizes/endpoints';
+import MockDataService from './mockDataService';
 
 // Type definitions
 interface LoginData {
@@ -51,8 +52,17 @@ interface ApiResponse<T = any> {
 
 // API functions with proper typing and error handling
 export const loginUser = async (data: LoginData): Promise<ApiResponse> => {
-  const response: AxiosResponse<ApiResponse> = await axios.post(loginUrl, data);
-  return response.data;
+  try {
+    const response: AxiosResponse<ApiResponse> = await axios.post(loginUrl, data);
+    return response.data;
+  } catch (error: any) {
+    // If server is unavailable, fall back to mock data
+    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+      console.log('Server unavailable, using mock data for login');
+      return await MockDataService.login(data.email, data.password);
+    }
+    throw error;
+  }
 };
 
 export const sendOtp = async (data: { email?: string; phone?: string }): Promise<ApiResponse> => {

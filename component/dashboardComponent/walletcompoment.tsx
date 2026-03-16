@@ -1,4 +1,4 @@
-import { ImageBackground, Text, TouchableOpacity, View } from "react-native"
+import { ImageBackground, Text, TouchableOpacity, View, Pressable } from "react-native"
 import { Textstyles } from "../../static/textFontsize"
 import { FontAwesome5 } from "@expo/vector-icons"
 import { useEffect, useState } from "react"
@@ -12,14 +12,17 @@ import { formatAmount, formatNaira } from "utilizes/amountFormat"
 interface WalletCardProps {
     setshowmodal: (value: boolean) => void;
     showmodal: boolean;
-    refreshTrigger?: boolean; // 👈 Optional prop
+    refreshTrigger?: boolean;
+    setshowwithdraw?: (value: boolean) => void; // Add withdraw modal handler
+    showwithdraw?: boolean;
   }
   
-  const WalletCard = ({ setshowmodal, showmodal, refreshTrigger }: WalletCardProps) => {
-    const role=useSelector((state:RootState)=>state.auth.user?.role)
+  const WalletCard = ({ setshowmodal, showmodal, refreshTrigger, setshowwithdraw, showwithdraw }: WalletCardProps) => {
+    const role=useSelector((state:RootState)=>state?.auth.user?.role)
     const wallet: Wallet | null = useSelector((state: RootState) => state?.auth.user?.wallet) ?? null;
     const [hide, setshowhide] = useState<boolean>(false);
     const [currentBalance, setCurrentBalance] = useState<number>(wallet?.currentBalance || 0);
+    const [isPressed, setIsPressed] = useState<boolean>(false);
   
     const mutation = useMutation({
       mutationFn: walletView,
@@ -36,7 +39,13 @@ interface WalletCardProps {
     }, [refreshTrigger]); // 👈 Re-fetch on refreshTrigger change
   
     const handleshow = () => setshowhide(!hide);
-    const handleshowfundWallet = () => setshowmodal(!showmodal);
+    const handleshowfundWallet = () => {
+        if (role === 'client') {
+            setshowmodal(!showmodal); // Fund wallet for clients
+        } else if (role === 'delivery' || role === 'professional') {
+            setshowwithdraw?.(!showwithdraw); // Withdraw for delivery/professional
+        }
+    };
   
     return (
       <ImageBackground
@@ -48,11 +57,17 @@ interface WalletCardProps {
           <Text style={[Textstyles.text_medium, { color: '#ffffff' }]}>
             {hide ? `${formatAmount(currentBalance)}` : '******'}
           </Text>
-          <TouchableOpacity onPress={handleshowfundWallet} className="bg-white rounded-2xl py-2 px-2 w-24 items-center justify-center">
+          <Pressable
+            onPress={handleshowfundWallet}
+            onPressIn={() => setIsPressed(true)}
+            onPressOut={() => setIsPressed(false)}
+            className={`bg-white rounded-2xl py-2  w-24 items-center justify-center ${isPressed ? 'opacity-80' : 'opacity-100'}`}
+            style={{ transform: [{ scale: isPressed ? 0.95 : 1 }] }}
+          >
             <Text style={[Textstyles.text_xsma, { color: '#33658A' }]}>
               {role==='client'?'Fund Wallet':'Withdraw'}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
         <TouchableOpacity onPress={handleshow}>
           {hide?<FontAwesome5 color="#ffffff" size={20} name="eye" />:<FontAwesome5 color="#ffffff" size={20} name="eye-slash" />}

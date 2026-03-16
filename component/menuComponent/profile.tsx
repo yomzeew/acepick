@@ -27,11 +27,52 @@ const ProfileComponent = () => {
     const routes=useRouter()
     const [refreshKey, setRefreshKey] = useState(0)
     
-    const handleNavigation=()=>{
+    const handleNavigationToReviews=()=>{
         routes.push('/reviewlayout')
     }
-    const handleNavigationSettings=()=>{
+    
+    const handleNavigationToSettings=()=>{
         routes.push('/profilesettinglayout')
+    }
+    
+    const handleNavigationToEditProfile=()=>{
+        routes.push('/profileeditlayout')
+    }
+    
+    const handleNavigationToProfessions=()=>{
+        routes.push('/profileprofessionlayout')
+    }
+    
+    const handleNavigationToNotifications=()=>{
+        routes.push('/notificationapplayout')
+    }
+    
+    const handleNavigationToBillHistory=()=>{
+        routes.push('/billhistorylayout')
+    }
+    
+    const handleNavigationToFAQ=()=>{
+        routes.push('/faqlayout')
+    }
+    
+    const handleNavigationToPasswordChange=()=>{
+        routes.push('/passwordchangelayout')
+    }
+    
+    const handleNavigationToResetPin=()=>{
+        routes.push('/resetpinlayout')
+    }
+    
+    const handleNavigationToSupport=()=>{
+        routes.push('/supportlayout')
+    }
+    
+    const handleNavigationToTerms=()=>{
+        routes.push('/termsandprivacylayout')
+    }
+    
+    const handleNavigationToSwitchProfessional=()=>{
+        routes.push('/switchtoprofessionallayout')
     }
     
     // Refresh profile data when screen comes into focus
@@ -52,11 +93,6 @@ const ProfileComponent = () => {
         <>
             <ContainerTemplate>
             <HeaderComponent title={"Profile"}/>
-                <View className="w-full items-end -mt-5">
-                    <TouchableOpacity onPress={handleNavigationSettings}>
-                        <Feather size={24} color={primaryColor} name="settings" />
-                    </TouchableOpacity>
-                </View>
                 <EmptyView height={10} />
                 <UserDetail key={`userdetail-${refreshKey}`} />
                 <EmptyView height={10} />
@@ -65,17 +101,64 @@ const ProfileComponent = () => {
                 <JobStatistics key={`jobstats-${refreshKey}`}/>
 
                 <View  className="w-full">
-                    <TouchableOpacity onPress={() => routes.push('/jobstatusLayout/DISPUTED')}>
+                    <TouchableOpacity onPress={() => routes.push('/jobstatusLayout/[jobstatus]?status=DISPUTED')}>
                     <ListTab>
                         <FontAwesome name="warning" size={20} color="red" /> {'Disputes'}({numberofDisputes})
                     </ListTab>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={handleNavigation}>
+                    <TouchableOpacity onPress={handleNavigationToReviews}>
                     <ListTab>
                         <FontAwesome name="star" size={20} color="gold" /> {'Reviews & Ratings'}({numberofReview})
                     </ListTab>
                     </TouchableOpacity>
                     
+                    <TouchableOpacity onPress={handleNavigationToEditProfile}>
+                    <ListTab>
+                        <FontAwesome name="edit" size={20} color="blue" /> {'Edit Profile'}
+                    </ListTab>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity onPress={handleNavigationToSettings}>
+                    <ListTab>
+                        <FontAwesome name="cog" size={20} color="gray" /> {'Settings'}
+                    </ListTab>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity onPress={handleNavigationToProfessions}>
+                    <ListTab>
+                        <FontAwesome name="briefcase" size={20} color="green" /> {'My Professions'}
+                    </ListTab>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity onPress={handleNavigationToNotifications}>
+                    <ListTab>
+                        <FontAwesome name="bell" size={20} color="orange" /> {'Notifications'}
+                    </ListTab>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity onPress={handleNavigationToBillHistory}>
+                    <ListTab>
+                        <FontAwesome name="file" size={20} color="purple" /> {'Bill History'}
+                    </ListTab>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity onPress={handleNavigationToFAQ}>
+                    <ListTab>
+                        <FontAwesome name="question-circle" size={20} color="teal" /> {'FAQ'}
+                    </ListTab>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity onPress={handleNavigationToSupport}>
+                    <ListTab>
+                        <FontAwesome name="phone" size={20} color="indigo" /> {'Support'}
+                    </ListTab>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity onPress={handleNavigationToTerms}>
+                    <ListTab>
+                        <FontAwesome name="lock" size={20} color="darkgreen" /> {'Terms & Privacy'}
+                    </ListTab>
+                    </TouchableOpacity>
 
                 </View>
                 

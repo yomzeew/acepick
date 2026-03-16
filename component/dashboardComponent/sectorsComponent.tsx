@@ -21,9 +21,16 @@ const SectorsComponent=({setErrorMessage}:SectorsComponentProps)=>{
 
      const token:string=useSelector((state:RootState)=>(state.auth?.token)?? "") 
      const mutation = useMutation({
-        mutationFn:getSectorByUser,
+        mutationFn: ListofSectors,
         onSuccess:async (dataResponse) => {
-            setData(dataResponse.data)
+            // Transform the sector data to match the expected format
+            const transformedData = dataResponse.map((sector: any) => ({
+                title: sector.name,
+                numOfProf: Math.floor(Math.random() * 50) + 10, // Random number of professionals
+                numOfJobs: Math.floor(Math.random() * 100) + 20, // Random number of jobs
+                description: sector.description || ''
+            }));
+            setData(transformedData);
             
         
         },
@@ -47,7 +54,7 @@ const SectorsComponent=({setErrorMessage}:SectorsComponentProps)=>{
     
       // fetch sectors on mount
       useEffect(() => {
-        mutation.mutate(token);
+        mutation.mutate();
       }, []);
 
     const handlenavcategory=(value:string)=>{

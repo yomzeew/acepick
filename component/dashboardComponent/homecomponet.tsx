@@ -28,12 +28,14 @@ import { SaveTokenFunction, updateLocation } from "services/userService";
 import { useSelector } from "react-redux";
 import { RootState } from "redux/store";
 import PaymentModal from "component/menuComponent/walletPages/paymentModal";
+import TransferFund from "component/menuComponent/walletPages/transferfund";
 import { AlertMessageBanner } from "component/AlertMessageBanner";
 import JobStatistics from "component/jobStatistics";
 
 const HomeComp = () => {
   const router = useRouter()
   const [showmodal, setshowmodal] = useState<boolean>(false)
+  const [showwithdraw, setshowwithdraw] = useState<boolean>(false)
   const [showprofession, setshowprofession] = useState(false)
   const [professionalValue, setProfessionValue] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
@@ -148,6 +150,9 @@ const HomeComp = () => {
           </>
 
         </SliderModalNoScrollview>}
+        <SliderModalNoScrollview showmodal={showwithdraw} modalHeight={'80%'} setshowmodal={setshowwithdraw}>
+          <TransferFund setshowmodal={setshowwithdraw} />
+        </SliderModalNoScrollview>
       <ContainerTemplate>
         <HeaderComponent />
         <EmptyView height={15} />
@@ -168,6 +173,8 @@ const HomeComp = () => {
               setshowmodal={setshowmodal} 
               showmodal={showmodal}  
               refreshTrigger={balanceRefreshTrigger}
+              setshowwithdraw={setshowwithdraw}
+              showwithdraw={showwithdraw}
             />
           </View>
           

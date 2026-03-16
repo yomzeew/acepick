@@ -13,16 +13,46 @@ const Support = () => {
     const { theme } = useTheme()
     const { primaryColor, secondaryTextColor, selectioncardColor } = getColors(theme)
 
-    const handleEmailSupport = () => {
-        Linking.openURL('mailto:support@acepick.com')
+    const handleEmailSupport = async () => {
+        try {
+            const email = 'support@acepick.com'
+            const subject = encodeURIComponent('Support Request - StaffSync')
+            const body = encodeURIComponent('Please describe your issue or question here...')
+            await Linking.openURL(`mailto:${email}?subject=${subject}&body=${body}`)
+        } catch (error) {
+            console.error('Email error:', error)
+            // Fallback: copy email to clipboard
+            // You could implement clipboard functionality here
+        }
     }
 
-    const handleCallSupport = () => {
-        Linking.openURL('tel:+2348000000000')
+    const handleCallSupport = async () => {
+        try {
+            const phoneNumber = '+2348000000000'
+            await Linking.openURL(`tel:${phoneNumber}`)
+        } catch (error) {
+            console.error('Call error:', error)
+        }
     }
 
-    const handleWhatsApp = () => {
-        Linking.openURL('https://wa.me/2348000000000')
+    const handleWhatsApp = async () => {
+        try {
+            const phoneNumber = '2348000000000'
+            const message = encodeURIComponent('Hello! I need help with StaffSync.')
+            const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`
+            
+            // Check if WhatsApp is installed
+            const canOpen = await Linking.canOpenURL(whatsappUrl)
+            if (canOpen) {
+                await Linking.openURL(whatsappUrl)
+            } else {
+                // Fallback: open WhatsApp web or show error
+                console.log('WhatsApp not installed')
+                // You could show an alert here directing to app store
+            }
+        } catch (error) {
+            console.error('WhatsApp error:', error)
+        }
     }
 
     return (

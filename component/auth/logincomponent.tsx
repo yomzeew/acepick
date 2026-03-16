@@ -171,7 +171,7 @@ function LoginComponent() {
     <PasswordComponent value={password} onChange={(text)=>setPassword(text)} color={primaryColor} placeholder="Password" placeholdercolor={secondaryTextColor}/>
   </View>
 
-  <View className="h-5"></View>
+  <View className="h-8"></View>
   <View className="w-full flex-row justify-end">
     <TouchableOpacity onPress={()=> router.navigate("/recoverpasswordscreen")}>
       <Text style={{ color: primaryColor }} className="text-base">
@@ -180,7 +180,7 @@ function LoginComponent() {
     </TouchableOpacity>
   </View>
 
-  <View className="h-3"></View>
+  <View className="h-6"></View>
   <View className="w-full flex-row justify-start">
     <Checkbox 
       isChecked={rememberMe} 

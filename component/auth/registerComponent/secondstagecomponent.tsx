@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import OtpComponent from "../../controls/otpcomponent";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { AppState, AppStateStatus } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import ButtonFunction from "../../buttonfunction";
 import SliderModal from "../../SlideUpModal";
 import AuthComponent from "../Authcontainer";
@@ -36,7 +37,7 @@ function SecondStageComponent() {
   const masked = phone.length >= 6 ? phone.slice(0, 3) + "******" + phone.slice(-3) : phone.replace(/.(?=.{3})/g, "*");
 
   // Countdown timer logic
-  const RESEND_TIMER = 60;
+  const RESEND_TIMER = 30;
   const [countdown, setCountdown] = useState(RESEND_TIMER);
   const [canResend, setCanResend] = useState(false);
   const [otpEmail, setOtpEmail] = useState('')
@@ -62,13 +63,43 @@ function SecondStageComponent() {
     }
   }, [successMessage])
 
-  // Date-based timer that survives background/screen off
+  // Date-based timer that survives background/screen off with improved persistence
   useEffect(() => {
-    const tick = () => {
+    const initializeTimer = async () => {
+      try {
+        // Try to restore timer from storage if available
+        const storedEndTime = await AsyncStorage.getItem('otpTimerEnd');
+        if (storedEndTime) {
+          const endTime = parseInt(storedEndTime, 10);
+          if (endTime > Date.now()) {
+            endTimeRef.current = endTime;
+          } else {
+            // Timer expired, clear storage
+            await AsyncStorage.removeItem('otpTimerEnd');
+            endTimeRef.current = Date.now() + RESEND_TIMER * 1000;
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing timer:', error);
+      }
+    };
+
+    initializeTimer();
+
+    const tick = async () => {
       const remaining = Math.max(0, Math.round((endTimeRef.current - Date.now()) / 1000));
       setCountdown(remaining);
-      if (remaining <= 0) {
-        setCanResend(true);
+      
+      // Store timer end time in storage for persistence
+      try {
+        if (remaining > 0) {
+          await AsyncStorage.setItem('otpTimerEnd', endTimeRef.current.toString());
+        } else {
+          await AsyncStorage.removeItem('otpTimerEnd');
+          setCanResend(true);
+        }
+      } catch (error) {
+        console.error('Error storing timer:', error);
       }
     };
 
@@ -76,7 +107,11 @@ function SecondStageComponent() {
     tick();
 
     const handleAppState = (state: AppStateStatus) => {
-      if (state === 'active') tick();
+      if (state === 'active') {
+        // When app becomes active, reinitialize and tick immediately
+        initializeTimer();
+        tick();
+      }
     };
     const sub = AppState.addEventListener('change', handleAppState);
 
@@ -84,7 +119,7 @@ function SecondStageComponent() {
       clearInterval(interval);
       sub.remove();
     };
-  }, [endTimeRef.current]);
+  }, []);
 
    useDelay(() => {
       if (shouldProceed) {
@@ -227,13 +262,25 @@ function SecondStageComponent() {
           <View className="items-center w-full">
             <ButtonComponent
               color={primaryColor}
-              text="Verify "
+              text="Verify Now"
               textcolor="#fff"
               onPress={submitFn}
               isLoading={mutation.isPending}
-              disabled={!otpphone || !otpEmail}
+              disabled={!otpphone || !otpEmail || mutation.isPending}
             />
             <View className="h-5" />
+            
+            {/* Additional feedback for verification state */}
+            {mutation.isPending && (
+              <Text style={[Textstyles.text_xsma, { color: secondaryTextColor }]} className="text-center">
+                Verifying your codes...
+              </Text>
+            )}
+            {shouldProceed && !mutation.isPending && (
+              <Text style={[Textstyles.text_xsma, { color: 'green' }]} className="text-center">
+                ✓ Verification successful!
+              </Text>
+            )}
           </View>
         </View>
 

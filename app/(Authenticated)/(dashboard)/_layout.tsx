@@ -21,8 +21,7 @@ export default function ClientLayout() {
           backgroundColor: tabBarBg,
           height: 80,
           paddingBottom: 10,
-          paddingTop:5,
-       
+          paddingTop: 5,
         },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: any;
@@ -40,13 +39,12 @@ export default function ClientLayout() {
               color={focused ? activeColor : inactiveColor}
             />
             </View>
-           
           );
         },
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: "600",
-          color: theme === "dark" ? "#fff" : "#fff", // you can adjust this if needed
+          color: theme === "dark" ? "#fff" : "#fff",
         },
         tabBarActiveTintColor: activeColor,
         tabBarInactiveTintColor: inactiveColor,

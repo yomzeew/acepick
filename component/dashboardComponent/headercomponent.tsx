@@ -27,15 +27,15 @@ const HeaderComponent: React.FC<HeaderComponentProps> = memo(({
   const [avatarError, setAvatarError] = useState(false)
 
   const navRoute = useMemo(() => 
-    role === 'professional' ? '/professionalSettingLayout' : '/profilesettinglayout', 
+    role === 'professional' ? '/(profession)/professionalprofileLayout' : '/(profile)/profilelayout', 
     [role]
   );
 
   const router = useRouter()
     
     const auth = useSelector((state: RootState) => state.auth?.isAuthenticated);
-  const clientName: string = user?.profile.firstName || ' '
-  const avatar: string = user?.profile.avatar || ' '
+  const clientName: string = user?.profile?.firstName + ' ' + user?.profile?.lastName || ' '
+  const avatar: string = user?.profile?.avatar || ' '
   
   const userInitials = useMemo(() => 
     getInitials(user?.profile), 

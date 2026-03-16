@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Vibration,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import ContainerTemplate from './dashboardComponent/containerTemplate';
 import { AlertMessageBanner } from './AlertMessageBanner';
@@ -30,7 +31,7 @@ const PinBoxes = ({ pinLength }: { pinLength: number }) => (
   </View>
 );
 
-const Keypad = ({ onPress }: { onPress: (val: string) => void }) => {
+const Keypad = ({ onPress, disabled }: { onPress: (val: string) => void; disabled?: boolean }) => {
   const keys = ['1','2','3','4','5','6','7','8','9','⌫','0','✓'];
   return (
     <View className="flex-row flex-wrap justify-center w-full">
@@ -38,9 +39,12 @@ const Keypad = ({ onPress }: { onPress: (val: string) => void }) => {
         <TouchableOpacity
           key={k}
           onPress={() => { Vibration.vibrate(40); onPress(k); }}
-          className="w-20 h-16 m-2 rounded-xl bg-gray-200 justify-center items-center"
+          disabled={disabled}
+          className={`w-20 h-16 m-2 rounded-xl justify-center items-center ${
+            disabled ? 'bg-gray-300 opacity-50' : 'bg-gray-200'
+          }`}
         >
-          <Text className="text-xl font-bold">{k}</Text>
+          <Text className={`text-xl font-bold ${disabled ? 'text-gray-400' : 'text-black'}`}>{k}</Text>
         </TouchableOpacity>
       ))}
     </View>
@@ -53,10 +57,11 @@ type PinModalProps = {
   mode: 'transaction' | 'update' | 'reset';
   onComplete: (pin:any) => void;
   onClose: () => void;
+  loading?: boolean;
 };
 
 /* ---------- Component ---------- */
-const PinModal = ({ visible, mode, onComplete, onClose }: PinModalProps) => {
+const PinModal = ({ visible, mode, onComplete, onClose, loading = false }: PinModalProps) => {
   const { theme } = useTheme();
   const { primaryColor } = getColors(theme);
 
@@ -64,6 +69,7 @@ const PinModal = ({ visible, mode, onComplete, onClose }: PinModalProps) => {
   const [pin, setPin]             = useState('');
   const [confirmPin, setConfirm]  = useState('');
   const [error, setError]         = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const resetAll = () => {
     setStep(1);
@@ -73,6 +79,8 @@ const PinModal = ({ visible, mode, onComplete, onClose }: PinModalProps) => {
   };
 
   const press = (key: string) => {
+    if (loading || isProcessing) return; // Prevent input during loading
+
     if (key === '⌫') {
       step === 1 ? setPin(p => p.slice(0, -1))
                  : setConfirm(c => c.slice(0, -1));
@@ -81,21 +89,31 @@ const PinModal = ({ visible, mode, onComplete, onClose }: PinModalProps) => {
 
     if (key === '✓') {
       if (mode === 'transaction' && pin.length === 4) {
+        setIsProcessing(true);
         onComplete(pin);
-        onClose();
-        resetAll();
+        setTimeout(() => {
+          onClose();
+          resetAll();
+          setIsProcessing(false);
+        }, 1000);
       } 
       else if (mode === 'update') {
         if (step === 1 && pin.length === 4) {
           setStep(2);
         } else if (step === 2 && confirmPin.length === 4) {
           if (pin === confirmPin) {
+            setIsProcessing(true);
             onComplete(pin);
-            onClose();
-            resetAll();
+            setTimeout(() => {
+              onClose();
+              resetAll();
+              setIsProcessing(false);
+            }, 1000);
           } else {
             setError('PINs do not match');
-            resetAll();
+            setTimeout(() => {
+              resetAll();
+            }, 1500);
           }
         }
       }
@@ -105,9 +123,13 @@ const PinModal = ({ visible, mode, onComplete, onClose }: PinModalProps) => {
         } else if (step === 2 && confirmPin.length === 4) {
           // Send both old and new pin
           const payload = { oldPin: pin, newPin: confirmPin };
-          onComplete(payload); // ✅ Pass as object
-          onClose();
-          resetAll();
+          setIsProcessing(true);
+          onComplete(payload);
+          setTimeout(() => {
+            onClose();
+            resetAll();
+            setIsProcessing(false);
+          }, 1000);
         }
       }
       return;
@@ -137,9 +159,26 @@ const PinModal = ({ visible, mode, onComplete, onClose }: PinModalProps) => {
           </ThemeText>
 
           <PinBoxes pinLength={step === 1 ? pin.length : confirmPin.length} />
-          <Keypad onPress={press} />
+          
+          {/* Loading indicator */}
+          {(loading || isProcessing) && (
+            <View className="absolute inset-0 items-center justify-center bg-white bg-opacity-90">
+              <ActivityIndicator size="large" color={primaryColor} />
+              <Text className="mt-4 text-gray-600">Processing...</Text>
+            </View>
+          )}
 
-          <TouchableOpacity onPress={() => { onClose(); resetAll(); }} className="mt-6">
+          <Keypad onPress={press} disabled={loading || isProcessing} />
+
+          <TouchableOpacity 
+            onPress={() => { 
+              if (!loading && !isProcessing) {
+                onClose(); 
+                resetAll(); 
+              }
+            }} 
+            className={`mt-6 ${loading || isProcessing ? 'opacity-50' : ''}`}
+          >
             <Text style={{ color: primaryColor }}>Cancel</Text>
           </TouchableOpacity>
         </View>

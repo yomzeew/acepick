@@ -330,7 +330,7 @@
 // export default MainChatScreen;
 
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -535,6 +535,21 @@ socket.on("reconnect", () => {
     }
   }, [messages]);
 
+  const handleVideoCall = useCallback(() => {
+    console.log("Video call initiated");
+    router.push(`/callchat/${JSON.stringify({userId: partnerId})}`);
+  }, [router, partnerId]);
+
+  const handleVoiceCall = useCallback(() => {
+    console.log("Voice call initiated");
+    router.push(`/callchat/${JSON.stringify({userId: partnerId})}`);
+  }, [router, partnerId]);
+
+  const handleSearchChat = useCallback(() => {
+    console.log("Chat search initiated");
+    // Can implement chat search functionality here
+  }, []);
+
   const handleOpenAttachment = async (base64: string, fileName?: string) => {
     try {
       const name = fileName || 'attachment.jpg';
@@ -577,13 +592,13 @@ socket.on("reconnect", () => {
                 </ThemeText>
               </View>
               <View className="flex-row gap-x-4 items-center">
-                <TouchableOpacity onPress={() => router.push(`/callchat/${JSON.stringify({userId: partnerId})}`)}>     
+                <TouchableOpacity onPress={handleVideoCall}>     
                   <FontAwesome5 name="video" size={20} color={primaryColor} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => router.push(`/callchat/${JSON.stringify({userId: partnerId})}`)}>     
+                <TouchableOpacity onPress={handleVoiceCall}>     
                   <FontAwesome5 name="phone" size={20} color={primaryColor} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => {}}>
+                <TouchableOpacity onPress={handleSearchChat}>
                   <FontAwesome5 name="search" size={20} color={primaryColor} />
                 </TouchableOpacity>
               </View>
@@ -645,7 +660,14 @@ socket.on("reconnect", () => {
               showsVerticalScrollIndicator={false}
               onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
             >
-              {messages.map((msg, index) => (
+              {messages
+                .sort((a, b) => {
+                  // Sort by timestamp, oldest first
+                  const timeA = new Date(a.timestamp || a.time).getTime();
+                  const timeB = new Date(b.timestamp || b.time).getTime();
+                  return timeA - timeB;
+                })
+                .map((msg, index) => (
                 <View
                   key={index}
                   className={`w-full mt-3 items-${msg.from === userId ? "end" : "start"}`}

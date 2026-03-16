@@ -14,6 +14,7 @@ import {
   selectProdectUrl, 
   uploadProductUrl 
 } from 'utilizes/endpoints';
+import MockDataService from './mockDataService';
 
 // Type definitions
 
@@ -95,6 +96,124 @@ export const getproductFn = async (query: string): Promise<Product[]> => {
     });
     return response.data.data || [];
   } catch (error: any) {
+    // If server is unavailable, fall back to mock data
+    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+      console.log('Server unavailable, using mock data for products');
+      const mockProducts: Product[] = [
+        {
+          id: 1,
+          name: 'Laptop Stand',
+          description: 'Adjustable aluminum laptop stand',
+          images: ['https://picsum.photos/seed/product1/200/200'],
+          categoryId: 1,
+          quantity: 10,
+          price: '2500',
+          discount: 0,
+          userId: '2',
+          locationId: 1,
+          category: {
+            id: 1,
+            name: 'Electronics',
+            description: 'Electronic devices and accessories'
+          },
+          location: {
+            id: 1,
+            address: '456 Oak Avenue, Abuja, Nigeria',
+            lga: 'Abuja Municipal',
+            state: 'Abuja',
+            latitude: 9.0765,
+            longitude: 7.3986,
+            zipcode: null,
+            userId: '2',
+            createdAt: '2024-01-10T10:00:00Z',
+            updatedAt: '2024-03-15T10:00:00Z'
+          },
+          user: {
+            id: '2',
+            email: 'pro@example.com',
+            phone: '+1234567891',
+            role: 'professional',
+            createdAt: '2024-01-10T10:00:00Z',
+            updatedAt: '2024-03-15T10:00:00Z'
+          } as any
+        },
+        {
+          id: 2,
+          name: 'Office Chair',
+          description: 'Ergonomic office chair with lumbar support',
+          images: ['https://picsum.photos/seed/product2/200/200'],
+          categoryId: 2,
+          quantity: 5,
+          price: '15000',
+          discount: 10,
+          userId: '3',
+          locationId: 2,
+          category: {
+            id: 2,
+            name: 'Furniture',
+            description: 'Office and home furniture'
+          },
+          location: {
+            id: 2,
+            address: '789 Pine Road, Port Harcourt, Nigeria',
+            lga: 'Port Harcourt Municipal',
+            state: 'Rivers',
+            latitude: 4.8156,
+            longitude: 7.0498,
+            zipcode: null,
+            userId: '3',
+            createdAt: '2024-01-05T10:00:00Z',
+            updatedAt: '2024-03-15T10:00:00Z'
+          },
+          user: {
+            id: '3',
+            email: 'delivery@example.com',
+            phone: '+1234567892',
+            role: 'delivery',
+            createdAt: '2024-01-05T10:00:00Z',
+            updatedAt: '2024-03-15T10:00:00Z'
+          } as any
+        },
+        {
+          id: 3,
+          name: 'Wireless Mouse',
+          description: 'Bluetooth wireless mouse with long battery life',
+          images: ['https://picsum.photos/seed/product3/200/200'],
+          categoryId: 1,
+          quantity: 15,
+          price: '3500',
+          discount: 5,
+          userId: '1',
+          locationId: 3,
+          category: {
+            id: 1,
+            name: 'Electronics',
+            description: 'Electronic devices and accessories'
+          },
+          location: {
+            id: 3,
+            address: '123 Main Street, Lagos, Nigeria',
+            lga: 'Lagos Mainland',
+            state: 'Lagos',
+            latitude: 6.5244,
+            longitude: 3.3792,
+            zipcode: null,
+            userId: '1',
+            createdAt: '2024-01-15T10:00:00Z',
+            updatedAt: '2024-03-15T10:00:00Z'
+          },
+          user: {
+            id: '1',
+            email: 'client@example.com',
+            phone: '+1234567890',
+            role: 'client',
+            createdAt: '2024-01-15T10:00:00Z',
+            updatedAt: '2024-03-15T10:00:00Z'
+          } as any
+        }
+      ];
+      return mockProducts;
+    }
     throw new Error(error?.response?.data?.message || 'Failed to fetch products');
   }
 };

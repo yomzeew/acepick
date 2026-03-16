@@ -20,6 +20,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const token = useSelector((state: RootState) => state.auth.token);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [connectionAttempts, setConnectionAttempts] = useState(0);
+  const [lastError, setLastError] = useState<string | null>(null);
   
   useEffect(() => {
     // Only create socket connection when token is available
@@ -28,16 +30,27 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
+    // Limit connection attempts to prevent spam
+    if (connectionAttempts >= 5) {
+      console.log('🚫 Max connection attempts reached, pausing socket retries...');
+      return;
+    }
+
     const socketInstance: Socket = io(baseUrl, {
       path: '/chat',
       transports: ['websocket'],
       auth: { token }, // Pass token during connection
       autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 3,
+      reconnectionDelay: 2000,
     });
 
     socketInstance.on('connect', () => {
       console.log('✅ Connected to socket server');
       setIsConnected(true);
+      setConnectionAttempts(0); // Reset attempts on successful connection
+      setLastError(null);
       // Initialize socket listeners after successful connection
       initializeSocketListeners(socketInstance);
     });
@@ -48,7 +61,15 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
 
     socketInstance.on('connect_error', (err) => {
-      console.log('⚠️ Connection error:', err.message);
+      const errorMessage = err.message || 'Unknown connection error';
+      
+      // Only log new errors, not repeats
+      if (lastError !== errorMessage) {
+        console.log('⚠️ WebSocket connection error:', errorMessage);
+        setLastError(errorMessage);
+      }
+      
+      setConnectionAttempts(prev => prev + 1);
     });
 
     // Assign to local and global
@@ -61,7 +82,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setSocket(null);
       setIsConnected(false);
     };
-  }, [token]); // Re-run when token changes
+  }, [token, connectionAttempts]); // Re-run when token changes
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

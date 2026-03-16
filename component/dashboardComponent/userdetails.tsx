@@ -1,11 +1,11 @@
-import { Image, View } from "react-native"
+import { Image, View, Text } from "react-native"
 import { ThemeText, ThemeTextsecond } from "../ThemeText"
 import { Textstyles } from "../../static/textFontsize"
 import { getColors } from "../../static/color"
 import { useTheme } from "../../hooks/useTheme"
 import EmptyView from "../emptyview"
 import RatingStar from "component/rating"
-import { Entypo } from "@expo/vector-icons"
+import { Entypo, FontAwesome5 } from "@expo/vector-icons"
 import { useSelector } from "react-redux"
 import { RootState } from "redux/store"
 
@@ -14,12 +14,12 @@ export const UserDetail = () => {
     const { primaryTextColor, selectioncardColor, primaryColor, secondaryTextColor } = getColors(theme)
     const user=useSelector((state:RootState)=>state.auth.user)
 
-    const avatar:string=user?.profile.avatar || ' '
-    const fullName:string= user?.profile.firstName +' '+ user?.profile.lastName || ' '
-    const lga:string=(user as any)?.location?.lga || ' '
-    const state:string=(user as any)?.location?.state || ' '
-    const numberOfStars:number=user?.profile.rate || 1
-    const currentBalance:number | string=user?.wallet.currentBalance || ' '
+    const avatar:string=user?.profile?.avatar || ' '
+    const fullName:string= user?.profile?.firstName + ' ' + user?.profile?.lastName || ' '
+    const location:string=user?.location?.lga + ', ' + user?.location?.state || ' '
+    const numberOfStars:number=user?.profile?.rate || 1
+    const currentBalance:number | string=user?.wallet?.currentBalance || ' '
+    const isVerified:boolean=user?.profile?.verified || false
 
 
     return (
@@ -29,10 +29,18 @@ export const UserDetail = () => {
                  <Image resizeMode="contain" className="w-16 rounded-full h-16" source={{uri:avatar}}/>
                  </View>
                 <View>
-                    <ThemeText type="primary" size={Textstyles.text_small}>{fullName}</ThemeText>
+                    <View className="flex-row items-center gap-2">
+                        <ThemeText type="primary" size={Textstyles.text_small}>{fullName}</ThemeText>
+                        {isVerified && (
+                            <View className="flex-row items-center bg-green-100 px-2 py-1 rounded-full">
+                                <FontAwesome5 name="check-circle" size={12} color="#10b981" />
+                                <Text className="text-xs text-green-700 ml-1">Verified</Text>
+                            </View>
+                        )}
+                    </View>
                     <View className="flex-row  items-center">
                         <Entypo color={secondaryTextColor} name="location-pin" />
-                        <ThemeTextsecond size={Textstyles.text_xsma}>{lga},{state}</ThemeTextsecond>
+                        <ThemeTextsecond size={Textstyles.text_xsma}>{location}</ThemeTextsecond>
                     </View>
                   <RatingStar numberOfStars={numberOfStars}/>
                     <EmptyView height={5} />

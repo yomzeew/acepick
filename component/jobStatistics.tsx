@@ -56,16 +56,16 @@ const Cardcomponent=({Title,totalnumber,icon,color}:{Title:string,totalnumber:nu
     const { theme } = useTheme()
     const { primaryTextColor, selectioncardColor, primaryColor, secondaryTextColor } = getColors(theme)
     return(
-<View  style={{ backgroundColor: selectioncardColor, elevation: 4 }}  className="w-44 h-24 rounded-2xl px-5 py-3 mt-2">
-<View className="w-full px-3 justify-between items-center h-full flex-row">
+<View  style={{ backgroundColor: selectioncardColor, elevation: 4 }}  className="w-36 h-20 rounded-2xl px-3 py-2 mt-2">
+<View className="w-full justify-between items-center h-full flex-row">
     <View className="flex-1">
         <ThemeTextsecond size={Textstyles.text_xsma}>{Title}</ThemeTextsecond>
         <View className="mt-1">
-            <ThemeTextsecond size={Textstyles.text_xmedium}>{totalnumber}</ThemeTextsecond>
+            <ThemeTextsecond size={Textstyles.text_small}>{totalnumber}</ThemeTextsecond>
         </View>
     </View>
-    <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: color + '20' }}>
-        <FontAwesome5 name={icon} size={16} color={color} />
+    <View className="w-6 h-6 rounded-full items-center justify-center" style={{ backgroundColor: color + '20' }}>
+        <FontAwesome5 name={icon} size={12} color={color} />
     </View>
     </View>
 

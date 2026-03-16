@@ -1,8 +1,14 @@
+import { ScrollView } from "react-native"
 import ProfilePage from "@pages/dashboard/profile"
 const Profilelayout=()=>{
    return(
     <>
-    <ProfilePage/>
+    <ScrollView 
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: 60 }}
+    >
+      <ProfilePage/>
+    </ScrollView>
     </>
    ) 
 }

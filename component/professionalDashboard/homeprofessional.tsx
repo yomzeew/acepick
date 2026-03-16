@@ -260,29 +260,67 @@ export default HomeComponentProfession
 const VerificationBadge = () => {
     const { theme } = useTheme(); // Theme state and toggle function
     const { primaryColor, backgroundColor, primaryTextColor, secondaryTextColor } = getColors(theme);
+    const [isPressed, setIsPressed] = useState(false);
+    
+    const handleVerifyNow = () => {
+        // Navigate to verification page or show verification modal
+        console.log('Navigate to verification');
+    };
+    
     return (
-        <>
-            <View className="border-red-500 py-3 bg-red-200 gap-x-3 flex-row justify-center  px-3 w-full rounded-2xl h-16 ">
-                <View className="w-12 h-12 rounded-full bg-red-500 justify-center items-center">
-                    <AntDesign size={12} name="warning" color={"#ffffff"} />
+        <View 
+            style={{ 
+                backgroundColor: theme === 'dark' ? '#991b1b' : '#fef2f2',
+                borderColor: theme === 'dark' ? '#dc2626' : '#f87171',
+                borderWidth: 1
+            }} 
+            className="w-full rounded-2xl px-4 py-3"
+        >
+            <View className="flex-row items-center justify-between">
+                {/* Warning Icon and Text */}
+                <View className="flex-row items-center flex-1">
+                    <View 
+                        style={{ 
+                            backgroundColor: theme === 'dark' ? '#dc2626' : '#ef4444'
+                        }} 
+                        className="w-10 h-10 rounded-full justify-center items-center"
+                    >
+                        <AntDesign size={14} name="warning" color={"#ffffff"} />
+                    </View>
+                    
+                    <View className="ml-3 flex-1">
+                        <ThemeTextsecond size={Textstyles.text_small}>
+                            Verification Required
+                        </ThemeTextsecond>
+                        <ThemeTextsecond size={Textstyles.text_xsmall}>
+                            Complete verification to be visible to clients for jobs
+                        </ThemeTextsecond>
+                    </View>
                 </View>
-                <View className="w-1/2">
-                    <Text style={[Textstyles.text_xsmall]}>
-                        Please go through the verification phase
-                        to be visible to clients for jobs
-                    </Text>
-                </View>
-                <View className="w-1/4 h-full justify-end">
-                    <TouchableOpacity style={{ backgroundColor: primaryColor }} className="justify-center items-center px-3 py-2 w-24">
-                        <Text>Verify now</Text>
-                    </TouchableOpacity>
-
-                </View>
-
-
-
+                
+                {/* Verify Button */}
+                <TouchableOpacity
+                    onPress={handleVerifyNow}
+                    onPressIn={() => setIsPressed(true)}
+                    onPressOut={() => setIsPressed(false)}
+                    style={{
+                        backgroundColor: primaryColor,
+                        transform: [{ scale: isPressed ? 0.95 : 1 }],
+                        opacity: isPressed ? 0.8 : 1
+                    }}
+                    className="px-4 py-2 rounded-xl justify-center items-center"
+                    activeOpacity={0.8}
+                >
+                    <ThemeText 
+                        size={Textstyles.text_xsmall} 
+                        type="primary"
+                        className="font-semibold"
+                    >
+                        Verify Now
+                    </ThemeText>
+                </TouchableOpacity>
             </View>
-        </>
+        </View>
     )
 }
 interface CardRowProps {

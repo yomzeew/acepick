@@ -294,12 +294,22 @@ import StarRating from 'component/starRating';
     const { theme }        = useTheme();
     const { selectioncardColor, primaryColor } = getColors(theme);
 
-  
+    // Debug: Log the job structure to understand the data
+    console.log('🔍 Job Data Structure:', {
+      jobId: job.id,
+      professional: job.professional,
+      professionalProfile: job.professional?.profile,
+      professionalProfileProfessional: job.professional?.profile?.professional,
+      professionalId: job.professional?.profile?.professional?.id
+    });
+
     /* Which main action button to show? */
     const showInvoice   = !!job.workmanship;
     const canApprove    = job.status === 'COMPLETED';
     const isPending     = job.status === 'PENDING';
   
+    // Get professional ID safely
+    const professionalId = job.professional?.profile?.professional?.id;
   
     return (
       <View
@@ -310,7 +320,15 @@ import StarRating from 'component/starRating';
   
         <ThemeText size={Textstyles.text_small}>{job.title}</ThemeText>
         <EmptyView height={10} />
-        <ProfessionalDetails professionalId={job.professional.profile.professional.id}/>
+        {professionalId ? (
+          <ProfessionalDetails professionalId={professionalId}/>
+        ) : (
+          <View className="bg-gray-100 rounded-xl p-3">
+            <ThemeTextsecond size={Textstyles.text_small}>
+              Professional details unavailable
+            </ThemeTextsecond>
+          </View>
+        )}
   
         <EmptyView height={10} />
         <ThemeTextsecond size={Textstyles.text_xsma}>{job.description}</ThemeTextsecond>

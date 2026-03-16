@@ -2,15 +2,17 @@ import * as React from 'react';
 import Svg, {Path, Defs, Pattern, Use, Image} from 'react-native-svg';
 
 function LogoComponent(props: any) {
+  const { width, height, style, ...otherProps } = props;
   return (
     <Svg
-      width={props.width}
-      height={props.height}
+      width={width}
+      height={height}
       viewBox="0 0 262 85"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       xmlnsXlink="http://www.w3.org/1999/xlink"
-      {...props}>
+      style={style}
+      {...otherProps}>
       <Path fill="url(#pattern0)" d="M0 0H261.807V85H0z" />
       <Defs>
         <Pattern

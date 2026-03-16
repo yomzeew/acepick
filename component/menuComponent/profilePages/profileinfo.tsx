@@ -98,7 +98,7 @@ const Profileinfo = () => {
         }
         
         setAvatarUri(result.assets[0].uri)
-        setSuccessMessage("Profile picture selected. Save changes to update.")
+        setSuccessMessage("Profile picture selected. Click 'Save Changes' to update.")
       }
     } catch (error) {
       setAvatarError("Failed to select image. Please try again.")
@@ -127,7 +127,11 @@ const Profileinfo = () => {
     },
     onSuccess: (url) => {
       setIsUploadingAvatar(false)
+      setAvatarUri(url) // Update the avatar URI immediately
       setSuccessMessage("Profile picture uploaded successfully!")
+      
+      // Update profile data to reflect the new avatar
+      setProfileData(prev => ({ ...prev, avatar: url }))
     },
     onError: (error: any) => {
       setIsUploadingAvatar(false)
@@ -169,6 +173,29 @@ const Profileinfo = () => {
     setErrorMessage(null)
     setSuccessMessage(null)
     
+    // Validate required fields
+    const requiredFields = ['firstName', 'lastName', 'phone', 'email']
+    const missingFields = requiredFields.filter(field => !profileData[field as keyof typeof profileData])
+    
+    if (missingFields.length > 0) {
+      setErrorMessage(`Please fill in all required fields: ${missingFields.join(', ')}`)
+      return
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(profileData.email)) {
+      setErrorMessage('Please enter a valid email address')
+      return
+    }
+    
+    // Validate phone format (basic validation)
+    const phoneRegex = /^\+?[\d\s\-\(\)]{10,}$/
+    if (!phoneRegex.test(profileData.phone || '')) {
+      setErrorMessage('Please enter a valid phone number')
+      return
+    }
+    
     try {
       let uploadedAvatar = avatarUri
       if (avatarUri !== avatar) {
@@ -180,11 +207,28 @@ const Profileinfo = () => {
       })
       setSuccessMessage("Profile updated successfully!")
       setshowmodaltwo(false) // Close modal on success
+      
+      // Optional: Refresh user data in Redux store
+      // This would typically be handled by a refetch or socket update
     } catch (error: any) {
       // Error is handled by mutation onError
       console.error("Profile update failed:", error)
     }
   }
+
+  const hasUnsavedChanges = avatarUri !== avatar || 
+    Object.keys(profileData).some(key => {
+      const currentValue = profileData[key as keyof typeof profileData]
+      const originalValue = key === 'firstName' ? user?.profile.firstName :
+                           key === 'lastName' ? user?.profile.lastName :
+                           key === 'phone' ? user?.phone :
+                           key === 'email' ? user?.email :
+                           key === 'address' ? user?.location?.address :
+                           key === 'city' ? user?.location?.lga :
+                           key === 'state' ? user?.location?.state :
+                           key === 'dob' ? user?.profile.birthDate : ''
+      return currentValue !== originalValue
+    })
 
   const loading = uploadMutation.isPending || updateProfileMutation.isPending || isUploadingAvatar
 

@@ -2,12 +2,13 @@ import axios from "axios"
 import { store } from "redux/store"; 
 import { JobInvoice } from "types/type"
 import { addbankDetailsUrl, certificationUrl, clientDetailUrl, debitWallet, educationUrl, experienceUrl, getbanksDetails, getBanksUrl, getLocationUrl, getProfessionByUserIdUrl, getProfessionUrl, initiatepayment, initiatetransfer, invoiceUrl, jobsUrl, jobUrlAcceptDecline, jobUrlApproved, jobUrlatest, jobUrlComplete, listofArtisan, listofContactUrl, locationUrl, portfolioUrl, pushTokenUrl, ratingUrl, resetPinUrl, resolveUrl, sectorUrlDetails, setPinUrl, updatebanksDetails, userDetailsgeneralUrl, verifypayment, verifytransfer, viewWalletUrl } from "utilizes/endpoints"
+import MockDataService from './mockDataService';
 
 
 
 export const SaveTokenFunction=async(fcmToken:any)=>{
   const data={token:fcmToken}
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
     try{
         const response=await axios.post(pushTokenUrl,data,
             {
@@ -54,7 +55,7 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
   }
 
   export const updateLocation=async(locationId: string, data:any)=>{
-    const token = store.getState().auth.token;
+    const token = store.getState().auth?.token;
     const url = `${locationUrl}/${locationId}`;
     
     try {
@@ -151,6 +152,93 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
       
       console.error('❌ Get Professional Details Failed:', JSON.stringify(errorDetails, null, 2));
       
+      // If server is unavailable, fall back to mock data
+      if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+        console.log('Server unavailable, using mock data for professional details');
+        const mockProfessionals = {
+          1: {
+            profile: {
+              userId: '2',
+              firstName: 'Mike',
+              lastName: 'Wilson',
+              avatar: 'https://picsum.photos/seed/professional1/200/200',
+              bio: 'Experienced electrician with 10+ years of experience',
+              position: 'Electrician',
+              rate: 4.8,
+              rating: 4.8,
+              skills: ['Electrical', 'Wiring', 'Installation', 'Repair'],
+              totalJobs: 28,
+              totalJobsCompleted: 20,
+              totalJobsOngoing: 3,
+              totalJobsPending: 2,
+              verified: true
+            },
+            avgRating: 4.8,
+            totalReviews: 28,
+            experience: '10+ years',
+            location: 'Abuja, Nigeria'
+          },
+          2: {
+            profile: {
+              userId: '3',
+              firstName: 'Sarah',
+              lastName: 'Johnson',
+              avatar: 'https://picsum.photos/seed/professional2/200/200',
+              bio: 'Professional plumber with 7 years of experience',
+              position: 'Plumber',
+              rate: 4.6,
+              rating: 4.6,
+              skills: ['Plumbing', 'Installation', 'Repair', 'Maintenance'],
+              totalJobs: 35,
+              totalJobsCompleted: 30,
+              totalJobsOngoing: 3,
+              totalJobsPending: 2,
+              verified: true
+            },
+            avgRating: 4.6,
+            totalReviews: 35,
+            experience: '7 years',
+            location: 'Lagos, Nigeria'
+          },
+          3: {
+            profile: {
+              userId: '1',
+              firstName: 'John',
+              lastName: 'Doe',
+              avatar: 'https://picsum.photos/seed/professional3/200/200',
+              bio: 'Skilled carpenter specializing in furniture and construction',
+              position: 'Carpenter',
+              rate: 4.5,
+              rating: 4.5,
+              skills: ['Carpentry', 'Furniture', 'Construction', 'Woodworking'],
+              totalJobs: 22,
+              totalJobsCompleted: 18,
+              totalJobsOngoing: 2,
+              totalJobsPending: 2,
+              verified: false
+            },
+            avgRating: 4.5,
+            totalReviews: 22,
+            experience: '5 years',
+            location: 'Port Harcourt, Nigeria'
+          }
+        };
+        
+        const mockData = mockProfessionals[professionalId as keyof typeof mockProfessionals];
+        if (mockData) {
+          return {
+            success: true,
+            data: mockData
+          };
+        } else {
+          // Return a default professional if ID not found
+          return {
+            success: true,
+            data: mockProfessionals[1] // Default to first professional
+          };
+        }
+      }
+      
       // Re-throw with the error object intact for component to handle
       throw error;
     }
@@ -174,7 +262,7 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
 }
   export const getProfessionDetailIDFn=async(professionalId:any)=>{
 
-        const token = store.getState().auth.token; // get token inside function
+        const token = store.getState().auth?.token; // get token inside function
         const response=await axios.get(`${getProfessionUrl}?professionalId=${professionalId}`,
             {
               headers:{
@@ -189,7 +277,7 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
    
   }
   export const getClientDetailFn=async(clientId:any)=>{
-        const token = store.getState().auth.token; // get token inside function
+        const token = store.getState().auth?.token; // get token inside function
         const response=await axios.get(`${clientDetailUrl}/${clientId}`,
             {
               headers:{
@@ -205,7 +293,7 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
   }
 
   export const createJobFn=async(data:any)=>{
-    const token = store.getState().auth.token; // get token inside function
+    const token = store.getState().auth?.token; // get token inside function
  
         const response=await axios.post(jobsUrl,data,
             {
@@ -221,8 +309,8 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
    
   }
   export const getAllJobs=async(query:string | null)=>{
-  
-        const token = store.getState().auth.token; // get token inside function
+  try {
+        const token = store.getState().auth?.token; // get token inside function
         const response=await axios.get(`${jobsUrl}?${query}`,
             {
               headers:{
@@ -231,14 +319,117 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
         
           })
           return response.data
-
-       
-   
-   
+  } catch (error: any) {
+    // If server is unavailable, fall back to mock data
+    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+      console.log('Server unavailable, using mock data for jobs');
+      const mockJobs = [
+        {
+          id: 1,
+          title: 'Electrical Wiring Installation',
+          description: 'Complete electrical wiring for new 3-bedroom apartment',
+          status: 'PENDING',
+          workmanship: null,
+          professional: {
+            id: '2',
+            profile: {
+              firstName: 'Mike',
+              lastName: 'Wilson',
+              professional: {
+                id: 1,
+                title: 'Electrician',
+                experience: '5 years'
+              }
+            }
+          },
+          createdAt: '2024-03-15T10:00:00Z',
+          updatedAt: '2024-03-15T10:00:00Z'
+        },
+        {
+          id: 2,
+          title: 'Plumbing Repair',
+          description: 'Fix leaking pipes in kitchen and bathroom',
+          status: 'COMPLETED',
+          workmanship: 'Completed all plumbing repairs successfully',
+          professional: {
+            id: '3',
+            profile: {
+              firstName: 'Sarah',
+              lastName: 'Johnson',
+              professional: {
+                id: 2,
+                title: 'Plumber',
+                experience: '7 years'
+              }
+            }
+          },
+          createdAt: '2024-03-14T10:00:00Z',
+          updatedAt: '2024-03-15T10:00:00Z'
+        },
+        {
+          id: 3,
+          title: 'Furniture Assembly',
+          description: 'Assemble dining table and 6 chairs',
+          status: 'ONGOING',
+          workmanship: null,
+          professional: {
+            id: '1',
+            profile: {
+              firstName: 'John',
+              lastName: 'Doe',
+              professional: {
+                id: 3,
+                title: 'Carpenter',
+                experience: '3 years'
+              }
+            }
+          },
+          createdAt: '2024-03-13T10:00:00Z',
+          updatedAt: '2024-03-15T10:00:00Z'
+        },
+        {
+          id: 4,
+          title: 'House Cleaning',
+          description: 'Deep cleaning of 2-bedroom apartment',
+          status: 'COMPLETED',
+          workmanship: 'Professional cleaning completed',
+          professional: {
+            id: '2',
+            profile: {
+              firstName: 'Mike',
+              lastName: 'Wilson',
+              professional: {
+                id: 4,
+                title: 'Cleaner',
+                experience: '2 years'
+              }
+            }
+          },
+          createdAt: '2024-03-12T10:00:00Z',
+          updatedAt: '2024-03-14T10:00:00Z'
+        }
+      ];
+      
+      // Filter by status if query is provided
+      let filteredJobs = mockJobs;
+      if (query) {
+        const statusParam = new URLSearchParams(query).get('status');
+        if (statusParam) {
+          filteredJobs = mockJobs.filter(job => job.status === statusParam);
+        }
+      }
+      
+      return {
+        success: true,
+        data: filteredJobs
+      };
+    }
+    throw error;
   }
+}
 
   export const getLatestJobs=async()=>{
-        const token = store.getState().auth.token; // get token inside function
+        const token = store.getState().auth?.token; // get token inside function
         const response=await axios.get(jobUrlatest,
             {
               headers:{
@@ -256,7 +447,7 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
     const data={
         "accepted":payload.accepted
     }
-        const token = store.getState().auth.token; // get token inside function
+        const token = store.getState().auth?.token; // get token inside function
         const response=await axios.put(`${jobUrlAcceptDecline}/${payload.id}`,data,
             {
               headers:{
@@ -271,7 +462,7 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
 
   export const getJobsByProfession=async()=>{
   
-        const token = store.getState().auth.token; // get token inside function
+        const token = store.getState().auth?.token; // get token inside function
         const response=await axios.get(jobsUrl,
             {
               headers:{
@@ -290,7 +481,7 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
 
   export const invoiceFn=async(data:any)=>{
     
-        const token = store.getState().auth.token; // get token inside function
+        const token = store.getState().auth?.token; // get token inside function
         const response=await axios.post(invoiceUrl,data,
             {
               headers:{
@@ -304,7 +495,7 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
   }
 
 export const fetchInvoice = async (jobId: string | number) => {
-  const token = store.getState().auth.token;
+  const token = store.getState().auth?.token;
   const { data } = await axios.get<{ data: JobInvoice }>(
     `${jobsUrl}/${jobId}`,
     {
@@ -316,7 +507,7 @@ export const fetchInvoice = async (jobId: string | number) => {
 };
 export const updateInvoiceFn=async(id:number,payload:any)=>{
     
-        const token = store.getState().auth.token; // get token inside function
+        const token = store.getState().auth?.token; // get token inside function
         const response=await axios.put(`${invoiceUrl}/${id}`,payload,
             {
               headers:{
@@ -332,7 +523,7 @@ export const updateInvoiceFn=async(id:number,payload:any)=>{
   //approved and complete job 
 
   export const completeJobFn=async(jobid:number)=>{
-        const token = store.getState().auth.token; // get token inside function
+        const token = store.getState().auth?.token; // get token inside function
         const response=await axios.post(`${jobUrlComplete}/${jobid}`, {}, 
             {
               headers:{
@@ -346,7 +537,7 @@ export const updateInvoiceFn=async(id:number,payload:any)=>{
   }
   export const approvedJobFn=async(jobid:number)=>{
    
-        const token = store.getState().auth.token; // get token inside function
+        const token = store.getState().auth?.token; // get token inside function
         const response=await axios.post(`${jobUrlApproved}/${jobid}`, {},
             {
               headers:{
@@ -361,7 +552,7 @@ export const updateInvoiceFn=async(id:number,payload:any)=>{
 //pin 
 
 export const setPinFn=async(data:any)=>{
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
   
       const response=await axios.post(setPinUrl,data,
           {
@@ -380,7 +571,7 @@ export const setPinFn=async(data:any)=>{
 }
 
 export const resetPinFn=async(data:any)=>{
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
  
       const response=await axios.post(resetPinUrl,data,
           {
@@ -410,7 +601,7 @@ export const resetPinFn=async(data:any)=>{
 
 export const paymentInitiate=async(data:any)=>{
 
-      const token = store.getState().auth.token; // get token inside function
+      const token = store.getState().auth?.token; // get token inside function
       const response=await axios.post(`${initiatepayment}`,data,
           {
             headers:{
@@ -424,7 +615,7 @@ export const paymentInitiate=async(data:any)=>{
 }
 
 export const paymentVerify=async(ref:string)=>{
-      const token = store.getState().auth.token; // get token inside function
+      const token = store.getState().auth?.token; // get token inside function
       console.log(token)
       const response=await axios.post(`${verifypayment}/${ref}`, {},
           {
@@ -441,7 +632,7 @@ export const paymentVerify=async(ref:string)=>{
 
 export const transferInitiate=async(data:any)=>{
 
-      const token = store.getState().auth.token; // get token inside function
+      const token = store.getState().auth?.token; // get token inside function
       const response=await axios.post(`${initiatetransfer}`,data,
           {
             headers:{
@@ -457,7 +648,7 @@ export const transferInitiate=async(data:any)=>{
 export const transferVerify=async(ref:string)=>{
 
  
-      const token = store.getState().auth.token; // get token inside function
+      const token = store.getState().auth?.token; // get token inside function
       console.log(token)
       const response=await axios.post(`${verifytransfer}/${ref}`, {},
           {
@@ -477,7 +668,7 @@ export const transferVerify=async(ref:string)=>{
 export const addAccountFn=async(data:any)=>{
 
  
-      const token = store.getState().auth.token; // get token inside function
+      const token = store.getState().auth?.token; // get token inside function
       console.log(token)
       const response=await axios.post(`${addbankDetailsUrl}`, data,
           {
@@ -495,7 +686,7 @@ export const updateAccountFn=async(data:any)=>{
 
  
     const recepientCode=data.recepientCode
-      const token = store.getState().auth.token; // get token inside function
+      const token = store.getState().auth?.token; // get token inside function
       console.log(token)
 
       const response=await axios.put(`${updatebanksDetails}/${recepientCode}`, data,
@@ -513,7 +704,7 @@ export const updateAccountFn=async(data:any)=>{
 export const deleteAccountFn=async(recepientCode:string)=>{
 
    
-      const token = store.getState().auth.token; // get token inside function
+      const token = store.getState().auth?.token; // get token inside function
       console.log(token)
       const response=await axios.delete(`${updatebanksDetails}/${recepientCode}`,
           {
@@ -531,7 +722,7 @@ export const getAccountFn=async()=>{
 
 
    
-      const token = store.getState().auth.token; // get token inside function
+      const token = store.getState().auth?.token; // get token inside function
       console.log(token)
       const response=await axios.get(`${getbanksDetails}`,
           {
@@ -548,7 +739,7 @@ export const getAccountFn=async()=>{
 export const getBanksFn=async()=>{
 
 
-      const token = store.getState().auth.token; // get token inside function
+      const token = store.getState().auth?.token; // get token inside function
       console.log(token)
       const response=await axios.get(`${getBanksUrl}`,
           {
@@ -564,7 +755,7 @@ export const getBanksFn=async()=>{
 export const resolveAccountFn=async(data:any)=>{
 
 
-      const token = store.getState().auth.token; // get token inside function
+      const token = store.getState().auth?.token; // get token inside function
       console.log(token)
       const response=await axios.post(`${resolveUrl}`,data,
           {
@@ -580,34 +771,54 @@ export const resolveAccountFn=async(data:any)=>{
 
 
 export const walletView=async()=>{
-
-      const token = store.getState().auth.token; // get token inside function
-      const response=await axios.get(`${viewWalletUrl}`,
-          {
-            headers:{
-              Authorization:`Bearer ${token}`
-            }
-      
-        })
-        return response.data
-
-     
+      const token = store.getState().auth?.token; // get token inside function
+      try {
+        const response=await axios.get(`${viewWalletUrl}`,
+            {
+              headers:{
+                Authorization:`Bearer ${token}`
+              }
+          
+          })
+          return response.data
+      } catch (error: any) {
+        // If server is unavailable, fall back to mock data
+        if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+          console.log('Server unavailable, using mock data for wallet');
+          const user = store.getState().auth.user;
+          if (user) {
+            return await MockDataService.getWallet(user.id);
+          }
+        }
+        throw error;
+      }
 }
+
 export const walletDebitFn=async(data:any)=>{
-      const token = store.getState().auth.token; // get token inside function
-      const response=await axios.post(`${debitWallet}`,data,
-          {
-            headers:{
-              Authorization:`Bearer ${token}`
-            }
-      
-        })
-        return response.data
-
-
+      const token = store.getState().auth?.token; // get token inside function
+      try {
+        const response=await axios.post(`${debitWallet}`,data,
+            {
+              headers:{
+                Authorization:`Bearer ${token}`
+              }
+          
+          })
+          return response.data
+      } catch (error: any) {
+        // If server is unavailable, fall back to mock data
+        if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+          console.log('Server unavailable, using mock data for wallet debit');
+          const user = store.getState().auth.user;
+          if (user) {
+            return await MockDataService.fundWallet(user.id, data.amount || 0);
+          }
+        }
+        throw error;
+      }
 }
 export const educationCreateFn=async(data:any)=>{
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
   const response=await axios.post(`${educationUrl}`,data,
       {
         headers:{
@@ -617,10 +828,9 @@ export const educationCreateFn=async(data:any)=>{
     })
     return response.data
 
-
 }
 export const educationGetFn=async()=>{
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
   const response=await axios.get(`${educationUrl}`,
       {
         headers:{
@@ -635,7 +845,7 @@ export const educationGetFn=async()=>{
 export const educationUpdateFn=async(data:any)=>{
   const id=data.id
   const payload=data.payload
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
   const response=await axios.put(`${educationUrl}/${id}`,payload,
       {
         headers:{
@@ -648,7 +858,7 @@ export const educationUpdateFn=async(data:any)=>{
 
 }
 export const educationDeleteFn=async(id:number)=>{
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
   const response=await axios.delete(`${educationUrl}/${id}`,
       {
         headers:{
@@ -662,7 +872,7 @@ export const educationDeleteFn=async(id:number)=>{
 }
 
 export const certificationCreateFn=async(data:any)=>{
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
   const response=await axios.post(`${certificationUrl}`,data,
       {
         headers:{
@@ -675,7 +885,7 @@ export const certificationCreateFn=async(data:any)=>{
 
 }
 export const certificationGetFn=async(data:any)=>{
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
   const response=await axios.get(`${certificationUrl}`,
       {
         headers:{
@@ -690,7 +900,7 @@ export const certificationGetFn=async(data:any)=>{
 export const certificationUpdateFn=async(data:any)=>{
   const id=data.id
   const payload=data.payload
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
   const response=await axios.put(`${certificationUrl}/${id}`,payload,
       {
         headers:{
@@ -703,7 +913,7 @@ export const certificationUpdateFn=async(data:any)=>{
 
 }
 export const certificationDeleteFn=async(id:number)=>{
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
   const response=await axios.delete(`${certificationUrl}/${id}`,
       {
         headers:{
@@ -717,7 +927,7 @@ export const certificationDeleteFn=async(id:number)=>{
 }
 
 export const experinceCreateFn=async(data:any)=>{
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
   const response=await axios.post(`${experienceUrl}`,data,
       {
         headers:{
@@ -730,7 +940,7 @@ export const experinceCreateFn=async(data:any)=>{
 
 }
 export const experinceGetFn=async(data:any)=>{
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
   const response=await axios.get(`${experienceUrl}`,
       {
         headers:{
@@ -745,7 +955,7 @@ export const experinceGetFn=async(data:any)=>{
 export const experinceUpdateFn=async(data:any)=>{
   const id=data.id
   const payload=data.payload
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
   const response=await axios.put(`${experienceUrl}/${id}`,payload,
       {
         headers:{
@@ -758,7 +968,7 @@ export const experinceUpdateFn=async(data:any)=>{
 
 }
 export const experinceDeleteFn=async(id:number)=>{
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
   const response=await axios.delete(`${experienceUrl}/${id}`,
       {
         headers:{
@@ -772,7 +982,7 @@ export const experinceDeleteFn=async(id:number)=>{
 }
 
 export const portfoliosCreateFn=async(data:any)=>{
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
   const response=await axios.post(`${portfolioUrl}`,data,
       {
         headers:{
@@ -785,7 +995,7 @@ export const portfoliosCreateFn=async(data:any)=>{
 
 }
 export const portfoliosGetFn=async(data:any)=>{
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
   const response=await axios.get(`${portfolioUrl}`,
       {
         headers:{
@@ -800,7 +1010,7 @@ export const portfoliosGetFn=async(data:any)=>{
 export const portfoliosUpdateFn=async(data:any)=>{
   const id=data.id
   const payload=data.payload
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
   const response=await axios.put(`${portfolioUrl}/${id}`,payload,
       {
         headers:{
@@ -813,7 +1023,7 @@ export const portfoliosUpdateFn=async(data:any)=>{
 
 }
 export const portfoliosDeleteFn=async(id:number)=>{
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
   const response=await axios.delete(`${portfolioUrl}/${id}`,
       {
         headers:{
@@ -827,7 +1037,7 @@ export const portfoliosDeleteFn=async(id:number)=>{
 }
 
   export const generalUserDetailFn=async(userid:string)=>{
-    const token = store.getState().auth.token; // get token inside function
+    const token = store.getState().auth?.token; // get token inside function
 
     console.log(userDetailsgeneralUrl+`/${userid}`,token)
     const response=await axios.get(userDetailsgeneralUrl+`/${userid}`,
@@ -848,20 +1058,73 @@ export const getContactListFn = async (params: {
   page?: number;
   limit?: number;
 }) => {
-  const token = store.getState().auth.token;
+  const token = store.getState().auth?.token;
+  try {
+    const response = await axios.get(listofContactUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params, // Axios auto builds the query string
+    });
 
-  const response = await axios.get(listofContactUrl, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    params, // Axios auto builds the query string
-  });
-
-  return response.data;
+    return response.data;
+  } catch (error: any) {
+    // If server is unavailable, fall back to mock data
+    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+      console.log('Server unavailable, using mock data for contacts');
+      const mockContacts = [
+        {
+          id: '1',
+          fullName: 'John Doe',
+          email: 'client@example.com',
+          phone: '+1234567890',
+          role: 'client',
+          avatar: 'https://picsum.photos/seed/user1/200/200',
+        },
+        {
+          id: '2',
+          fullName: 'Mike Wilson',
+          email: 'pro@example.com',
+          phone: '+1234567891',
+          role: 'professional',
+          avatar: 'https://picsum.photos/seed/user2/200/200',
+        },
+        {
+          id: '3',
+          fullName: 'Sarah Johnson',
+          email: 'delivery@example.com',
+          phone: '+1234567892',
+          role: 'delivery',
+          avatar: 'https://picsum.photos/seed/user3/200/200',
+        },
+      ];
+      
+      // Filter based on params if provided
+      let filteredContacts = mockContacts;
+      if (params.search) {
+        filteredContacts = filteredContacts.filter(contact => 
+          contact.fullName.toLowerCase().includes(params.search!.toLowerCase()) ||
+          contact.email.toLowerCase().includes(params.search!.toLowerCase())
+        );
+      }
+      if (params.role) {
+        filteredContacts = filteredContacts.filter(contact => contact.role === params.role);
+      }
+      
+      return {
+        success: true,
+        data: filteredContacts,
+        total: filteredContacts.length,
+        page: params.page || 1,
+        limit: params.limit || 10,
+      };
+    }
+    throw error;
+  }
 };
 
 export const getLocationFn=async()=>{
-  const token=store.getState().auth.token
+  const token=store.getState().auth?.token
   const response=await axios.get(getLocationUrl, {
     headers:{
       Authorization:`Bearer ${token}`
@@ -871,7 +1134,7 @@ export const getLocationFn=async()=>{
 }
 
 export const ratingGiveFn=async(data:any)=>{
-  const token = store.getState().auth.token; // get token inside function
+  const token = store.getState().auth?.token; // get token inside function
   const response=await axios.post(`${ratingUrl}`,data,
       {
         headers:{

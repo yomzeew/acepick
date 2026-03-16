@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { ScrollView, View, Text, TouchableOpacity, Image } from "react-native";
 import { AntDesign, FontAwesome5, FontAwesome6 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -19,6 +19,7 @@ import { Profile } from "types/userDetailsType";
 import { getInitials } from "utilizes/initialsName";
 import { ContactUser } from "types/listofContactType";
 import InputComponent from "component/controls/textinput";
+import { useDebounce } from "hooks/useDebounce";
 
 
 const ContactListScreen = () => {
@@ -32,8 +33,12 @@ const ContactListScreen = () => {
     const [imageError,setImageError]=useState<boolean>(false)
   
     const [filterRole, setFilterRole] = useState<string | undefined>(undefined);
-    const [search, setSearch] = useState<string>(""); 
+    const [search, setSearch] = useState<string>("");
     const [page, setPage] = useState<number>(1);
+    const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+    
+    // Debounced search value
+    const debouncedSearch = useDebounce(search, 500);
   
     // Mutation for fetching contacts
     const mutation = useMutation({
@@ -41,21 +46,52 @@ const ContactListScreen = () => {
       onSuccess: (response) => {
         console.log("Contacts Response:", response);
         dispatch(setPreviousChats(response.data)); // Save in Redux
+        
+        // Update online users set
+        const onlineSet = new Set<string>();
+        response.data.forEach((contact: ContactUser) => {
+          if (contact.onlineUser?.isOnline) {
+            onlineSet.add(contact.id);
+          }
+        });
+        setOnlineUsers(onlineSet);
       },
       onError: (error: any) => {
         console.error("Failed to fetch contacts:", error.message);
       },
     });
   
-    // Fetch contacts when screen mounts or filters change
+    // Fetch contacts when debounced search or filters change
     useEffect(() => {
       mutation.mutate({
-        search,
+        search: debouncedSearch,
         role: filterRole,
         page,
         limit: 10,
       });
-    }, [search, filterRole, page]);
+    }, [debouncedSearch, filterRole, page]);
+
+    // Simulate real-time online status updates
+    useEffect(() => {
+      const interval = setInterval(() => {
+        // This would normally come from WebSocket or real-time API
+        // For now, randomly update some users' online status for demo
+        if (previousChats && previousChats.length > 0) {
+          const randomUser = previousChats[Math.floor(Math.random() * previousChats.length)];
+          setOnlineUsers(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(randomUser.id)) {
+              newSet.delete(randomUser.id);
+            } else {
+              newSet.add(randomUser.id);
+            }
+            return newSet;
+          });
+        }
+      }, 15000); // Update every 15 seconds
+
+      return () => clearInterval(interval);
+    }, [previousChats]);
   
     const goToChat = (chat: ContactUser) => {
       console.log(chat.id,'check m')
@@ -66,6 +102,20 @@ const ContactListScreen = () => {
       
     
     };
+
+    // Handle phone icon click
+    const handlePhoneClick = useCallback(() => {
+      // Navigate to call screen or open phone dialer
+      console.log("Phone icon clicked");
+      // For now, just log - can be extended to actual call functionality
+    }, []);
+
+    // Handle search icon click in header
+    const handleSearchClick = useCallback(() => {
+      // Focus on the search input
+      console.log("Search icon clicked");
+      // Can be used to focus the search input field
+    }, []);
   
     if (mutation.isPending) {
       return (
@@ -76,13 +126,6 @@ const ContactListScreen = () => {
     }
   
     if (!previousChats || previousChats.length === 0) {
-      return (
-        <View className="flex-1 items-center justify-center bg-white">
-          <Text className="text-gray-500">No chats yet</Text>
-        </View>
-      );
-    }
-  
     return (
       <ContainerTemplate>
         {/* Header */}
@@ -93,8 +136,12 @@ const ContactListScreen = () => {
             </TouchableOpacity>
           </View>
           <View className="flex-row gap-x-2">
-            <FontAwesome5 name="phone" size={20} color={primaryColor} />
-            <FontAwesome5 name="search" size={20} color={primaryColor} />
+            <TouchableOpacity onPress={handlePhoneClick}>
+              <FontAwesome5 name="phone" size={20} color={primaryColor} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleSearchClick}>
+              <FontAwesome5 name="search" size={20} color={primaryColor} />
+            </TouchableOpacity>
           </View>
         </View>
         <EmptyView height={20} />
@@ -114,38 +161,59 @@ const ContactListScreen = () => {
         <EmptyView height={20} />
   
         {/* Filter Tabs */}
-        <View className="flex-row gap-x-2 w-full">
-  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-  <View className="flex-row  gap-x-3">
-    {["client", "professional", "delivery", "all"].map((r) => {
-      const isActive = filterRole === (r === "all" ? undefined : r);
+        <View className="w-full">
+          <View className="flex-row justify-between items-center mb-3">
+            <ThemeTextsecond size={Textstyles.text_xsmall}>Filter by Role:</ThemeTextsecond>
+            <TouchableOpacity 
+              onPress={() => setFilterRole(undefined)}
+              className="px-3 py-1 rounded-full bg-gray-100"
+            >
+              <Text className="text-xs text-gray-600">Clear</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="w-full">
+            <View className="flex-row gap-x-3">
+              {["all", "client", "professional", "delivery"].map((r) => {
+                const isActive = filterRole === (r === "all" ? undefined : r);
 
-      return (
-        <TouchableOpacity
-          key={r}
-          onPress={() => setFilterRole(r === "all" ? undefined : r)}
-          style={{
-            borderColor: primaryColor,
-            borderWidth: 1,
-            backgroundColor: isActive ? primaryColor : "transparent",
-          }}
-          className="px-2 py-1 items-center justify-center rounded-xl"
-        >
-          <Text
-            style={{
-              color: isActive ? "white" : "black",
-              fontWeight: isActive ? "bold" : "normal",
-            }}
-          >
-            {r}
-          </Text>
-        </TouchableOpacity>
-      );
-    })}
-    </View>
-  </ScrollView>
-</View>
-  
+                return (
+                  <TouchableOpacity
+                    key={r}
+                    onPress={() => setFilterRole(r === "all" ? undefined : r)}
+                    style={{
+                      borderColor: primaryColor,
+                      borderWidth: 1.5,
+                      backgroundColor: isActive ? primaryColor : "transparent",
+                      shadowColor: isActive ? primaryColor : "transparent",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: isActive ? 0.2 : 0,
+                      shadowRadius: 4,
+                      elevation: isActive ? 3 : 1,
+                    }}
+                    className="px-4 py-2 items-center justify-center rounded-full min-w-[60px]"
+                  >
+                    <Text
+                      style={{
+                        color: isActive ? "white" : primaryColor,
+                        fontWeight: isActive ? "600" : "400",
+                        fontSize: 12,
+                      }}
+                      className="text-center"
+                    >
+                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+        </View>
+      </ContainerTemplate>
+    );
+  }
+
+  return (
+    <ContainerTemplate>
         <EmptyView height={20} />
   
         {/* Contacts List */}
@@ -167,7 +235,7 @@ const ContactListScreen = () => {
                     <View className="flex-row items-center gap-x-2 w-4/5">
                       <View className="relative">
                                     <View className="w-10 h-10 rounded-full bg-white overflow-hidden justify-center items-center">
-                                             {chat.profile.avatar && !imageError ? (
+                                             {chat.profile?.avatar && !imageError ? (
                                                <Image
                                                  resizeMode="cover"
                                                  source={{ uri: chat.profile.avatar }}
@@ -176,7 +244,7 @@ const ContactListScreen = () => {
                                                />
                                              ) : (
                                                <Text style={{ color: primaryColor }} className="text-xl">
-                                                 {getInitials({ firstName: chat.profile.firstName, lastName: chat.profile.lastName })}
+                                                 {getInitials({ firstName: chat.profile?.firstName || '', lastName: chat.profile?.lastName || '' })}
                                                </Text>
                                              )}
                                            </View>
@@ -190,8 +258,8 @@ const ContactListScreen = () => {
                       </View>
                       <View className="flex-1">
                         <ThemeText size={Textstyles.text_xsmall}>
-                          {chat.profile.firstName ?? "Unknown"}{" "}
-                          {chat.profile.lastName ?? ""}
+                          {chat.profile?.firstName ?? "Unknown"}{" "}
+                          {chat.profile?.lastName ?? ""}
                         </ThemeText>
                         <ThemeTextsecond size={Textstyles.text_xxxsmall}>
                           {lastMessage}

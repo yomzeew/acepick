@@ -17,16 +17,64 @@ import { useMutation } from "@tanstack/react-query"
 import { getProfessionDetailFn } from "services/userService"
 import { useEffect, useState } from "react"
 import { ProfessionalData } from "types/type"
+import MockDataService from "services/mockDataService"
 
 
 
 const ProfessionalProfile = () => {
-    const { theme } = useTheme()
-    const { primaryColor, backgroundColor } = getColors(theme)
-    const route = useRouter()
-    const { professionalId } = useLocalSearchParams()
+    // Safe theme access with fallback
+    let theme: "light" | "dark" = "light";
+    let primaryColor = "#0366d8";
+    let backgroundColor = "#ffffff";
+    
+    try {
+        const themeContext = useTheme();
+        theme = themeContext.theme;
+        const colors = getColors(theme);
+        primaryColor = colors.primaryColor;
+        backgroundColor = colors.backgroundColor;
+    } catch (error) {
+        console.warn('Theme context not available, using default theme');
+        // Use default values
+        const defaultColors = getColors("light");
+        primaryColor = defaultColors.primaryColor;
+        backgroundColor = defaultColors.backgroundColor;
+    }
+    
+    // Safe router access with fallback
+    let router: any = null;
+    let professionalId: string | string[] | undefined = undefined;
+    
+    try {
+        router = useRouter();
+        const params = useLocalSearchParams();
+        professionalId = params.professionalId;
+    } catch (error) {
+        console.warn('Router context not available, using default values');
+        // Use default values when router is not available
+        professionalId = undefined;
+    }
 
-    const professionalIdValue = Number(professionalId)
+    // For professionals viewing their own profile, use default ID 1 (Mike Wilson)
+    // In a real app, this would come from user context/auth state
+    const professionalIdValue = Number(professionalId) || 1;
+
+    // Validate professional ID
+    if (!professionalIdValue || isNaN(professionalIdValue)) {
+        console.error("❌ Invalid professional ID:", { professionalId, professionalIdValue });
+        return (
+            <ContainerTemplate>
+                <View className="flex-1 justify-center items-center">
+                    <ThemeText size={Textstyles.text_medium}>
+                        Invalid Professional Profile
+                    </ThemeText>
+                    <ThemeTextsecond size={Textstyles.text_small}>
+                        Professional ID is missing or invalid
+                    </ThemeTextsecond>
+                </View>
+            </ContainerTemplate>
+        );
+    }
 
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [data, setData] = useState<ProfessionalData | null>(null);
@@ -81,7 +129,7 @@ const ProfessionalProfile = () => {
         const rating=data.avgRating
         const avatar=data.profile.avatar
         const professionalId=data.profile.userId
-      route.push(`/joborderLayout?professionalId=${professionalId}&avatar=${avatar}&fullName=${fullName}&rating=${rating}`)
+      router?.push(`/joborderLayout?professionalId=${professionalId}&avatar=${avatar}&fullName=${fullName}&rating=${rating}`)
         
     }
 
