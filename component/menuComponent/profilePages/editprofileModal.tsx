@@ -17,14 +17,13 @@ const EditModal = ({ profileData, setProfileData, onSave, loading }: {
   loading: boolean
 }) => {
   const { theme } = useTheme()
-  const { primaryColor, selectioncardColor, primaryTextColor,secondaryTextColor } = getColors(theme)
+  const { primaryColor, selectioncardColor, primaryTextColor, secondaryTextColor, backgroundColortwo } = getColors(theme)
 
   const genderOptions = [
     { label: "Select Gender", value: "" },
     { label: "Male", value: "male" },
     { label: "Female", value: "female" },
     { label: "Other", value: "other" },
-    { label: "Prefer not to say", value: "prefer_not_to_say" }
   ]
 
   const [cityError, setCityError] = useState<string | null>(null)
@@ -142,28 +141,11 @@ const EditModal = ({ profileData, setProfileData, onSave, loading }: {
             placeholdercolor={secondaryTextColor}
           />
           {cityError && (
-            <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+            <Text style={[Textstyles.text_xxxsmall, { color: backgroundColortwo }]} className="mt-1">
               {cityError}
             </Text>
           )}
         </View>
-
-        {[
-          { label: "Phone", field: "phone" },
-          { label: "Email", field: "email" }
-        ].map(({ label, field }, idx) => (
-          <View key={idx} className="mb-4">
-            <Text className="mb-1 text-sm text-gray-500">{label}</Text>
-            <InputComponent
-                    placeholder={label}
-                    value={profileData[field]}
-                    onChange={(value) => handleChange(field, value)} 
-                    color={primaryColor} 
-                    placeholdercolor={secondaryTextColor}
-                    keyboardType={field === 'phone' ? 'phone-pad' : 'default'}
-            />
-          </View>
-        ))}
 
         <ButtonComponent
           onPress={onSave}

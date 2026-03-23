@@ -57,7 +57,7 @@ const ProfileProfessional = () => {
                         <TouchableOpacity onPress={() => routes.push('/jobstatusLayout/PENDING')}>
                             <Cardcomponent Title={"Pending Jobs"} totalnumber={user?.profile?.totalJobsPending || 0} />
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => routes.push('/jobstatusLayout/CANCELED')}>
+                        <TouchableOpacity onPress={() => routes.push('/jobstatusLayout/CANCELLED')}>
                             <Cardcomponent Title={"Cancelled Jobs"} totalnumber={user?.profile?.totalJobsCanceled || 0} />
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => routes.push('/jobstatusLayout/REJECTED')}>

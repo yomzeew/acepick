@@ -11,7 +11,7 @@ import ButtonComponent from "component/buttoncomponent"
 
 const Support = () => {
     const { theme } = useTheme()
-    const { primaryColor, secondaryTextColor, selectioncardColor } = getColors(theme)
+    const { primaryColor, secondaryTextColor, selectioncardColor, borderColor } = getColors(theme)
 
     const handleEmailSupport = async () => {
         try {
@@ -82,10 +82,10 @@ const Support = () => {
                         <ThemeTextsecond size={Textstyles.text_cmedium}>
                             Contact Us
                         </ThemeTextsecond>
-                        <View style={{ backgroundColor: selectioncardColor, elevation: 4 }}
-                            className="w-full h-auto rounded-2xl shadow-slate-500 shadow-sm px-5 pb-5">
+                        <View style={{ backgroundColor: selectioncardColor, elevation: 4, shadowColor: theme === 'light' ? '#000000' : '#ffffff' }}
+                            className="w-full h-auto rounded-2xl shadow-sm px-5 pb-5">
                             
-                            <TouchableOpacity onPress={handleEmailSupport} className="flex-row justify-between items-center h-20 border-b border-slate-400">
+                            <TouchableOpacity onPress={handleEmailSupport} style={{ borderBottomColor: borderColor }} className="flex-row justify-between items-center h-20 border-b">
                                 <View className="flex-row gap-x-2 items-center">
                                     <MaterialIcons name="email" color={primaryColor} size={20} />
                                     <View>
@@ -96,9 +96,9 @@ const Support = () => {
                                 <AntDesign name="right" size={24} color={secondaryTextColor} />
                             </TouchableOpacity>
 
-                            <TouchableOpacity onPress={handleCallSupport} className="flex-row justify-between items-center h-20 border-b border-slate-400">
+                            <TouchableOpacity onPress={handleCallSupport} style={{ borderBottomColor: borderColor }} className="flex-row justify-between items-center h-20 border-b">
                                 <View className="flex-row gap-x-2 items-center">
-                                    <FontAwesome5 name="phone-alt" color="green" size={18} />
+                                    <FontAwesome5 name="phone-alt" color={primaryColor} size={18} />
                                     <View>
                                         <ThemeTextsecond size={Textstyles.text_xmedium}>Call Support</ThemeTextsecond>
                                         <ThemeTextsecond size={Textstyles.text_xxxsmall}>+234 800 000 0000</ThemeTextsecond>
@@ -107,7 +107,7 @@ const Support = () => {
                                 <AntDesign name="right" size={24} color={secondaryTextColor} />
                             </TouchableOpacity>
 
-                            <TouchableOpacity onPress={handleWhatsApp} className="flex-row justify-between items-center h-20 border-b border-slate-400">
+                            <TouchableOpacity onPress={handleWhatsApp} style={{ borderBottomColor: borderColor }} className="flex-row justify-between items-center h-20">
                                 <View className="flex-row gap-x-2 items-center">
                                     <FontAwesome5 name="whatsapp" color="#25D366" size={20} />
                                     <View>
@@ -127,8 +127,8 @@ const Support = () => {
                         <ThemeTextsecond size={Textstyles.text_cmedium}>
                             Working Hours
                         </ThemeTextsecond>
-                        <View style={{ backgroundColor: selectioncardColor, elevation: 4 }}
-                            className="w-full h-auto rounded-2xl shadow-slate-500 shadow-sm px-5 py-5">
+                        <View style={{ backgroundColor: selectioncardColor, elevation: 4, shadowColor: theme === 'light' ? '#000000' : '#ffffff' }}
+                            className="w-full h-auto rounded-2xl shadow-sm px-5 py-5">
                             <View className="flex-row justify-between items-center">
                                 <ThemeTextsecond size={Textstyles.text_xsmall}>Monday - Friday</ThemeTextsecond>
                                 <ThemeText size={Textstyles.text_xsmall}>8:00 AM - 6:00 PM</ThemeText>

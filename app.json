@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "acepicknewversion",
+    "name": "Acepick",
     "slug": "acepicknewversion",
-    "scheme": "acepicknewversion",
+    "scheme": "acepick",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -22,7 +22,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.acepicknewversion"
+      "package": "com.anonymous.acepicknewversion",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -32,6 +33,7 @@
       "@config-plugins/react-native-webrtc",
       "expo-router",
       "expo-secure-store",
+      "expo-font",
       [
         "expo-notifications",
         {
@@ -39,7 +41,9 @@
           "color": "#ffffff",
           "defaultChannel": "default",
           "sounds": [
-            "./assets/notification_sound.mp3"
+            "./assets/notification_sound.mp3",
+            "./assets/sounds/ringtone.mp3",
+            "./assets/sounds/calltone.mp3"
           ],
           "enableBackgroundRemoteNotifications": true
         }
@@ -52,7 +56,8 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "expo-localization"
+      "expo-localization",
+      "expo-font"
     ],
     "extra": {
       "router": {

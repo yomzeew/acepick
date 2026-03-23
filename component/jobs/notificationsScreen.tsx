@@ -126,7 +126,7 @@ const InvoiceNotification=()=>{
                     </ThemeTextsecond>
                 </View>
                 <View className="w-1/3 items-end">
-                    <TouchableOpacity onPress={()=>router.push(`/invoiceViewLayout`)} style={{backgroundColor:primaryColor}} className="w-24 h-8 items-center justify-center rounded-xl ">
+                    <TouchableOpacity onPress={()=>router.push(`/invoiceViewPageLayout`)} style={{backgroundColor:primaryColor}} className="w-24 h-8 items-center justify-center rounded-xl ">
                         <Text style={[Textstyles.text_small]}>View</Text>
                     </TouchableOpacity>
 

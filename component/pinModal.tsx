@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import ContainerTemplate from './dashboardComponent/containerTemplate';
-import { AlertMessageBanner } from './AlertMessageBanner';
+import { useToast } from 'context/ToastContext';
 import { useTheme } from 'hooks/useTheme';
 import { getColors } from 'static/color';
 import { Textstyles } from 'static/textFontsize';
@@ -64,18 +64,17 @@ type PinModalProps = {
 const PinModal = ({ visible, mode, onComplete, onClose, loading = false }: PinModalProps) => {
   const { theme } = useTheme();
   const { primaryColor } = getColors(theme);
+  const toast = useToast();
 
   const [step, setStep]           = useState(1);
   const [pin, setPin]             = useState('');
   const [confirmPin, setConfirm]  = useState('');
-  const [error, setError]         = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const resetAll = () => {
     setStep(1);
     setPin('');
     setConfirm('');
-    setError(null);
   };
 
   const press = (key: string) => {
@@ -110,7 +109,7 @@ const PinModal = ({ visible, mode, onComplete, onClose, loading = false }: PinMo
               setIsProcessing(false);
             }, 1000);
           } else {
-            setError('PINs do not match');
+            toast.error("PIN Mismatch", "PINs do not match. Please try again.");
             setTimeout(() => {
               resetAll();
             }, 1500);
@@ -151,7 +150,6 @@ const PinModal = ({ visible, mode, onComplete, onClose, loading = false }: PinMo
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      {error && <AlertMessageBanner type="error" message={error} />}
       <ContainerTemplate>
         <View className="flex-1 items-center justify-center px-6">
           <ThemeText size={Textstyles.text_cmedium}>

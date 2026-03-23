@@ -102,23 +102,20 @@ interface ModaldisplayProps{
       };
     return(
         <>
-            
-        <View className="h-full w-full  absolute z-50 items-center justify-center">
-        <Pressable onPress={()=>{setShowOption(false)}} className="opacity-70 bg-black h-full w-full absolute z-50" />
-        <View style={{ backgroundColor: backgroundColor }} className="p-3 rounded-2xl absolute z-50 w-full h-[50%]">
-            <EmptyView height={10} />
-            <ScrollView>
-              {data.map((item, index) => (
-                <TouchableOpacity key={index} onPress={() => handleSelection(item)} className="w-full h-10">
-                  <ThemeText size={Textstyles.text_xsma}>{item}</ThemeText>
-                  <Divider />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-
+        <View className="h-full w-full absolute z-50 items-center justify-center">
+            <Pressable onPress={()=>{setShowOption(false)}} className="opacity-70 bg-black h-full w-full absolute z-50" />
+            <View style={{ backgroundColor: backgroundColor }} className="p-3 rounded-2xl w-11/12 h-[50%] max-h-96">
+                <EmptyView height={10} />
+                <ScrollView>
+                  {data.map((item, index) => (
+                    <TouchableOpacity key={index} onPress={() => handleSelection(item)} className="w-full h-10">
+                      <ThemeText size={Textstyles.text_xsma}>{item}</ThemeText>
+                      <Divider />
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
         </View>
-       
         </>
     )
 }

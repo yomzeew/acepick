@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
-import { Image, ScrollView, View, Dimensions, FlatList, RefreshControl, ActivityIndicator, Text, TouchableOpacity } from "react-native";
+import { useState } from "react";
+import { Image, View, Dimensions, FlatList, RefreshControl, ActivityIndicator, Text, TouchableOpacity } from "react-native";
 import ContainerTemplate from "../../dashboardComponent/containerTemplate";
-import BackComponent from "../../backcomponent";
 import { getColors } from "../../../static/color";
 import { useTheme } from "../../../hooks/useTheme";
 import { ThemeText, ThemeTextsecond } from "../../ThemeText";
@@ -12,60 +11,43 @@ import HeaderComponent from "../../headerComp";
 import { useQuery } from "@tanstack/react-query";
 import { useSelector } from "react-redux";
 import { RootState } from "redux/store";
-import { AlertMessageBanner } from "component/AlertMessageBanner";
 import { FontAwesome5 } from "@expo/vector-icons";
+import { getMyReviewsFn } from "services/userService";
 
 const { height } = Dimensions.get("window");
 
+interface ReviewData {
+    id: string;
+    text: string;
+    rating: number | null;
+    createdAt: string;
+    jobTitle: string | null;
+    jobId: number | null;
+    orderId: number | null;
+    reviewer: {
+        firstName: string;
+        lastName: string;
+        avatar: string | null;
+    } | null;
+}
+
 const ReviewComponent = () => {
     const { theme } = useTheme();
-    const { primaryColor, secondaryTextColor, selectioncardColor } = getColors(theme);
+    const { primaryColor, secondaryTextColor, selectioncardColor, backgroundColortwo } = getColors(theme);
     const [refreshing, setRefreshing] = useState(false);
     
     const user = useSelector((state: RootState) => state.auth.user);
     const userId = user?.id;
 
-    // Mock data for reviews - in a real app, this would come from an API
-    const reviewsData = [
-        {
-            id: 1,
-            userName: "Akeem Olayemi",
-            userAvatar: null, // Would be actual avatar URL
-            rating: 5,
-            comment: "Excellent service! Very professional and knowledgeable. Fixed my electrical issues quickly and efficiently.",
-            date: "2024-02-20",
-            serviceType: "Electrical"
-        },
-        {
-            id: 2,
-            userName: "Sarah Johnson",
-            userAvatar: null,
-            rating: 4,
-            comment: "Good work overall. Arrived on time and completed the job as expected. Would recommend.",
-            date: "2024-02-18",
-            serviceType: "Plumbing"
-        },
-        {
-            id: 3,
-            userName: "Michael Chen",
-            userAvatar: null,
-            rating: 5,
-            comment: "Outstanding craftsmanship! Attention to detail is impressive. Very satisfied with the results.",
-            date: "2024-02-15",
-            serviceType: "Carpentry"
-        }
-    ];
-
-    // Simulate API call
-    const { data: reviews, isLoading, error, refetch } = useQuery({
-        queryKey: ['reviews', userId],
-        queryFn: async () => {
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            return reviewsData;
-        },
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey: ['reviews', 'my'],
+        queryFn: getMyReviewsFn,
         enabled: !!userId,
     });
+
+    const reviews: ReviewData[] = data?.data?.reviews ?? [];
+    const averageRating: number = data?.data?.averageRating ?? 0;
+    const totalReviews: number = data?.data?.total ?? 0;
 
     const onRefresh = async () => {
         setRefreshing(true);
@@ -73,12 +55,9 @@ const ReviewComponent = () => {
         setRefreshing(false);
     };
 
-    const renderReviewItem = ({ item }: { item: any }) => (
+    const renderReviewItem = ({ item }: { item: ReviewData }) => (
         <ReviewCard review={item} />
     );
-
-    const averageRating = reviews ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length : 0;
-    const totalReviews = reviews?.length || 0;
 
     return (
         <ContainerTemplate>
@@ -97,16 +76,16 @@ const ReviewComponent = () => {
                         </View>
                         <View className="items-end">
                             {[5, 4, 3, 2, 1].map((stars) => {
-                                const count = reviews?.filter(r => Math.floor(r.rating) === stars).length || 0;
+                                const count = reviews?.filter(r => r.rating !== null && Math.floor(r.rating) === stars).length || 0;
                                 const percentage = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
                                 return (
                                     <View key={stars} className="flex-row items-center gap-2 mb-1">
                                         <Text className="text-xs w-4">{stars}</Text>
-                                        <FontAwesome5 name="star" size={10} color="#facc15" />
+                                        <FontAwesome5 name="star" size={10} color={backgroundColortwo} />
                                         <View className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
                                             <View 
-                                                className="h-full bg-yellow-400" 
-                                                style={{ width: `${percentage}%` }}
+                                                style={{ width: `${percentage}%`, backgroundColor: backgroundColortwo }}
+                                                className="h-full rounded-full"
                                             />
                                         </View>
                                         <Text className="text-xs w-8 text-right">{count}</Text>
@@ -129,7 +108,7 @@ const ReviewComponent = () => {
                     </View>
                 ) : error ? (
                     <View className="flex-1 justify-center items-center">
-                        <FontAwesome5 name="exclamation-circle" size={48} color="#ef4444" />
+                        <FontAwesome5 name="exclamation-circle" size={48} color={backgroundColortwo} />
                         <ThemeTextsecond size={Textstyles.text_small} className="mt-4 text-center">
                             Failed to load reviews. Please try again.
                         </ThemeTextsecond>
@@ -156,7 +135,7 @@ const ReviewComponent = () => {
                     <View className="flex-1 justify-center items-center">
                         <FontAwesome5 name="star" size={48} color={secondaryTextColor} />
                         <ThemeTextsecond size={Textstyles.text_small} className="mt-4 text-center">
-                            No reviews yet. Be the first to leave a review!
+                            No reviews yet.
                         </ThemeTextsecond>
                     </View>
                 )}
@@ -167,7 +146,7 @@ const ReviewComponent = () => {
 
 export default ReviewComponent;
 
-export const ReviewCard = ({ review }: { review: any }) => {
+export const ReviewCard = ({ review }: { review: ReviewData }) => {
     const { theme } = useTheme();
     const { primaryColor, secondaryTextColor, selectioncardColor } = getColors(theme);
 
@@ -176,31 +155,51 @@ export const ReviewCard = ({ review }: { review: any }) => {
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     };
 
+    const reviewerName = review.reviewer
+        ? `${review.reviewer.firstName} ${review.reviewer.lastName}`.trim()
+        : 'Anonymous';
+
     return (
         <View
             style={{ backgroundColor: selectioncardColor, elevation: 4 }}
             className="w-full h-auto rounded-2xl shadow-slate-500 shadow-sm px-5 py-3 mt-3"
         >
             <View className="flex-row items-center gap-x-2">
-                <View className="w-12 h-12 rounded-full bg-gray-200 justify-center items-center">
-                    <FontAwesome5 name="user" size={20} color={secondaryTextColor} />
-                </View>
+                {review.reviewer?.avatar ? (
+                    <Image
+                        source={{ uri: review.reviewer.avatar }}
+                        className="w-12 h-12 rounded-full"
+                    />
+                ) : (
+                    <View className="w-12 h-12 rounded-full bg-gray-200 justify-center items-center">
+                        <FontAwesome5 name="user" size={20} color={secondaryTextColor} />
+                    </View>
+                )}
                 <View className="flex-1">
-                    <ThemeText type="primary" size={Textstyles.text_cmedium}>{review.userName}</ThemeText>
-                    <ThemeTextsecond size={Textstyles.text_xxxsmall}>{review.serviceType}</ThemeTextsecond>
+                    <ThemeText type="primary" size={Textstyles.text_cmedium}>{reviewerName}</ThemeText>
+                    {review.jobTitle && (
+                        <ThemeTextsecond size={Textstyles.text_xxxsmall}>{review.jobTitle}</ThemeTextsecond>
+                    )}
+                    {review.orderId && !review.jobTitle && (
+                        <ThemeTextsecond size={Textstyles.text_xxxsmall}>Delivery Order</ThemeTextsecond>
+                    )}
                 </View>
             </View>
             <View className="mt-3">
                 <ThemeTextsecond size={Textstyles.text_xsma}>
-                    {review.comment}
+                    {review.text}
                 </ThemeTextsecond>
             </View>
             <View className="border-b border-slate-200 h-1 mt-3"/>
             <EmptyView height={5} />
             <View className="flex-row justify-between items-center">
-                <RatingStar numberOfStars={review.rating} />
+                {review.rating !== null ? (
+                    <RatingStar numberOfStars={review.rating} />
+                ) : (
+                    <View />
+                )}
                 <ThemeTextsecond size={Textstyles.text_xsma}>
-                    {formatDate(review.date)}
+                    {formatDate(review.createdAt)}
                 </ThemeTextsecond>
             </View>
         </View>

@@ -1,16 +1,15 @@
 import ContainerTemplate from "component/dashboardComponent/containerTemplate"
-import SelectComponent from "component/dashboardComponent/selectComponent"
 import HeaderComponent from "component/headerComp"
-import { useEffect, useState } from "react"
-import { FlatList, TouchableOpacity, View } from "react-native"
+import { useEffect, useState, useCallback } from "react"
+import { TouchableOpacity, View, ActivityIndicator, ScrollView, Text } from "react-native"
 import * as Location from "expo-location"
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { getLocationFn, paymentInitiate } from "services/userService"
 import { UserLocation } from "types/listofContactType"
 import EmptyView from "component/emptyview"
 import { ThemeText } from "component/ThemeText"
 import { Textstyles } from "static/textFontsize"
-import { AntDesign } from "@expo/vector-icons"
+import { AntDesign, Ionicons } from "@expo/vector-icons"
 import { useTheme } from "hooks/useTheme"
 import { getColors } from "static/color"
 import ButtonFunction from "component/buttonfunction"
@@ -22,271 +21,406 @@ import Divider from "component/divider"
 import { createOrderFn } from "services/deliveryServices"
 import InputComponent from "component/controls/textinput"
 import { formatAmount, formatNaira } from "utilizes/amountFormat"
-import { AlertMessageBanner } from "component/AlertMessageBanner"
+import { useToast } from "context/ToastContext"
 
 interface DeliveryDetailsProps {
   productId: number
 }
 
 const DeliveryDetails = ({ productId }: DeliveryDetailsProps) => {
-  const [productData, setProductData] = useState<ProductData | null>(null)
-
-  const mutationGet = useMutation({
-    mutationFn: getproductByIdFn,
-    onSuccess: (response) => {
-      setProductData(response || null)
-    },
-    onError: (error: any) => {
-      console.warn(error?.response?.data?.message || "Failed to load product")
-    },
-  })
-
-  const getId = Number(productId)
-
-  useEffect(() => {
-    mutationGet.mutate(getId)
-  }, [])
-
-  const [data, setData] = useState<UserLocation[]>([])
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [manualInput, setManualInput] = useState("")
-  const [manualAddress, setManualAddress] = useState<string>("")
-  const [manualLat, setManualLat] = useState<number | null>(null)
-  const [manualLong, setManualLong] = useState<number | null>(null)
-
   const { theme } = useTheme()
-  const { primaryColor } = getColors(theme)
-  const [showModal, setShowModal] = useState<boolean>(false)
-
-  const [orderResponse, setOrderResponse] = useState<any>("")
-
+  const { primaryColor, selectioncardColor, borderColor, secondaryTextColor, successColor } = getColors(theme)
   const router = useRouter()
+  const queryClient = useQueryClient()
+  const toast = useToast()
 
-  const mutation = useMutation({
-    mutationFn: getLocationFn,
-    onSuccess: (response) => {
-      setData(response.data || [])
-    },
-    onError: (error: any) => {
-      console.warn(error?.response?.data?.message || "Failed to load locations")
-    },
+  // Consolidated state with proper types
+  const [orderMethod, setOrderMethod] = useState<"delivery" | "self_pickup">("self_pickup")
+  const [quantity, setQuantity] = useState(1)
+  const [addressMethod, setAddressMethodRaw] = useState<"saved" | "manual" | "automatic">("saved")
+  const setAddressMethod = (method: "saved" | "manual" | "automatic") => {
+    setAddressMethodRaw(method)
+    setSelectedLocationId(null)
+    setManualAddress({ input: "", formatted: "", lat: null, long: null })
+  }
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null)
+  const [manualAddress, setManualAddress] = useState({
+    input: "",
+    formatted: "",
+    lat: null as number | null,
+    long: null as number | null,
+  })
+  const [showModal, setShowModal] = useState(false)
+  const [productTransactionId, setProductTransactionId] = useState<number>(0)
+  const [orderResponse, setOrderResponse] = useState<any>(null)
+
+  // Fetch product data with useQuery
+  const { data: productData, isLoading: productLoading, error: productError } = useQuery({
+    queryKey: ['product', productId],
+    queryFn: () => getproductByIdFn(Number(productId)),
+    enabled: !!productId,
   })
 
-  useEffect(() => {
-    mutation.mutate()
-  }, [])
+  // Fetch saved locations
+  const { data: locations, isLoading: locationsLoading } = useQuery({
+    queryKey: ['locations'],
+    queryFn: getLocationFn,
+  })
 
-  const deliveryMethodValue = ["delivery", "self_pickup"]
-  const [orderMethod, setorderMethod] = useState("self_pickup")
-  const [quantity, setQuantity] = useState(1)
-  const [transproductId,setTransProductId]=useState<number>(0)
-  const [price,setPrice]=useState<number>(0)
+  // Validate quantity against stock
+  const maxQuantity = productData?.quantity || 1
+  const handleAddQuantity = () => {
+    if (quantity < maxQuantity) {
+      setQuantity(prev => prev + 1)
+    } else {
+      toast.error('Stock limit', `Only ${maxQuantity} items available`)
+    }
+  }
+  const handleSubQuantity = () => quantity > 1 && setQuantity(prev => prev - 1)
 
-  const handleAddQuantity = () => setQuantity((q) => q + 1)
-  const handleSubQuantity = () => quantity > 1 && setQuantity((q) => q - 1)
-
-  // address selection method
-  const addressOptions = ["saved", "manual", "automatic"]
-  const [addressMethod, setAddressMethod] = useState<"saved" | "manual" | "automatic">("saved")
-
-  // select product mutation
+  // Select product mutation
   const mutationSelect = useMutation({
     mutationFn: selectproductFn,
     onSuccess: (response) => {
-      console.log(response.data,'mee')
       const productTransactionId = response.data.id
-      setTransProductId(productTransactionId)
+      setProductTransactionId(productTransactionId)
       
-      // Update price when product is selected
-      if (response.data.price) {
-        setPrice(Number(response.data.price))
-      }
-      
-      let payload: any = { productTransactionId }
-      if(orderMethod==='delivery'){
-        if (addressMethod === "saved" && selectedId) {
-          payload.locationId = Number(selectedId)
-        } else if (addressMethod === "manual" && manualLat && manualLong && manualAddress) {
-          payload.receiverLat = manualLat
-          payload.receiverLong = manualLong
-          payload.address = manualAddress
-        } else if (addressMethod === "automatic" && manualLat && manualLong && manualAddress) {
-          payload.receiverLat = manualLat
-          payload.receiverLong = manualLong
-          payload.address = manualAddress
+      if (orderMethod === 'delivery') {
+        // Validate address for delivery
+        let payload: any = { productTransactionId }
+        
+        if (addressMethod === "saved" && selectedLocationId) {
+          payload.locationId = Number(selectedLocationId)
+        } else if ((addressMethod === "manual" || addressMethod === "automatic") && 
+                   manualAddress.lat && manualAddress.long && manualAddress.formatted) {
+          payload.receiverLat = manualAddress.lat
+          payload.receiverLong = manualAddress.long
+          payload.address = manualAddress.formatted
         } else {
-          alert("Please provide a valid address before proceeding.")
+          toast.error('Address required', 'Please provide a valid delivery address')
           return
         }
-  
-        mutationOrderCreate.mutate(payload)
         
-      }
-      else{
+        mutationOrderCreate.mutate(payload)
+      } else {
+        // Self pickup - show payment modal directly
         setShowModal(true)
-        console.log(response.data.price)
       }
-
-     
     },
     onError: (error: any) => {
-      console.warn(error?.response?.data?.message || "Failed to select product")
+      toast.error('Error', error?.message || 'Failed to select product')
     },
   })
 
-  // create order mutation
+  // Create order mutation
   const mutationOrderCreate = useMutation({
     mutationFn: createOrderFn,
     onSuccess: (response) => {
-        
       setOrderResponse(response.data)
+      queryClient.invalidateQueries({ queryKey: ['product', productId] })
       setShowModal(true)
     },
     onError: (error: any) => {
-      console.warn(error?.response?.data?.message || "Failed to create order")
+      toast.error('Order Error', error?.message || 'Failed to create delivery order')
     },
   })
 
-const handleSelectProduct = () => {
-  if (!productId) return
-  
-  // For self pickup, just select the product
-  if (orderMethod === "self_pickup") {
-    mutationSelect.mutate(productId)
-    return
-  }
+  // Handle checkout
+  const handleCheckout = useCallback(() => {
+    if (!productId) {
+      toast.error('Error', 'Product not available')
+      return
+    }
+    
+    // Prepare selection parameters
+    const selectParams = {
+      productId: Number(productId),
+      quantity,
+      orderMethod
+    }
+    
+    // For self pickup, just select the product
+    if (orderMethod === "self_pickup") {
+      mutationSelect.mutate(selectParams)
+      return
+    }
 
-  // For delivery, validate address first
-  if (addressMethod === "saved" && !selectedId) {
-    alert("Please select a saved address")
-    return
-  }
-  
-  if ((addressMethod === "manual" || addressMethod === "automatic") && (!manualLat || !manualLong || !manualAddress)) {
-    alert("Please provide a valid address before proceeding.")
-    return
-  }
+    // For delivery, validate address first
+    if (addressMethod === "saved" && !selectedLocationId) {
+      toast.error('Address required', 'Please select a saved address')
+      return
+    }
+    
+    if ((addressMethod === "manual" || addressMethod === "automatic") && 
+        (!manualAddress.lat || !manualAddress.long || !manualAddress.formatted)) {
+      toast.error('Address required', 'Please provide a valid delivery address')
+      return
+    }
 
-  // Select product with address validation
-  mutationSelect.mutate(productId)
-}
+    // Select product with address validation
+    mutationSelect.mutate(selectParams)
+  }, [productId, quantity, orderMethod, addressMethod, selectedLocationId, manualAddress, mutationSelect])
 
 
-  // GPS location
+  // GPS location with better error handling
   const handleUseCurrentLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync()
       if (status !== "granted") {
-        alert("Permission denied. Enable location in settings.")
+        toast.error('Permission denied', 'Please enable location in settings.')
         return
       }
+      
       const position = await Location.getCurrentPositionAsync({})
       const { latitude, longitude } = position.coords
-      setManualLat(latitude)
-      setManualLong(longitude)
-
-      const reverse = await Location.reverseGeocodeAsync({ latitude, longitude })
-      if (reverse.length > 0) {
-        setManualAddress(`${reverse[0].name || ""} ${reverse[0].street || ""}, ${reverse[0].city || ""}`)
+      
+      const reverseRes = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+        { headers: { 'User-Agent': 'AcepickApp/1.0' } }
+      )
+      const reverseData = await reverseRes.json()
+      if (reverseData?.display_name) {
+        setManualAddress(prev => ({
+          ...prev,
+          formatted: reverseData.display_name,
+          lat: latitude,
+          long: longitude,
+        }))
+      } else {
+        toast.error('Location Error', 'Could not determine address from location')
       }
     } catch (err) {
       console.error("Error getting location", err)
+      toast.error('Location Error', 'Failed to get current location. Please try again.')
     }
   }
 
-  // geocode manual input
+  // Geocode manual address input
   const handleGeocodeAddress = async () => {
+    if (!manualAddress.input.trim()) {
+      toast.error('Input required', 'Please enter an address')
+      return
+    }
+    
     try {
-      const geo = await Location.geocodeAsync(manualInput)
-      if (geo.length > 0) {
-        const { latitude, longitude } = geo[0]
-        setManualLat(latitude)
-        setManualLong(longitude)
-        setManualAddress(manualInput)
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(manualAddress.input)}&limit=1`,
+        { headers: { 'User-Agent': 'AcepickApp/1.0' } }
+      )
+      const data = await response.json()
+      if (data.length > 0) {
+        setManualAddress(prev => ({
+          ...prev,
+          formatted: data[0].display_name || manualAddress.input,
+          lat: parseFloat(data[0].lat),
+          long: parseFloat(data[0].lon),
+        }))
       } else {
-        alert("Address not found. Try again.")
+        toast.error('Not found', 'Address not found. Please try a different address.')
       }
     } catch (err) {
       console.error("Error geocoding address", err)
+      toast.error('Error', 'Failed to find address. Please check your connection.')
     }
   }
 
 
   return (
     <>
+      
       <ContainerTemplate>
         <HeaderComponent title={"Delivery Details"} />
-        <EmptyView height={40} />
-        <View className="w-full">
-          <SelectComponent
-            title={"Select Delivery Method"}
-            width={"100%"}
-            data={deliveryMethodValue}
-            setValue={setorderMethod}
-            value={orderMethod}
-          />
+        <EmptyView height={20} />
+        
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+          {/* Product Summary Card */}
+          {productData && (
+            <View style={{ backgroundColor: selectioncardColor }} className="rounded-xl p-3 mb-4 border border-gray-100">
+              <View className="flex-row justify-between items-center">
+                <View className="flex-1">
+                  <ThemeText size={Textstyles.text_small} className="font-semibold">
+                    {productData.name}
+                  </ThemeText>
+                  <ThemeText size={Textstyles.text_xsmall} type="secondary">
+                    {formatNaira(productData.price)} × {quantity} {quantity > 1 ? 'items' : 'item'}
+                  </ThemeText>
+                </View>
+                <ThemeText size={Textstyles.text_small} type="primary" className="font-bold">
+                  {formatNaira(Number(productData.price) * quantity)}
+                </ThemeText>
+              </View>
+            </View>
+          )}
 
-          <EmptyView height={20} />
-          <View>
-            <ThemeText size={Textstyles.text_xsmall}>Add Quantity</ThemeText>
-            <View className="flex-row gap-x-3 items-center">
+          {/* Loading state */}
+          {productLoading && (
+            <View className="items-center justify-center py-20">
+              <ActivityIndicator size="large" color={primaryColor} />
+              <ThemeText size={Textstyles.text_xsmall}>
+                Loading product details...
+              </ThemeText>
+            </View>
+          )}
+
+          {/* Delivery Method */}
+          <View className="mb-3">
+            <ThemeText size={Textstyles.text_xsmall} className="font-semibold mb-2">
+              Delivery Method
+            </ThemeText>
+            <View className="flex-row gap-2">
               <TouchableOpacity
-                className="rounded-xl items-center justify-center border w-8 h-8"
-                style={{ borderColor: primaryColor }}
-                onPress={handleAddQuantity}
+                className="flex-1 rounded-xl px-3 py-2 flex-row items-center justify-center gap-2"
+                style={{
+                  backgroundColor: selectioncardColor,
+                  borderWidth: orderMethod === "delivery" ? 2 : 1,
+                  borderColor: orderMethod === "delivery" ? primaryColor : '#e5e7eb',
+                }}
+                onPress={() => setOrderMethod("delivery")}
               >
-                <ThemeText size={Textstyles.text_xsmall}>+</ThemeText>
+                <Ionicons name="bicycle-outline" size={16} color={orderMethod === "delivery" ? primaryColor : '#9ca3af'} />
+                <ThemeText size={Textstyles.text_xsmall} className="font-semibold">
+                  Delivery
+                </ThemeText>
               </TouchableOpacity>
-              <ThemeText size={Textstyles.text_xsmall}>{quantity}</ThemeText>
+
               <TouchableOpacity
-                style={{ borderColor: primaryColor }}
-                className="rounded-xl items-center justify-center w-8 h-8 border"
-                onPress={handleSubQuantity}
+                className="flex-1 rounded-xl px-3 py-2 flex-row items-center justify-center gap-2"
+                style={{
+                  backgroundColor: selectioncardColor,
+                  borderWidth: orderMethod === "self_pickup" ? 2 : 1,
+                  borderColor: orderMethod === "self_pickup" ? primaryColor : '#e5e7eb',
+                }}
+                onPress={() => setOrderMethod("self_pickup")}
               >
-                <ThemeText size={Textstyles.text_xsmall}>-</ThemeText>
+                <Ionicons name="storefront-outline" size={16} color={orderMethod === "self_pickup" ? primaryColor : '#9ca3af'} />
+                <ThemeText size={Textstyles.text_xsmall} className="font-semibold">
+                  Pickup
+                </ThemeText>
               </TouchableOpacity>
             </View>
           </View>
 
-          <EmptyView height={20} />
+          {/* Quantity Selector */}
+          <View style={{ backgroundColor: selectioncardColor }} className="rounded-xl p-3 mb-3 border border-gray-100">
+            <View className="flex-row justify-between items-center">
+              <ThemeText size={Textstyles.text_xsmall} className="font-semibold">
+                Quantity
+              </ThemeText>
+              <View className="flex-row items-center gap-3">
+                <TouchableOpacity
+                  className="rounded-full items-center justify-center w-8 h-8"
+                  style={{ 
+                    backgroundColor: quantity <= 1 ? '#f3f4f6' : primaryColor,
+                    opacity: quantity <= 1 ? 0.5 : 1
+                  }}
+                  onPress={handleSubQuantity}
+                  disabled={quantity <= 1}
+                >
+                  <Text style={{ color: quantity <= 1 ? '#9ca3af' : '#ffffff', fontSize: 16, fontWeight: '600' }}>
+                    −
+                  </Text>
+                </TouchableOpacity>
+                <ThemeText size={Textstyles.text_small} className="font-bold">
+                  {quantity}
+                </ThemeText>
+                <TouchableOpacity
+                  className="rounded-full items-center justify-center w-8 h-8"
+                  style={{ 
+                    backgroundColor: quantity >= maxQuantity ? '#f3f4f6' : primaryColor,
+                    opacity: quantity >= maxQuantity ? 0.5 : 1
+                  }}
+                  onPress={handleAddQuantity}
+                  disabled={quantity >= maxQuantity}
+                >
+                  <Text style={{ color: quantity >= maxQuantity ? '#9ca3af' : '#ffffff', fontSize: 16, fontWeight: '600' }}>
+                    +
+                  </Text>
+                </TouchableOpacity>
+                <ThemeText size={Textstyles.text_xsmall} type="secondary">
+                  /{maxQuantity}
+                </ThemeText>
+              </View>
+            </View>
+          </View>
 
+          {/* Delivery Options */}
           {orderMethod === "delivery" && (
             <View className="w-full">
-              <SelectComponent
-                title={"Select Address Method"}
-                width={"100%"}
-                data={addressOptions}
-                setValue={(val) => setAddressMethod(val as any)}
-                value={addressMethod}
-              />
-
-              <EmptyView height={20} />
-
-              {addressMethod === "saved" && (
-                <FlatList
-                  data={data.slice(0, 3)}
-                  keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
-                  renderItem={({ item }) => (
-                    <AddressCard
-                      item={item}
-                      isSelected={selectedId === item.id?.toString()}
-                      onSelect={() => setSelectedId(item.id?.toString() || null)}
+              <ThemeText size={Textstyles.text_small} className="font-semibold mb-3">
+                Delivery Address
+              </ThemeText>
+              <View className="flex-row gap-2 mb-4">
+                {([
+                  { key: "saved" as const, icon: "bookmark-outline" as const, label: "Saved" },
+                  { key: "manual" as const, icon: "create-outline" as const, label: "Enter" },
+                  { key: "automatic" as const, icon: "navigate-outline" as const, label: "GPS" },
+                ]).map((opt) => (
+                  <TouchableOpacity
+                    key={opt.key}
+                    className="flex-1 rounded-xl py-3 items-center flex-row justify-center gap-1"
+                    style={{
+                      backgroundColor: addressMethod === opt.key ? primaryColor : selectioncardColor,
+                      borderWidth: 1,
+                      borderColor: addressMethod === opt.key ? primaryColor : '#e5e7eb',
+                    }}
+                    onPress={() => setAddressMethod(opt.key)}
+                  >
+                    <Ionicons 
+                      name={opt.icon} 
+                      size={16} 
+                      color={addressMethod === opt.key ? '#ffffff' : '#9ca3af'} 
                     />
+                    <Text style={{ 
+                      color: addressMethod === opt.key ? '#ffffff' : '#6b7280',
+                      fontSize: 12,
+                      fontWeight: '600',
+                    }}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Saved Addresses */}
+              {addressMethod === "saved" && (
+                <View>
+                  {locationsLoading ? (
+                    <View className="items-center justify-center py-10">
+                      <ActivityIndicator size="small" color={primaryColor} />
+                      <ThemeText size={Textstyles.text_xsmall}>
+                        Loading saved addresses...
+                      </ThemeText>
+                    </View>
+                  ) : (locations?.data?.slice(0, 3) || []).length > 0 ? (
+                    (locations?.data?.slice(0, 3) || []).map((item: UserLocation) => (
+                      <AddressCard
+                        key={item.id?.toString() || Math.random().toString()}
+                        item={item}
+                        isSelected={selectedLocationId === item.id?.toString()}
+                        onSelect={() => setSelectedLocationId(item.id?.toString() || null)}
+                      />
+                    ))
+                  ) : (
+                    <View className="items-center justify-center py-10">
+                      <Ionicons name="location-outline" size={32} color={secondaryTextColor} />
+                      <EmptyView height={8} />
+                      <ThemeText size={Textstyles.text_xsmall} type="secondary">
+                        No saved addresses found
+                      </ThemeText>
+                    </View>
                   )}
-                  ListEmptyComponent={
-                    <ThemeText size={Textstyles.text_xsmall}>No saved address found</ThemeText>
-                  }
-                />
+                </View>
               )}
 
+              {/* Manual Address Entry */}
               {addressMethod === "manual" && (
                 <>
                   <InputComponent
-                    value={manualInput}
-                    onChange={setManualInput}
-                    placeholder="Enter address"
+                    value={manualAddress.input}
+                    onChange={(value) => setManualAddress(prev => ({ ...prev, input: value }))}
+                    placeholder="Enter delivery address"
                     color={primaryColor}
-                    placeholdercolor={primaryColor}
+                    placeholdercolor={secondaryTextColor}
                   />
                   <EmptyView height={10} />
                   <ButtonFunction
@@ -295,45 +429,75 @@ const handleSelectProduct = () => {
                     textcolor={"#ffffff"}
                     onPress={handleGeocodeAddress}
                   />
-                  {manualAddress ? (
-                    <ThemeText size={Textstyles.text_xsmall}>
-                      Selected: {manualAddress} ({manualLat}, {manualLong})
-                    </ThemeText>
-                  ) : null}
+                  {manualAddress.formatted && (
+                    <View style={{ backgroundColor: selectioncardColor }} className="mt-2 p-2 rounded-lg flex-row items-center gap-2">
+                      <Ionicons name="checkmark-circle" size={14} color={successColor} />
+                      <ThemeText size={Textstyles.text_xsmall} type="secondary" className="flex-1">
+                        {manualAddress.formatted}
+                      </ThemeText>
+                    </View>
+                  )}
                 </>
               )}
 
+              {/* Current Location */}
               {addressMethod === "automatic" && (
-                <ButtonFunction
-                  color={primaryColor}
-                  text={"Use Current Location"}
-                  textcolor={"#ffffff"}
-                  onPress={handleUseCurrentLocation}
-                />
+                <View>
+                  <TouchableOpacity
+                    style={{ backgroundColor: selectioncardColor, borderWidth: 1, borderColor: '#e5e7eb' }}
+                    className="rounded-xl p-3 flex-row items-center gap-3"
+                    onPress={handleUseCurrentLocation}
+                  >
+                    <Ionicons name="navigate-outline" size={20} color={primaryColor} />
+                    <ThemeText size={Textstyles.text_xsmall} className="font-semibold">
+                      Use Current Location
+                    </ThemeText>
+                  </TouchableOpacity>
+                  {manualAddress.formatted && (
+                    <View style={{ backgroundColor: selectioncardColor }} className="mt-2 p-2 rounded-lg flex-row items-center gap-2">
+                      <Ionicons name="checkmark-circle" size={14} color={successColor} />
+                      <ThemeText size={Textstyles.text_xsmall} type="secondary" className="flex-1">
+                        {manualAddress.formatted}
+                      </ThemeText>
+                    </View>
+                  )}
+                </View>
               )}
-
-              <EmptyView height={20} />
-              <ButtonFunction
-                color={primaryColor}
-                text={"Checkout"}
-                textcolor={"#ffffff"}
-                onPress={handleSelectProduct}
-              />
             </View>
           )}
-          {orderMethod === "self_pickup" &&(
-            <View className="w-full">
-                <ButtonFunction
-                color={primaryColor}
-                text={"Checkout"}
-                textcolor={"#ffffff"}
-                onPress={handleSelectProduct}
-              />
-              </View>
-          
 
-          )}
-        </View>
+              {/* Self Pickup Info */}
+              {orderMethod === "self_pickup" && (
+                <View style={{ backgroundColor: selectioncardColor }} className="rounded-xl p-3 flex-row items-center gap-2">
+                  <Ionicons name="information-circle-outline" size={16} color={primaryColor} />
+                  <ThemeText size={Textstyles.text_xsmall} type="secondary" className="flex-1">
+                    Pick up from seller's location. No delivery fee.
+                  </ThemeText>
+                </View>
+              )}
+
+              <EmptyView height={30} />
+
+              {/* Checkout Button */}
+          <View className="mt-2">
+            <View className="flex-row justify-between items-center mb-3 px-1">
+              <ThemeText size={Textstyles.text_xsmall} type="secondary">
+                Estimated Total:
+              </ThemeText>
+              <ThemeText size={Textstyles.text_small} type="primary" className="font-bold">
+                {formatNaira(Number(productData?.price || 0) * quantity)}
+              </ThemeText>
+            </View>
+            <ButtonFunction
+              color={primaryColor}
+              text={mutationSelect.isPending || mutationOrderCreate.isPending 
+                ? "Processing..." 
+                : orderMethod === "delivery" ? "Proceed to Payment" : "Continue to Payment"}
+              textcolor="#ffffff"
+              onPress={handleCheckout}
+            />
+          </View>
+        </ScrollView>
       </ContainerTemplate>
 
       {/* Order / Payment Modal */}
@@ -342,7 +506,13 @@ const handleSelectProduct = () => {
         modalHeight={"80%"}
         setshowmodal={setShowModal}
       >
-        <PaymentModal price={price} setShowModal={setShowModal} product={productData!} productTransId={transproductId} orderResponse={orderResponse} />
+        <PaymentModal 
+          setShowModal={setShowModal} 
+          product={productData || null} 
+          productTransId={productTransactionId} 
+          orderResponse={orderResponse} 
+          quantity={quantity}
+        />
       </SliderModalTemplate>
     </>
   )
@@ -359,7 +529,7 @@ const AddressCard = ({ item, isSelected, onSelect }: AddressCardProp) => {
   const [address, setAddress] = useState("")
   const [city, setCity] = useState("")
   const { theme } = useTheme()
-  const { selectioncardColor } = getColors(theme)
+  const { selectioncardColor, primaryColor } = getColors(theme)
 
   useEffect(() => {
     (async () => {
@@ -381,148 +551,179 @@ const AddressCard = ({ item, isSelected, onSelect }: AddressCardProp) => {
   return (
     <TouchableOpacity
       onPress={onSelect}
-      style={{ backgroundColor: selectioncardColor }}
-      className={`flex-row items-center justify-between border rounded-xl px-3 py-3 mb-3 ${
-        isSelected ? "border-green-500" : "border-gray-300"
-      }`}
+      style={{ 
+        backgroundColor: selectioncardColor,
+        borderColor: isSelected ? primaryColor : '#e5e7eb',
+        borderWidth: isSelected ? 2 : 1,
+      }}
+      className="flex-row items-center justify-between rounded-2xl px-4 py-4 mb-3"
     >
-      <View>
-        <ThemeText size={Textstyles.text_xsmall}>{address || "Fetching address..."}</ThemeText>
-        {city ? <ThemeText size={Textstyles.text_xsmall}>{city}</ThemeText> : null}
+      <View className="flex-row items-center gap-3 flex-1">
+        <View style={{ backgroundColor: isSelected ? primaryColor + '15' : '#f3f4f6' }} className="rounded-full p-2">
+          <Ionicons name="location-outline" size={18} color={isSelected ? primaryColor : '#9ca3af'} />
+        </View>
+        <View className="flex-1">
+          <ThemeText size={Textstyles.text_xsmall} className="font-medium">
+            {address || "Fetching address..."}
+          </ThemeText>
+          {city ? (
+            <ThemeText size={Textstyles.text_xsmall} type="secondary" className="mt-0.5">
+              {city}
+            </ThemeText>
+          ) : null}
+        </View>
       </View>
-      {isSelected && <AntDesign name="checkcircle" size={20} color="green" />}
+      {isSelected && <AntDesign name="checkcircle" size={20} color={primaryColor} />}
     </TouchableOpacity>
   )
 }
 
 // Payment Modal
-// Payment Modal
 interface PaymentModalProps {
-    product: ProductData
-    orderResponse: any
-    setShowModal: (val: boolean) => void;
-    productTransId:number
-    price:number
-  }
-  const PaymentModal = ({ product, orderResponse, setShowModal, productTransId, price }: PaymentModalProps) => {
-    const { theme } = useTheme()
-    const { primaryColor } = getColors(theme)
+  product: ProductData | null
+  orderResponse: any
+  setShowModal: (val: boolean) => void;
+  productTransId: number
+  quantity: number
+}
+
+const PaymentModal = ({ product, orderResponse, setShowModal, productTransId, quantity }: PaymentModalProps) => {
+  const { theme } = useTheme()
+  const { primaryColor, selectioncardColor, secondaryTextColor } = getColors(theme)
+  const toast = useToast()
   
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [successMessage, setSuccessMessage] = useState<string | null>(null)
-    const [ref, setRef] = useState<string | null>(null)
-  console.log(product?.price)
-    // ✅ Delivery (has orderResponse)
-    const deliveryCost = orderResponse?.cost || 0
-    const productPrice = orderResponse?.productTransaction?.price || product?.price || price || 0
-    const totalCost = orderResponse ? Number(productPrice) + Number(deliveryCost) : Number(productPrice)
+  // Calculate costs
+  const deliveryCost = orderResponse?.cost || 0
+  // productTransaction.price is already unitPrice * quantity from backend
+  const productPrice = orderResponse?.productTransaction?.price || Number(product?.price || 0) * quantity
+  const totalCost = Number(productPrice) + Number(deliveryCost)
   
-    // ✅ ProductTransactionId (self_pickup fallback)
-    const productTransactionId = orderResponse?.productTransaction?.id || productTransId
+  const productTransactionId = orderResponse?.productTransaction?.id || productTransId
+  const router = useRouter()
   
-    const router = useRouter()
-  
-    // Auto-clear messages
-    useEffect(() => {
-      if (errorMessage) {
-        const timer = setTimeout(() => setErrorMessage(null), 4000)
-        return () => clearTimeout(timer)
+  const paymentMutation = useMutation({
+    mutationFn: paymentInitiate,
+    onSuccess: async (data) => {
+      const { reference, authorization_url } = data.data
+      toast.success('Payment initiated', 'Redirecting to payment...')
+      
+      if (authorization_url && reference) {
+        router.push({
+          pathname: "/paystackViewLayout",
+          params: { url: authorization_url, reference },
+        })
       }
-    }, [errorMessage])
+      
+      setShowModal(false)
+    },
+    onError: (error: any) => {
+      const msg = error?.response?.data?.message || error?.message || 'Payment initiation failed'
+      toast.error('Payment Failed', msg)
+    },
+  })
   
-    useEffect(() => {
-      if (successMessage) {
-        const timer = setTimeout(() => setSuccessMessage(null), 4000)
-        return () => clearTimeout(timer)
-      }
-    }, [successMessage])
-  
-    const mutation = useMutation({
-      mutationFn: paymentInitiate,
-      onSuccess: async (data) => {
-        const { reference, authorization_url } = data.data
-        setRef(reference)
-        setSuccessMessage("Payment initiated")
-  
-        if (authorization_url && reference) {
-          router.push({
-            pathname: "/paystackViewLayout",
-            params: { url: authorization_url, reference },
-          })
-        }
-  
-        setShowModal(false)
-        console.log("Order updated to PAID ✅")
-      },
-      onError: (error: any) => {
-        let msg = "An unexpected error occurred"
-        if (error?.response?.data) {
-          msg =
-            error.response.data.message ||
-            error.response.data.error ||
-            JSON.stringify(error.response.data)
-        } else if (error?.message) {
-          msg = error.message
-        }
-        setErrorMessage(msg)
-        console.error(msg)
-      },
-    })
-  
-    const handleSubmit = () => {
-      const payload = {
-        amount: totalCost,
-        description: "Product_Order payment",
-        productTransactionId: Number(productTransactionId),
-      }
-      mutation.mutate(payload)
+  const handlePayment = () => {
+    if (!productTransactionId) {
+      toast.error('Error', 'Invalid product transaction')
+      return
     }
+    
+    const payload = {
+      amount: totalCost,
+      description: orderResponse ? 'product_order payment' : 'product payment',
+      productTransactionId: Number(productTransactionId),
+    }
+    
+    paymentMutation.mutate(payload)
+  }
   
     return (
-      <>
-        {successMessage && (
-          <AlertMessageBanner type="success" message={successMessage} />
-        )}
-        {errorMessage && (
-          <AlertMessageBanner type="error" message={errorMessage} />
-        )}
-  
-        <View className="px-5 py-5">
-          <ThemeText size={Textstyles.text_cmedium}>{product?.name}</ThemeText>
-          <Divider />
-          <EmptyView height={20} />
+      <View className="px-5 py-5">
+        <ThemeText size={Textstyles.text_cmedium}>{product?.name || 'Product'}</ThemeText>
+        <Divider />
+        <EmptyView height={20} />
 
-          <ThemeText size={Textstyles.text_xsmall}>
-          Product Cost: {formatNaira(productPrice)}
-        </ThemeText>
+        {/* Order Summary */}
+        <View style={{ 
+          backgroundColor: selectioncardColor,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.08,
+          shadowRadius: 3,
+          elevation: 2
+        }} className="rounded-2xl p-4 mb-4">
+          <ThemeText size={Textstyles.text_small} className="font-semibold mb-2">Order Summary</ThemeText>
+          
+          <View className="flex-row justify-between items-center mb-2">
+            <ThemeText size={Textstyles.text_xsmall} type="secondary">
+              Product ({quantity}x):
+            </ThemeText>
+            <ThemeText size={Textstyles.text_xsmall}>
+              {formatNaira(Number(productPrice) * quantity)}
+            </ThemeText>
+          </View>
   
           {orderResponse && (
-            <>
-              <Divider />
-              <EmptyView height={20} />
-              <ThemeText size={Textstyles.text_xsmall}>
-                Delivery Cost: {formatNaira(deliveryCost)}
+            <View className="flex-row justify-between items-center mb-2">
+              <ThemeText size={Textstyles.text_xsmall} type="secondary">
+                Delivery Fee:
               </ThemeText>
-            </>
+              <ThemeText size={Textstyles.text_xsmall}>
+                {formatNaira(deliveryCost)}
+              </ThemeText>
+            </View>
           )}
   
           <Divider />
-          <EmptyView height={20} />
+          <EmptyView height={8} />
   
-          <ThemeText size={Textstyles.text_xsmall}>
-            Total: {formatNaira(totalCost)}
-          </ThemeText>
-          <EmptyView height={20} />
-  
-          <ButtonFunction
-            color={primaryColor}
-            text={"Make Payment"}
-            textcolor={"#ffffff"}
-            onPress={handleSubmit}
-          />
+          <View className="flex-row justify-between items-center">
+            <ThemeText size={Textstyles.text_small}>
+              Total:
+            </ThemeText>
+            <ThemeText size={Textstyles.text_small} type="primary">
+              {formatNaira(totalCost)}
+            </ThemeText>
+          </View>
         </View>
-      </>
-    )
-  }
+
+        {/* Delivery Info */}
+        {orderResponse && (
+          <View style={{ 
+            backgroundColor: selectioncardColor,
+            borderLeftWidth: 3,
+            borderLeftColor: primaryColor,
+          }} className="rounded-2xl p-4 mb-4">
+            <View className="flex-row items-center mb-2 gap-2">
+              <View style={{ backgroundColor: primaryColor + '15' }} className="rounded-full p-2">
+                <Ionicons name="location-outline" size={16} color={primaryColor} />
+              </View>
+              <ThemeText size={Textstyles.text_small} className="font-semibold">
+                Delivery Details
+              </ThemeText>
+            </View>
+            <View className="ml-10">
+              <ThemeText size={Textstyles.text_xsmall} type="secondary">
+                {orderResponse.deliveryAddress || 'Address will be confirmed'}
+              </ThemeText>
+              {orderResponse.distance && (
+                <View className="flex-row items-center mt-1 gap-1">
+                  <Ionicons name="car-outline" size={12} color={secondaryTextColor} />
+                  <ThemeText size={Textstyles.text_xsmall} type="secondary">
+                    {orderResponse.distance} km
+                  </ThemeText>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
   
-  
+        <ButtonFunction
+          color={primaryColor}
+          text={paymentMutation.isPending ? "Processing..." : `Pay ${formatNaira(totalCost)}`}
+          textcolor={"#ffffff"}
+          onPress={handlePayment}
+        />
+      </View>
+  )
+}

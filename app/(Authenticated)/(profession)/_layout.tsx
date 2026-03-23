@@ -12,7 +12,6 @@ export default function ProfessionLayout() {
     >
       <Stack.Screen name="calllayout"/>
       <Stack.Screen name="category/[category]" />
-      <Stack.Screen name="professional/[profession]" />
       <Stack.Screen name="professionalprofileLayout" />
     </Stack>
   

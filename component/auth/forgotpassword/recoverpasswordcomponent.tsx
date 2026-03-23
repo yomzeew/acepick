@@ -13,7 +13,7 @@ import { sendOtp } from "services/authServices";
 import BackComponent from "component/backcomponent";
 import ButtonComponent from "component/buttoncomponent";
 import { useDispatch } from "react-redux";
-import { setRegistrationData } from "redux/registerSlice";
+import { setRegistrationData } from "redux/slices/authSlice";
 import { useRouter } from "expo-router";
 
 function RecoverPassword() {

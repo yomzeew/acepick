@@ -20,6 +20,8 @@ const defaultCallContext: CallContextType = {
   partnerId: '',
   localStream: { current: null },
   remoteStream: { current: null },
+  toggleMute: () => false,
+  toggleSpeaker: async () => {},
 };
 
 const CallContext = createContext<CallContextType>(defaultCallContext);

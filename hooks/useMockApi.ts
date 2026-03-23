@@ -21,7 +21,7 @@ export const useMockApi = () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000'}/health`, {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'https://acepickbackend.onrender.com'}/api/health`, {
         method: 'GET',
         signal: controller.signal,
       });

@@ -22,6 +22,10 @@ const ClientDetails = () => {
     const { selectioncardColor,primaryColor } = getColors(theme)
     const user=useSelector((state:RootState)=>state.auth.user)
 
+    if (!user) {
+        return null; // Don't render if user is not available
+    }
+
     const avatar:string=user?.profile.avatar || ' '
     const clientName:string= user?.profile.firstName +' '+ user?.profile.lastName || ' '
     const numberOfStars:number=user?.profile.rate || 1
@@ -82,7 +86,7 @@ export const ProfessionalDetails = ({professionalId}:ProfessionalDetailsProps) =
      const router=useRouter()
      const dispatch=useDispatch()
      if (!professionalId) return null;
-     const userIDprofessionalId={userId:data?.profile.userId,professionalId:""}
+     const userIDprofessionalId={userId:data?.profile?.userId || "",professionalId:professionalId.toString()}
 
         const mutation = useMutation({
             mutationFn:getProfessionDetailFn,
@@ -110,7 +114,7 @@ export const ProfessionalDetails = ({professionalId}:ProfessionalDetailsProps) =
             mutation.mutate(professionalId); 
         }, [])
     
-        if (!data) {
+        if (!data || !data.profile) {
             return null; // or loading indicator
         }
 
@@ -124,12 +128,12 @@ export const ProfessionalDetails = ({professionalId}:ProfessionalDetailsProps) =
                 <View className="w-full flex-row justify-between items-center">
                 <View className="flex-row gap-x-2 items-center">
                     <View className="w-12 h-12 bg-slate-200 rounded-full">
-                        <Image resizeMode="contain" className="w-12 h-12 rounded-full" source={{uri:data.profile.avatar}} />
+                        <Image resizeMode="contain" className="w-12 h-12 rounded-full" source={{uri:data.profile.avatar || ''}} />
 
                     </View>
                     <View>
                     <ThemeText size={Textstyles.text_small}>
-                        {data.profile.firstName} {data.profile.lastName}
+                        {data.profile.firstName || ''} {data.profile.lastName || ''}
                     </ThemeText>
                     <RatingStar numberOfStars={data.avgRating} />
                     </View>

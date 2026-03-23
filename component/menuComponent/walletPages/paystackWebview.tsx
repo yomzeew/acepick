@@ -4,6 +4,7 @@ import { WebView } from "react-native-webview";
 import { useEffect, useState } from "react";
 import ContainerTemplate from "component/dashboardComponent/containerTemplate";
 import HeaderComponent from "component/headerComp";
+import { useToast } from "context/ToastContext";
 import { useSocket } from "hooks/useSocket";
 
 
@@ -11,6 +12,7 @@ const PaymentWebView = () => {
   const { url, reference } = useLocalSearchParams();
   const router = useRouter();
   const {socket} = useSocket(); // your connected socket instance
+  const toast = useToast();
 
   const paymentUrl = Array.isArray(url) ? url[0] : url;
   const paymentRef = Array.isArray(reference) ? reference[0] : reference;
@@ -27,10 +29,10 @@ const PaymentWebView = () => {
         !hasVerified
       ) {
         setHasVerified(true);
-        router.replace({
-          pathname: "/paymentSuccess",
-          params: { message: "Payment successful" },
-        });
+        toast.success("Payment Successful", "Your payment has been completed successfully!");
+        // Clear entire stack then go to dashboard — prevents back-navigating to stale screens
+        if (router.canDismiss()) router.dismissAll();
+        router.replace("/(Authenticated)/(dashboard)");
       }
     };
 
@@ -39,7 +41,7 @@ const PaymentWebView = () => {
     return () => {
       socket.off("PAYMENT_SUCCESS", handlePaymentSuccess);
     };
-  }, [socket, paymentRef, hasVerified]);
+  }, [socket, paymentRef, hasVerified, toast, router]);
 
   const handleNavigationChange = (navState: any) => {
     const currentUrl = navState.url;

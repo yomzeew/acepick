@@ -1,268 +1,274 @@
-import ContainerTemplate from "component/dashboardComponent/containerTemplate"
-import HeaderComponent from "../../headerComp"
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import FallbackImage from "component/FallbackImage";
+import HeaderComponent from "../../headerComp";
 import {
   View,
   ScrollView,
   TouchableOpacity,
   Text,
-  Image,
   ActivityIndicator,
-  Alert
-} from "react-native"
-import { FontAwesome, FontAwesome5 } from "@expo/vector-icons"
-import { useTheme } from "hooks/useTheme"
-import { getColors } from "static/color"
-import { ThemeText, ThemeTextsecond } from "component/ThemeText"
-import { Textstyles } from "static/textFontsize"
-import Divider from "component/divider"
-import ButtonFunction from "component/buttonfunction"
-import EmptyView from "component/emptyview"
-import { useState } from "react"
-import SliderModalTemplate from "component/slideupModalTemplate"
-import VerificationComponent from "./verificationcomp"
-import SliderModal from "component/SlideUpModal"
-import { useSelector } from "react-redux"
-import { RootState } from "redux/store"
-import * as ImagePicker from "expo-image-picker"
-import { useMutation } from "@tanstack/react-query"
-import axios from "axios"
-import ButtonComponent from "component/buttoncomponent"
-import EditModal from "./editprofileModal"
-import { AlertMessageBanner } from "component/AlertMessageBanner"
-import { useEffect } from "react"
+  Dimensions,
+  RefreshControl,
+} from "react-native";
+import { useTheme } from "hooks/useTheme";
+import { getColors } from "static/color";
+import { useState, useEffect } from "react";
+import SliderModalTemplate from "component/slideupModalTemplate";
+import VerificationComponent from "./verificationcomp";
+import SliderModal from "component/SlideUpModal";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "redux/store";
+import { updateUserFromDashboard } from "redux/slices/authSlice";
+import * as ImagePicker from "expo-image-picker";
+import { useMutation } from "@tanstack/react-query";
+import axios from "axios";
+import { uploadAvatar as uploadAvatarToSupabase } from "services/supabaseStorage";
+import EditModal from "./editprofileModal";
+import { AlertMessageBanner } from "component/AlertMessageBanner";
+import { API_BASE_URL, PROFILE } from "utilizes/endpoints";
+import { store } from "redux/store";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const Profileinfo = () => {
-  const { theme } = useTheme()
-  const { primaryColor, primaryTextColor, selectioncardColor } = getColors(theme)
+  const { theme } = useTheme();
+  const { primaryColor, backgroundColortwo } = getColors(theme);
+  const dispatch = useDispatch();
+  const router = useRouter();
 
-  const [showmodal, setshowmodal] = useState(false)
-  const [showmodaltwo, setshowmodaltwo] = useState(false)
-  const [showmodalVerify, setshowmodalVerify] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const isDark = theme === "dark";
+  const bgColor = isDark ? "#111827" : "#F3F4F6";
+  const cardBg = isDark ? "#1F2937" : "#FFFFFF";
+  const textPrimary = isDark ? "#F9FAFB" : "#111827";
+  const textSecondary = isDark ? "#9CA3AF" : "#6B7280";
+  const dividerColor = isDark ? "#374151" : "#E5E7EB";
 
-  // Auto-clear messages after 4 seconds
+  const [showmodal, setshowmodal] = useState(false);
+  const [showmodaltwo, setshowmodaltwo] = useState(false);
+  const [showmodalVerify, setshowmodalVerify] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
   useEffect(() => {
     if (errorMessage) {
-      const timer = setTimeout(() => setErrorMessage(null), 4000)
-      return () => clearTimeout(timer)
+      const timer = setTimeout(() => setErrorMessage(null), 4000);
+      return () => clearTimeout(timer);
     }
-  }, [errorMessage])
+  }, [errorMessage]);
 
   useEffect(() => {
     if (successMessage) {
-      const timer = setTimeout(() => setSuccessMessage(null), 4000)
-      return () => clearTimeout(timer)
+      const timer = setTimeout(() => setSuccessMessage(null), 4000);
+      return () => clearTimeout(timer);
     }
-  }, [successMessage])
+  }, [successMessage]);
 
-  const user = useSelector((state: RootState) => state.auth.user)
-  const avatar = user?.profile.avatar || ""
-  const firstName = user?.profile.firstName || ""
+  const user = useSelector((state: RootState) => state.auth.user);
+  const avatar = user?.profile?.avatar || "";
+  const firstName = user?.profile?.firstName || "";
+  const lastName = user?.profile?.lastName || "";
+  const fullName = [firstName, lastName].filter(Boolean).join(" ") || "User";
 
-  const [avatarUri, setAvatarUri] = useState<string>(avatar)
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
-  const [avatarError, setAvatarError] = useState<string | null>(null)
+  const [avatarUri, setAvatarUri] = useState<string>(avatar);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [profileData, setProfileData] = useState({
-    firstName: user?.profile.firstName,
-    lastName: user?.profile.lastName || "",
-    gender: "", // Gender not in profile type, using empty string as default
-    dob: user?.profile.birthDate || "",
+    firstName: user?.profile?.firstName || "",
+    lastName: user?.profile?.lastName || "",
+    gender: user?.profile?.gender || "",
+    dob: user?.profile?.birthDate || "",
     address: user?.location?.address || "",
-    city: user?.location?.lga || "", // Use lga for city
+    city: user?.location?.city || user?.location?.lga || "",
     state: user?.location?.state || "",
-    country: "", // Country not in location type, using empty string as default
-    phone: user?.phone,
-    email: user?.email || "",
-  })
+    country: user?.location?.country || "",
+  });
+
+  // Email and phone are read-only (not editable from this screen)
+  const userEmail = user?.email || "Not set";
+  const userPhone = user?.phone || "Not set";
 
   const pickAvatar = async () => {
     try {
-      setAvatarError(null)
+      setAvatarError(null);
+      setSuccessMessage(null);
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.8, // Slightly reduce quality for faster upload
-      })
-      
+        quality: 0.8,
+      });
+
       if (!result.canceled && result.assets[0]) {
-        // Validate image size (max 5MB)
-        const response = await fetch(result.assets[0].uri)
-        const blob = await response.blob()
-        const sizeInMB = blob.size / (1024 * 1024)
-        
+        const localUri = result.assets[0].uri;
+        const response = await fetch(localUri);
+        const blob = await response.blob();
+        const sizeInMB = blob.size / (1024 * 1024);
+
         if (sizeInMB > 5) {
-          setAvatarError("Image size must be less than 5MB")
-          return
+          setAvatarError("Image size must be less than 5MB");
+          return;
         }
-        
-        setAvatarUri(result.assets[0].uri)
-        setSuccessMessage("Profile picture selected. Click 'Save Changes' to update.")
+
+        // Show local preview immediately
+        setAvatarUri(localUri);
+        setIsUploadingAvatar(true);
+
+        try {
+          // 1. Upload to Supabase
+          const uploadedUrl = await uploadAvatarToSupabase(localUri, user?.id);
+          setAvatarUri(uploadedUrl);
+
+          // 2. Save to backend immediately
+          const token = store.getState().auth?.token;
+          await axios.post(
+            `${API_BASE_URL}${PROFILE.UPDATE}`,
+            { bio: { avatar: uploadedUrl } },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          // 3. Update Redux store
+          dispatch(updateUserFromDashboard({ profile: { avatar: uploadedUrl } }));
+          setIsUploadingAvatar(false);
+          setSuccessMessage("Profile picture updated!");
+        } catch (uploadError: any) {
+          setIsUploadingAvatar(false);
+          setAvatarUri(avatar); // revert to old avatar on failure
+          setAvatarError(uploadError?.message || "Failed to upload profile picture");
+          console.error("Avatar upload error:", uploadError);
+        }
       }
     } catch (error) {
-      setAvatarError("Failed to select image. Please try again.")
-      console.error("Image picker error:", error)
+      setAvatarError("Failed to select image. Please try again.");
+      console.error("Image picker error:", error);
     }
-  }
+  };
 
-  const uploadMutation = useMutation({
-    mutationFn: async (uri: string) => {
-      setIsUploadingAvatar(true)
-      setAvatarError(null)
-      
-      const formData = new FormData()
-      formData.append("file", {
-        uri,
-        name: "avatar.jpg",
-        type: "image/jpeg",
-      } as any)
-      
-      const res = await axios.post("/api/upload/avatar", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        timeout: 30000, // 30 second timeout
-      })
-      
-      return res.data.url
-    },
-    onSuccess: (url) => {
-      setIsUploadingAvatar(false)
-      setAvatarUri(url) // Update the avatar URI immediately
-      setSuccessMessage("Profile picture uploaded successfully!")
-      
-      // Update profile data to reflect the new avatar
-      setProfileData(prev => ({ ...prev, avatar: url }))
-    },
-    onError: (error: any) => {
-      setIsUploadingAvatar(false)
-      let msg = "Failed to upload profile picture"
-      if (error?.response?.data?.message) {
-        msg = error.response.data.message
-      } else if (error?.message) {
-        msg = error.message
-      } else if (error?.code === 'ECONNABORTED') {
-        msg = "Upload timed out. Please try again."
-      }
-      setAvatarError(msg)
-    },
-  })
-
+  // ── Backend update: POST /profile with { bio, contact, location } ──
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await axios.put("/api/user/profile", data)
-      return res.data
+    mutationFn: async (payload: { bio?: any; contact?: any; location?: any }) => {
+      const token = store.getState().auth?.token;
+      const res = await axios.post(`${API_BASE_URL}${PROFILE.UPDATE}`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      // Update Redux store with new profile + location data
+      dispatch(
+        updateUserFromDashboard({
+          profile: {
+            firstName: profileData.firstName,
+            lastName: profileData.lastName,
+            gender: profileData.gender,
+            birthDate: profileData.dob,
+            avatar: avatarUri,
+          },
+          location: {
+            address: profileData.address,
+            city: profileData.city,
+            state: profileData.state,
+            country: profileData.country,
+          },
+        })
+      );
+      setSuccessMessage("Profile updated successfully!");
+      setshowmodaltwo(false);
     },
     onError: (error: any) => {
-      let msg = "Failed to update profile"
-      if (error?.response?.data?.message) {
-        msg = error.response.data.message
-      } else if (error?.message) {
-        msg = error.message
-      } else if (error?.response?.status === 400) {
-        msg = "Invalid profile data. Please check your inputs."
-      } else if (error?.response?.status === 401) {
-        msg = "You are not authorized to update this profile."
-      } else if (error?.response?.status >= 500) {
-        msg = "Server error. Please try again later."
-      }
-      setErrorMessage(msg)
+      let msg = "Failed to update profile";
+      if (error?.response?.data?.message) msg = error.response.data.message;
+      else if (error?.response?.data?.errors) {
+        const errs = error.response.data.errors;
+        msg = Object.values(errs).flat().join(", ");
+      } else if (error?.message) msg = error.message;
+      setErrorMessage(msg);
     },
-  })
+  });
 
   const handleSubmit = async () => {
-    setErrorMessage(null)
-    setSuccessMessage(null)
-    
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
     // Validate required fields
-    const requiredFields = ['firstName', 'lastName', 'phone', 'email']
-    const missingFields = requiredFields.filter(field => !profileData[field as keyof typeof profileData])
-    
-    if (missingFields.length > 0) {
-      setErrorMessage(`Please fill in all required fields: ${missingFields.join(', ')}`)
-      return
+    if (!profileData.firstName || !profileData.lastName) {
+      setErrorMessage("First name and last name are required.");
+      return;
     }
-    
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(profileData.email)) {
-      setErrorMessage('Please enter a valid email address')
-      return
-    }
-    
-    // Validate phone format (basic validation)
-    const phoneRegex = /^\+?[\d\s\-\(\)]{10,}$/
-    if (!phoneRegex.test(profileData.phone || '')) {
-      setErrorMessage('Please enter a valid phone number')
-      return
-    }
-    
+
     try {
-      let uploadedAvatar = avatarUri
-      if (avatarUri !== avatar) {
-        uploadedAvatar = await uploadMutation.mutateAsync(avatarUri)
-      }
-      await updateProfileMutation.mutateAsync({
-        ...profileData,
-        avatar: uploadedAvatar,
-      })
-      setSuccessMessage("Profile updated successfully!")
-      setshowmodaltwo(false) // Close modal on success
-      
-      // Optional: Refresh user data in Redux store
-      // This would typically be handled by a refetch or socket update
+      // Build payload matching backend schema: { bio, location }
+      // Note: avatar is saved automatically on pick, email/phone are NOT editable
+      const payload: any = {};
+
+      // Bio section
+      const bio: any = {};
+      if (profileData.firstName) bio.firstName = profileData.firstName;
+      if (profileData.lastName) bio.lastName = profileData.lastName;
+      if (profileData.gender) bio.gender = profileData.gender;
+      // Only send birthDate if it's a valid non-empty value (z.coerce.date fails on empty string)
+      if (profileData.dob && profileData.dob.trim() !== "") bio.birthDate = profileData.dob;
+      if (Object.keys(bio).length > 0) payload.bio = bio;
+
+      // Location section
+      const location: any = {};
+      if (profileData.address) location.address = profileData.address;
+      if (profileData.city) location.city = profileData.city;
+      if (profileData.state) location.state = profileData.state;
+      if (profileData.country) location.country = profileData.country;
+      if (Object.keys(location).length > 0) payload.location = location;
+
+      console.log("Profile update payload:", JSON.stringify(payload));
+      await updateProfileMutation.mutateAsync(payload);
     } catch (error: any) {
-      // Error is handled by mutation onError
-      console.error("Profile update failed:", error)
+      console.error("Profile update failed:", error);
     }
-  }
+  };
 
-  const hasUnsavedChanges = avatarUri !== avatar || 
-    Object.keys(profileData).some(key => {
-      const currentValue = profileData[key as keyof typeof profileData]
-      const originalValue = key === 'firstName' ? user?.profile.firstName :
-                           key === 'lastName' ? user?.profile.lastName :
-                           key === 'phone' ? user?.phone :
-                           key === 'email' ? user?.email :
-                           key === 'address' ? user?.location?.address :
-                           key === 'city' ? user?.location?.lga :
-                           key === 'state' ? user?.location?.state :
-                           key === 'dob' ? user?.profile.birthDate : ''
-      return currentValue !== originalValue
-    })
+  const loading = updateProfileMutation.isPending || isUploadingAvatar;
 
-  const loading = uploadMutation.isPending || updateProfileMutation.isPending || isUploadingAvatar
+  // ── Biodata display fields ──
+  const biodataFields = [
+    { label: "First Name", value: profileData.firstName, icon: "person-outline" },
+    { label: "Last Name", value: profileData.lastName, icon: "person-outline" },
+    { label: "Gender", value: profileData.gender ? profileData.gender.charAt(0).toUpperCase() + profileData.gender.slice(1) : "Not set", icon: "male-female-outline" },
+    { label: "Date of Birth", value: profileData.dob || "Not set", icon: "calendar-outline" },
+  ];
 
-  const handleshowModal=()=>{
-    setshowmodaltwo(true)
+  const contactFields = [
+    { label: "Phone", value: userPhone, icon: "call-outline" },
+    { label: "Email", value: userEmail, icon: "mail-outline" },
+  ];
 
-  }
+  const locationFields = [
+    { label: "Address", value: profileData.address || "Not set", icon: "location-outline" },
+    { label: "City", value: profileData.city || "Not set", icon: "business-outline" },
+    { label: "State", value: profileData.state || "Not set", icon: "map-outline" },
+    { label: "Country", value: profileData.country || "Not set", icon: "globe-outline" },
+  ];
 
   return (
     <>
-      {successMessage && (
-        <AlertMessageBanner type="success" message={successMessage} />
-      )}
-      {errorMessage && (
-        <AlertMessageBanner type="error" message={errorMessage} />
-      )}
-      {avatarError && (
-        <AlertMessageBanner type="error" message={avatarError} />
-      )}
-        <SliderModalTemplate showmodal={showmodal} setshowmodal={setshowmodal} modalHeight={"85%"}>
-          <VerificationComponent
-            setshowmodalVerify={(text: boolean) => setshowmodalVerify(text)}
-            setshowmodal={(text: boolean) => setshowmodal(text)}
-          />
-        </SliderModalTemplate>
+      {successMessage && <AlertMessageBanner type="success" message={successMessage} />}
+      {errorMessage && <AlertMessageBanner type="error" message={errorMessage} />}
+      {avatarError && <AlertMessageBanner type="error" message={avatarError} />}
 
-        <SliderModalTemplate showmodal={showmodaltwo} setshowmodal={setshowmodaltwo} modalHeight={"85%"}>
-         <EditModal 
-         profileData={profileData} 
-         setProfileData={setProfileData} 
-         onSave={handleSubmit} 
-         loading={loading}
-         />
-        </SliderModalTemplate>
+      <SliderModalTemplate showmodal={showmodal} setshowmodal={setshowmodal} modalHeight={"85%"}>
+        <VerificationComponent
+          setshowmodalVerify={(text: boolean) => setshowmodalVerify(text)}
+          setshowmodal={(text: boolean) => setshowmodal(text)}
+        />
+      </SliderModalTemplate>
+
+      <SliderModalTemplate showmodal={showmodaltwo} setshowmodal={setshowmodaltwo} modalHeight={"85%"}>
+        <EditModal
+          profileData={profileData}
+          setProfileData={setProfileData}
+          onSave={handleSubmit}
+          loading={loading}
+        />
+      </SliderModalTemplate>
+
       {showmodalVerify && (
         <SliderModal
           route="/profilelayout"
@@ -274,107 +280,205 @@ const Profileinfo = () => {
         />
       )}
 
-      <ContainerTemplate>
-        <>
-          <HeaderComponent title="Edit Personal Information" />
-          <View className="px-3 h-32 mt-10">
-            <View style={{ backgroundColor: selectioncardColor, elevation: 4 }} className="w-full h-full rounded-2xl px-5 pb-5">
-              <View className="items-center">
-                <ThemeText size={Textstyles.text_medium} className="font-extralight text-white mt-8">
-                  {firstName}'s Profile
-                </ThemeText>
-              </View>
-            </View>
-
-            <View className="items-center w-full -mt-12">
-              <View className="relative">
-                <TouchableOpacity 
-                  onPress={pickAvatar} 
-                  disabled={loading}
-                  className={`absolute right-0 bottom-0 z-40 bg-white w-8 h-8 rounded-full flex justify-center items-center shadow-md ${loading ? 'opacity-50' : ''}`}
-                >
-                  {isUploadingAvatar ? (
-                    <ActivityIndicator size="small" color={primaryColor} />
-                  ) : (
-                    <FontAwesome size={16} color={primaryColor} name="pencil" />
-                  )}
+      <View style={{ flex: 1, backgroundColor: bgColor }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+          {/* ── Header ── */}
+          <View style={{
+            backgroundColor: primaryColor,
+            paddingTop: 52, paddingBottom: 50,
+            borderBottomLeftRadius: 28, borderBottomRightRadius: 28,
+          }}>
+            <View style={{ alignItems: "center", paddingHorizontal: 20 }}>
+              {/* Back / Title row */}
+              <View style={{ flexDirection: "row", alignItems: "center", width: "100%", marginBottom: 20 }}>
+                <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
+                  <Ionicons name="arrow-back" size={22} color="#fff" />
                 </TouchableOpacity>
-                <View className="h-24 w-24 rounded-full overflow-hidden bg-slate-300 items-center justify-center">
+                <Text style={{ color: "#fff", fontSize: 17, fontWeight: "700", flex: 1, textAlign: "center", marginRight: 30 }}>
+                  Edit Personal Information
+                </Text>
+              </View>
+
+              {/* Avatar */}
+              <View style={{ position: "relative" }}>
+                <View style={{
+                  width: 96, height: 96, borderRadius: 48,
+                  borderWidth: 3, borderColor: "rgba(255,255,255,0.3)",
+                  backgroundColor: "rgba(255,255,255,0.15)",
+                  overflow: "hidden",
+                }}>
                   {isUploadingAvatar ? (
-                    <View className="flex-1 justify-center items-center">
-                      <ActivityIndicator size="large" color={primaryColor} />
-                      <Text className="text-xs text-gray-600 mt-1">Uploading...</Text>
+                    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                      <ActivityIndicator size="large" color="#fff" />
+                      <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 10, marginTop: 4 }}>Uploading...</Text>
                     </View>
                   ) : avatarUri ? (
-                    <Image source={{ uri: avatarUri }} className="w-full h-full" />
+                    <FallbackImage source={{ uri: avatarUri }} style={{ width: 96, height: 96 }} resizeMode="cover" />
                   ) : (
-                    <FontAwesome5 name="camera" size={20} color={primaryColor} />
+                    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                      <Ionicons name="person" size={40} color="rgba(255,255,255,0.7)" />
+                    </View>
                   )}
                 </View>
-                {avatarUri !== avatar && !isUploadingAvatar && (
-                  <View className="absolute -top-2 -right-2 bg-green-500 w-6 h-6 rounded-full items-center justify-center">
-                    <FontAwesome name="check" size={12} color="white" />
+                {/* Edit button */}
+                <TouchableOpacity
+                  onPress={pickAvatar}
+                  disabled={loading}
+                  style={{
+                    position: "absolute", bottom: 0, right: -4,
+                    width: 32, height: 32, borderRadius: 16,
+                    backgroundColor: "#fff", alignItems: "center", justifyContent: "center",
+                    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 3,
+                    opacity: loading ? 0.5 : 1,
+                  }}
+                >
+                  <Ionicons name="camera-outline" size={16} color={primaryColor} />
+                </TouchableOpacity>
+                {/* Changed indicator */}
+                {avatarUri !== avatar && !isUploadingAvatar && avatarUri && (
+                  <View style={{
+                    position: "absolute", top: -4, right: -4,
+                    width: 22, height: 22, borderRadius: 11,
+                    backgroundColor: primaryColor, alignItems: "center", justifyContent: "center",
+                    borderWidth: 2, borderColor: primaryColor,
+                  }}>
+                    <Ionicons name="checkmark" size={12} color="#fff" />
                   </View>
                 )}
               </View>
+
+              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700", marginTop: 10 }}>{fullName}</Text>
+              <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, marginTop: 2 }}>{userEmail}</Text>
             </View>
           </View>
 
-          <ScrollView className="flex-1 px-3 mt-16 w-full" showsVerticalScrollIndicator={false}>
-            <View style={{ backgroundColor: selectioncardColor, elevation: 4 }} className="w-full rounded-2xl px-5 pb-5 mb-8">
-              <View className="mt-5">
-                <View className="flex-row justify-between mb-3">
-                  <ThemeText size={Textstyles.text_medium} className="font-bold">
-                    Biodata
-                  </ThemeText>
-                  <TouchableOpacity onPress={handleshowModal}>
-                  <FontAwesome size={18} color={primaryColor} name="pencil" />
-                  </TouchableOpacity>
-                </View>
-
-                {[
-                  { label: "Lastname", value: profileData.lastName },
-                  { label: "Firstname", value: profileData.firstName },
-                  { label: "Gender", value: profileData.gender },
-                  { label: "Date of Birth", value: profileData.dob },
-                  { label: "Address", value: profileData.address },
-                  { label: "City", value: profileData.city },
-                  { label: "State", value: profileData.state },
-                  { label: "Country", value: profileData.country },
-                  { label: "Phone", value: profileData.phone },
-                  { label: "Email", value: profileData.email },
-                ].map((item, index) => (
-                  <View key={index}>
-                    <View className="flex-row justify-between mt-3">
-                      <ThemeTextsecond size={Textstyles.text_xsmall}>{item.label}:</ThemeTextsecond>
-                      <ThemeTextsecond size={Textstyles.text_xsmall}>{item.value}</ThemeTextsecond>
-                    </View>
-                    <Divider />
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            {/* <ButtonComponent
-              onPress={handleSubmit}
-              text={loading ? "Updating..." : "Update Profile"}
-              textcolor="white"
-              color={primaryColor}
-              disabled={loading}
-            /> */}
-            <EmptyView height={20} />
-            <ButtonComponent
-              onPress={() => setshowmodal(true)}
-              text="Proceed to Verification"
-              textcolor="white"
-              color={primaryColor}
+          {/* ── Personal Info Card ── */}
+          <View style={{ marginHorizontal: 16, marginTop: -24 }}>
+            <SectionCard
+              title="Personal Information"
+              icon="person-circle-outline"
+              iconColor={primaryColor}
+              fields={biodataFields}
+              cardBg={cardBg}
+              textPrimary={textPrimary}
+              textSecondary={textSecondary}
+              dividerColor={dividerColor}
+              isDark={isDark}
+              onEdit={() => setshowmodaltwo(true)}
             />
-          </ScrollView>
-        </>
-      </ContainerTemplate>
+          </View>
+
+          {/* ── Contact Card ── */}
+          <View style={{ marginHorizontal: 16, marginTop: 12 }}>
+            <SectionCard
+              title="Contact Information"
+              icon="call-outline"
+              iconColor={primaryColor}
+              fields={contactFields}
+              cardBg={cardBg}
+              textPrimary={textPrimary}
+              textSecondary={textSecondary}
+              dividerColor={dividerColor}
+              isDark={isDark}
+            />
+          </View>
+
+          {/* ── Location Card ── */}
+          <View style={{ marginHorizontal: 16, marginTop: 12 }}>
+            <SectionCard
+              title="Location"
+              icon="location-outline"
+              iconColor={backgroundColortwo}
+              fields={locationFields}
+              cardBg={cardBg}
+              textPrimary={textPrimary}
+              textSecondary={textSecondary}
+              dividerColor={dividerColor}
+              isDark={isDark}
+              onEdit={() => setshowmodaltwo(true)}
+            />
+          </View>
+
+          {/* ── Verification Button ── */}
+          <View style={{ marginHorizontal: 16, marginTop: 20 }}>
+            <TouchableOpacity
+              onPress={() => setshowmodal(true)}
+              style={{
+                backgroundColor: primaryColor, borderRadius: 14,
+                paddingVertical: 14, alignItems: "center",
+                flexDirection: "row", justifyContent: "center", gap: 8,
+              }}
+            >
+              <Ionicons name="shield-checkmark-outline" size={18} color="#fff" />
+              <Text style={{ color: "#fff", fontSize: 15, fontWeight: "600" }}>Proceed to Verification</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
     </>
-  )
-}
+  );
+};
 
-export default Profileinfo
+// ── Reusable Section Card ──
+const SectionCard = ({
+  title, icon, iconColor, fields, cardBg, textPrimary, textSecondary, dividerColor, isDark, onEdit,
+}: {
+  title: string;
+  icon: string;
+  iconColor: string;
+  fields: { label: string; value: string; icon: string }[];
+  cardBg: string;
+  textPrimary: string;
+  textSecondary: string;
+  dividerColor: string;
+  isDark: boolean;
+  onEdit?: () => void;
+}) => (
+  <View style={{
+    backgroundColor: cardBg, borderRadius: 16, overflow: "hidden",
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: isDark ? 0.25 : 0.06, shadowRadius: 8, elevation: 3,
+  }}>
+    {/* Section Header */}
+    <View style={{
+      flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+      paddingHorizontal: 16, paddingVertical: 14,
+      borderBottomWidth: 1, borderBottomColor: dividerColor,
+    }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <View style={{
+          width: 32, height: 32, borderRadius: 8,
+          backgroundColor: iconColor + "15", alignItems: "center", justifyContent: "center",
+        }}>
+          <Ionicons name={icon as any} size={16} color={iconColor} />
+        </View>
+        <Text style={{ color: textPrimary, fontSize: 15, fontWeight: "700" }}>{title}</Text>
+      </View>
+      {onEdit && (
+        <TouchableOpacity onPress={onEdit} style={{ padding: 4 }}>
+          <Ionicons name="pencil-outline" size={18} color={iconColor} />
+        </TouchableOpacity>
+      )}
+    </View>
 
+    {/* Fields */}
+    {fields.map((field, index) => (
+      <View
+        key={field.label}
+        style={{
+          flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, gap: 12,
+          borderBottomWidth: index < fields.length - 1 ? 1 : 0, borderBottomColor: dividerColor,
+        }}
+      >
+        <Ionicons name={field.icon as any} size={16} color={textSecondary} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: textSecondary, fontSize: 11 }}>{field.label}</Text>
+          <Text style={{ color: textPrimary, fontSize: 14, fontWeight: "500", marginTop: 1 }} numberOfLines={1}>
+            {field.value}
+          </Text>
+        </View>
+      </View>
+    ))}
+  </View>
+);
+
+export default Profileinfo;

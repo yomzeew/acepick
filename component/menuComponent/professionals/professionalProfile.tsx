@@ -1,403 +1,1290 @@
-import ContainerTemplate from "component/dashboardComponent/containerTemplate"
-import HeaderComponent from "../../headerComp"
-import BackComponent from "component/backcomponent"
+import React, { useState, useEffect } from "react"
+import { 
+    View, 
+    Text, 
+    ScrollView, 
+    TouchableOpacity, 
+    Image, 
+    ActivityIndicator, 
+    Alert,
+    Share,
+    Linking 
+} from "react-native"
+import { 
+    Ionicons, 
+    FontAwesome5, 
+    FontAwesome6 
+} from "@expo/vector-icons"
+import { useLocalSearchParams, useRouter } from "expo-router"
 import { useTheme } from "hooks/useTheme"
 import { getColors } from "static/color"
-import { ImageBackground, Touchable, TouchableOpacity, View, ScrollView } from "react-native"
-import { Image, Text } from "react-native"
-import { ThemeText, ThemeTextsecond } from "component/ThemeText"
-import { AntDesign, FontAwesome5, FontAwesome6, Ionicons } from "@expo/vector-icons"
-import { Textstyles } from "static/textFontsize"
-import RatingStar from "component/rating"
-import EmptyView from "component/emptyview"
-import DraggablePanel from "component/bottomSheetcomp"
-import Divider from "component/divider"
-import { useLocalSearchParams, useRouter } from "expo-router"
-import { useMutation } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { getProfessionDetailFn } from "services/userService"
-import { useEffect, useState } from "react"
-import { ProfessionalData } from "types/type"
-import MockDataService from "services/mockDataService"
+import { useSelector } from "react-redux"
+import { RootState } from "redux/store"
+import RatingStar from "component/rating"
+import BackComponent from "component/backcomponent"
+import { AlertMessageBanner } from "component/AlertMessageBanner"
 
-
+interface ProfessionalData {
+    id: number;
+    available: boolean;
+    availableWithdrawalAmount: string;
+    avgRating: number;
+    chargeFrom: string;
+    completedAmount: string;
+    createdAt: string;
+    file: string | null;
+    intro: string;
+    language: string;
+    numRating: number;
+    online: boolean;
+    pendingAmount: string;
+    profession: {
+        id: number;
+        image: string;
+        sector: any;
+        sectorId: number;
+        title: string;
+    };
+    professionId: number;
+    profile: {
+        avatar: string;
+        birthDate: string | null;
+        bvn: string | null;
+        bvnVerified: boolean;
+        certifications: Array<{
+            id: number;
+            name: string;
+            issuer: string;
+            date: string;
+            credentialId?: string;
+        }>;
+        count: number;
+        createdAt: string;
+        education: Array<{
+            id: number;
+            institution: string;
+            degree: string;
+            field: string;
+            startDate: string;
+            endDate?: string;
+        }>;
+        experience: Array<{
+            id: number;
+            company: string;
+            position: string;
+            startDate: string;
+            endDate?: string;
+            description: string;
+        }>;
+        fcmToken: string | null;
+        firstName: string;
+        id: number;
+        lastName: string;
+        notified: boolean;
+        portfolios: Array<{
+            id: number;
+            title: string;
+            description: string;
+            images: string[];
+            completedAt: string;
+        }>;
+        position: string | null;
+        rate: string;
+        store: boolean;
+        switch: boolean;
+        totalDisputes: number;
+        totalExpense: number;
+        totalJobs: number;
+        totalJobsApproved: number;
+        totalJobsCanceled: number;
+        totalJobsCompleted: number;
+        totalJobsDeclined: number;
+        totalJobsOngoing: number;
+        totalJobsPending: number;
+        totalReview: number;
+        updatedAt: string;
+        user: {
+            id: string;
+            email: string;
+            phone: string;
+            status: string;
+            role: string;
+            createdAt: string;
+            updatedAt: string;
+            location: {
+                id: number;
+                address: string;
+                lga: string;
+                state: string;
+                latitude: number;
+                longitude: number;
+                zipcode: string;
+            };
+            professionalReviews?: Array<{
+                id: number;
+                text: string;
+                professionalUserId: string;
+                clientUserId: string;
+                createdAt: string;
+                updatedAt: string;
+                clientUser: {
+                    id: string;
+                    email: string;
+                    phone: string;
+                    status: string;
+                    role: string;
+                    profile: {
+                        id: number;
+                        firstName: string;
+                        lastName: string;
+                        birthDate: string;
+                        avatar?: string;
+                    };
+                };
+            }>;
+        };
+        userId: string;
+        verified: boolean;
+    };
+    profileId: number;
+    regNum: string | null;
+    rejectedAmount: string;
+    totalEarning: number;
+    updatedAt: string;
+    workType: string;
+    yearsOfExp: number;
+}
 
 const ProfessionalProfile = () => {
     // Safe theme access with fallback
     let theme: "light" | "dark" = "light";
-    let primaryColor = "#0366d8";
+    let primaryColor = "#59C5E0";
+    let secondaryTextColor = "#171717";
     let backgroundColor = "#ffffff";
+    let selectioncardColor = "#f3f4f6";
+    let backgroundColortwo = "#33658A";
     
     try {
         const themeContext = useTheme();
         theme = themeContext.theme;
         const colors = getColors(theme);
         primaryColor = colors.primaryColor;
+        secondaryTextColor = colors.secondaryTextColor;
         backgroundColor = colors.backgroundColor;
+        selectioncardColor = colors.selectioncardColor;
+        backgroundColortwo = colors.backgroundColortwo;
     } catch (error) {
         console.warn('Theme context not available, using default theme');
-        // Use default values
-        const defaultColors = getColors("light");
-        primaryColor = defaultColors.primaryColor;
-        backgroundColor = defaultColors.backgroundColor;
+        primaryColor = "#59C5E0";
+        secondaryTextColor = "#171717";
+        backgroundColor = "#ffffff";
+        selectioncardColor = "#f3f4f6";
+        backgroundColortwo = "#33658A";
     }
     
     // Safe router access with fallback
     let router: any = null;
-    let professionalId: string | string[] | undefined = undefined;
+    let params: any = {};
     
     try {
         router = useRouter();
-        const params = useLocalSearchParams();
-        professionalId = params.professionalId;
+        params = useLocalSearchParams();
     } catch (error) {
         console.warn('Router context not available, using default values');
-        // Use default values when router is not available
-        professionalId = undefined;
+        router = null;
+        params = {};
     }
+    
+    // Support both route patterns: [professionalId] and professional/[id]
+    const professionalId = Number(params.professionalId || params.id);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'overview' | 'experience' | 'portfolio' | 'reviews'>('overview');
 
-    // For professionals viewing their own profile, use default ID 1 (Mike Wilson)
-    // In a real app, this would come from user context/auth state
-    const professionalIdValue = Number(professionalId) || 1;
+    // Query for professional data
+    const { data: professionalData, isLoading, error, refetch } = useQuery<ProfessionalData>({
+        queryKey: ['professionalDetail', professionalId],
+        queryFn: () => getProfessionDetailFn(professionalId),
+        enabled: !!professionalId && !isNaN(professionalId),
+        retry: 2,
+    });
 
-    // Validate professional ID
-    if (!professionalIdValue || isNaN(professionalIdValue)) {
-        console.error("❌ Invalid professional ID:", { professionalId, professionalIdValue });
+    // Debug logging
+    useEffect(() => {
+        if (professionalData) {
+            const reviews = professionalData?.profile?.user?.professionalReviews || [];
+            console.log('🔍 Professional data loaded:', {
+                id: professionalData?.id,
+                hasProfile: !!professionalData?.profile,
+                hasProfession: !!professionalData?.profession,
+                professionTitle: professionalData?.profession?.title,
+                profileKeys: professionalData?.profile ? Object.keys(professionalData.profile) : [],
+                professionKeys: professionalData?.profession ? Object.keys(professionalData.profession) : [],
+                profileFirstName: professionalData?.profile?.firstName,
+                profileLastName: professionalData?.profile?.lastName,
+                userEmail: professionalData?.profile?.user?.email,
+                userPhone: professionalData?.profile?.user?.phone,
+                userLocation: professionalData?.profile?.user?.location,
+                professionalReviews: reviews.length || 0,
+                avgRating: professionalData?.avgRating,
+                numRating: professionalData?.numRating,
+                available: professionalData?.available,
+                // Check specific fields that should be displayed
+                displayName: `${professionalData?.profile?.firstName || 'Professional'} ${professionalData?.profile?.lastName || 'Name'}`,
+                displayProfession: professionalData?.profession?.title || 'Professional',
+                displayLocation: `${professionalData?.profile?.user?.location?.lga || 'Location'}, ${professionalData?.profile?.user?.location?.state || 'State'}`,
+                displayRating: (professionalData?.avgRating || 0).toFixed(1),
+                displayReviews: professionalData?.numRating || 0,
+                displayAvailable: professionalData?.available ? 'Available' : 'Busy',
+                // Detailed review debugging
+                reviewsDetails: reviews.map(r => ({
+                    id: r.id,
+                    text: r.text?.substring(0, 50) + '...',
+                    clientName: `${r.clientUser?.profile?.firstName || ''} ${r.clientUser?.profile?.lastName || ''}`,
+                    createdAt: r.createdAt
+                })),
+                hasUserObject: !!professionalData?.profile?.user,
+                userKeys: professionalData?.profile?.user ? Object.keys(professionalData.profile.user) : []
+            });
+        } else {
+            console.log('❌ No professional data available');
+        }
+    }, [professionalData]);
+
+    useEffect(() => {
+        if (error) {
+            console.error('❌ Professional data error:', error);
+            console.error('❌ Error details:', {
+                message: error.message,
+                status: (error as any)?.response?.status,
+                statusText: (error as any)?.response?.statusText,
+                data: (error as any)?.response?.data,
+            });
+        }
+    }, [error]);
+
+    const handleContactProfessional = () => {
+        if (!professionalData) return;
+        
+        console.log('Professional Data:', professionalData);
+        console.log('Professional ID:', professionalData?.id, 'type:', typeof professionalData?.id);
+        console.log('User ID:', professionalData?.profile?.user?.id, 'type:', typeof professionalData?.profile?.user?.id);
+        
+        const fullName = `${professionalData?.profile?.firstName || 'Professional'} ${professionalData?.profile?.lastName || 'Name'}`;
+        const rating = professionalData?.avgRating || 0;
+        const avatar = professionalData?.profile?.avatar || '';
+        
+        // Use the User ID (UUID) instead of Professional ID (number)
+        const userId = professionalData?.profile?.user?.id;
+        if (!userId) {
+            console.error('User ID not found in professional data');
+            Alert.alert('Error', 'Unable to create job request. User information not found.');
+            return;
+        }
+        
+        router.push(`/joborderLayout?professionalId=${userId}&avatar=${encodeURIComponent(avatar)}&fullName=${encodeURIComponent(fullName)}&rating=${rating}`);
+    };
+
+    const handleShareProfile = async () => {
+        if (!professionalData) return;
+        
+        const fullName = `${professionalData?.profile?.firstName || 'Professional'} ${professionalData?.profile?.lastName || 'Name'}`;
+        const message = `Check out ${fullName}, a ${professionalData?.profession?.title || 'Professional'} with ${(professionalData?.avgRating || 0).toFixed(1)} stars rating!`;
+        
+        try {
+            await Share.share({
+                message,
+                title: `${fullName}'s Profile`,
+            });
+        } catch (error) {
+            console.error('Error sharing profile:', error);
+        }
+    };
+
+    const handleCallProfessional = () => {
+        if (!professionalData?.profile?.user?.phone) return;
+        
+        Alert.alert(
+            'Call Professional',
+            `Would you like to call ${professionalData?.profile?.firstName || 'Professional'} at ${professionalData.profile.user.phone}?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { 
+                    text: 'Call', 
+                    onPress: () => Linking.openURL(`tel:${professionalData.profile.user.phone}`)
+                }
+            ]
+        );
+    };
+
+    const handleEmailProfessional = () => {
+        if (!professionalData?.profile?.user?.email) return;
+        
+        Linking.openURL(`mailto:${professionalData.profile.user.email}`);
+    };
+
+    const isInvalidId = !professionalId || isNaN(professionalId);
+
+    // Auto-navigate back if professional ID is invalid
+    useEffect(() => {
+        if (isInvalidId && router) {
+            const timer = setTimeout(() => {
+                router.canGoBack() ? router.back() : router.replace('/(Authenticated)/(dashboard)/homelayout');
+            }, 1500);
+            return () => clearTimeout(timer);
+        }
+    }, [isInvalidId]);
+
+    if (isInvalidId) {
         return (
-            <ContainerTemplate>
-                <View className="flex-1 justify-center items-center">
-                    <ThemeText size={Textstyles.text_medium}>
-                        Invalid Professional Profile
-                    </ThemeText>
-                    <ThemeTextsecond size={Textstyles.text_small}>
-                        Professional ID is missing or invalid
-                    </ThemeTextsecond>
-                </View>
-            </ContainerTemplate>
+            <View className="flex-1 justify-center items-center px-4" style={{ backgroundColor }}>
+                <Ionicons name="person-outline" size={64} color={secondaryTextColor} />
+                <Text style={{ 
+                    fontSize: 18, 
+                    color: secondaryTextColor, 
+                    fontFamily: 'TTFirsNeue',
+                    textAlign: 'center',
+                    marginTop: 16 
+                }}>
+                    Professional Profile Unavailable
+                </Text>
+                <Text style={{ 
+                    fontSize: 14, 
+                    color: secondaryTextColor + '80', 
+                    fontFamily: 'TTFirsNeue',
+                    textAlign: 'center',
+                    marginTop: 8 
+                }}>
+                    Redirecting you back...
+                </Text>
+                <TouchableOpacity
+                    onPress={() => router?.canGoBack() ? router.back() : router?.replace('/(Authenticated)/(dashboard)/homelayout')}
+                    style={{ marginTop: 20, backgroundColor: primaryColor, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 }}
+                >
+                    <Text style={{ color: '#fff', fontSize: 14, fontFamily: 'TTFirsNeueMedium' }}>Go Back</Text>
+                </TouchableOpacity>
+            </View>
         );
     }
 
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [data, setData] = useState<ProfessionalData | null>(null);
-
-    useEffect(() => {
-        if (errorMessage) {
-            const timer = setTimeout(() => {
-                setErrorMessage(null);
-            }, 4000);
-            return () => clearTimeout(timer);
-        }
-    }, [errorMessage]);
-
-    const mutation = useMutation({
-        mutationFn: getProfessionDetailFn,
-        onSuccess: async (response) => {
-            setData(response.data);
-        },
-        onError: (error: any) => {
-            // Build detailed error for backend engineer
-            const status = error?.response?.status || 'N/A';
-            const statusText = error?.response?.statusText || '';
-            const backendMsg = error?.response?.data?.message 
-                || error?.response?.data?.error 
-                || (error?.response?.data ? JSON.stringify(error.response.data) : '');
-            const networkMsg = error?.message || '';
-            
-            const fullError = `[HTTP ${status}${statusText ? ' ' + statusText : ''}] ${backendMsg || networkMsg || 'Unknown error'}`;
-            
-            console.error("❌ Professional Details Error:", {
-                professionalId: professionalIdValue,
-                status,
-                statusText,
-                backendResponse: error?.response?.data,
-                networkError: networkMsg,
-                fullError
-            });
-        
-            setErrorMessage(fullError);
-        },
-    });
-
-    useEffect(() => {
-        mutation.mutate(professionalIdValue); 
-    }, [])
-
-    if (!data) {
-        return null; // or loading indicator
+    if (isLoading) {
+        return (
+            <View className="flex-1 justify-center items-center" style={{ backgroundColor }}>
+                <ActivityIndicator size="large" color={primaryColor} />
+                <Text style={{ 
+                    fontSize: 16, 
+                    color: secondaryTextColor, 
+                    fontFamily: 'TTFirsNeue',
+                    marginTop: 16 
+                }}>
+                    Loading professional profile...
+                </Text>
+            </View>
+        );
     }
-    const handleNextFn=()=>{
-        const fullName=data.profile.firstName+' '+data.profile.lastName
-        const rating=data.avgRating
-        const avatar=data.profile.avatar
-        const professionalId=data.profile.userId
-      router?.push(`/joborderLayout?professionalId=${professionalId}&avatar=${avatar}&fullName=${fullName}&rating=${rating}`)
-        
+
+    if (error || !professionalData) {
+        return (
+            <ScrollView className="flex-1" style={{ backgroundColor }}>
+                <View className="flex-1 justify-center items-center px-4 py-8">
+                    <Ionicons name="alert-circle-outline" size={64} color={backgroundColortwo} />
+                    <Text style={{
+                        fontSize: 18,
+                        color: backgroundColortwo,
+                        fontFamily: 'TTFirsNeue',
+                        textAlign: 'center',
+                        marginTop: 16
+                    }}>
+                        Error Loading Profile
+                    </Text>
+                    <Text style={{
+                        fontSize: 14,
+                        color: secondaryTextColor,
+                        fontFamily: 'TTFirsNeue',
+                        textAlign: 'center',
+                        marginTop: 8
+                    }}>
+                        {error instanceof Error ? error.message : 'Unable to load professional data'}
+                    </Text>
+                    <TouchableOpacity
+                        onPress={() => refetch()}
+                        style={{
+                            backgroundColor: primaryColor,
+                            paddingHorizontal: 24,
+                            paddingVertical: 12,
+                            borderRadius: 8,
+                            marginTop: 20
+                        }}
+                    >
+                        <Text style={{
+                            color: '#ffffff',
+                            fontFamily: 'TTFirsNeue',
+                            fontWeight: '600'
+                        }}>
+                            Retry
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+                
+                {/* Debug Panel */}
+                <View className="px-4 py-4">
+                    <Text style={{
+                        fontSize: 16,
+                        fontWeight: '600',
+                        color: theme === 'dark' ? '#FFFFFF' : '#1F2937',
+                        fontFamily: 'TTFirsNeue',
+                        marginBottom: 12
+                    }}>
+                        Debug Information
+                    </Text>
+                    <View style={{
+                        backgroundColor: '#f3f4f6',
+                        padding: 16,
+                        borderRadius: 8,
+                        marginBottom: 12
+                    }}>
+                        <Text style={{
+                            fontSize: 12,
+                            color: secondaryTextColor,
+                            fontFamily: 'monospace',
+                            marginBottom: 8
+                        }}>
+                            Professional ID: {professionalId}
+                        </Text>
+                        <Text style={{
+                            fontSize: 12,
+                            color: secondaryTextColor,
+                            fontFamily: 'monospace',
+                            marginBottom: 8
+                        }}>
+                            Has Error: {!!error}
+                        </Text>
+                        <Text style={{
+                            fontSize: 12,
+                            color: secondaryTextColor,
+                            fontFamily: 'monospace',
+                            marginBottom: 8
+                        }}>
+                            Has Data: {!!professionalData}
+                        </Text>
+                        {error && (
+                            <Text style={{
+                                fontSize: 12,
+                                color: backgroundColortwo,
+                                fontFamily: 'monospace',
+                                marginBottom: 8
+                            }}>
+                                Error: {error instanceof Error ? error.message : 'Unknown error'}
+                            </Text>
+                        )}
+                    </View>
+                    
+                    <TouchableOpacity
+                        onPress={() => {
+                            console.log('🔍 Manual data check:', {
+                                professionalId,
+                                error,
+                                professionalData,
+                                errorDetails: error instanceof Error ? {
+                                    message: error.message,
+                                    stack: error.stack
+                                } : error
+                            });
+                        }}
+                        style={{
+                            backgroundColor: primaryColor,
+                            paddingHorizontal: 16,
+                            paddingVertical: 8,
+                            borderRadius: 6,
+                            alignItems: 'center'
+                        }}
+                    >
+                        <Text style={{
+                            color: '#ffffff',
+                            fontSize: 12,
+                            fontFamily: 'TTFirsNeue',
+                            fontWeight: '600'
+                        }}>
+                            Log Debug Info to Console
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>
+        );
     }
 
     return (
-        <>
-            <View style={{ backgroundColor: primaryColor }} className="h-full w-full">
-                <ImageBackground resizeMode="cover" className="w-full flex-1 h-[100%] px-3 pt-[56px]" source={require('../../../assets/profilebg.png')}>
-                    <BackComponent bordercolor={primaryColor} textcolor={primaryColor} />
-                    <EmptyView height={20} />
-                    <View className="w-full items-center">
-                        <Image resizeMode="contain" source={require('../../../assets/profilepc.png')} className="w-32 h-32 rounded-full" />
-                    </View>
-                    <EmptyView height={20} />
+        <View style={{ backgroundColor }} className="flex-1">
+            {/* Error Banner */}
+            {errorMessage && (
+                <AlertMessageBanner type="error" message={errorMessage} />
+            )}
+
+            {/* Header */}
+            <View style={{ backgroundColor: primaryColor }} className="pt-12 pb-6">
+                <View className="px-4">
+                    <BackComponent bordercolor="#ffffff" textcolor="#ffffff" />
+                </View>
+                
+                {/* Profile Header */}
+                <View className="px-4 mt-4">
                     <View className="items-center">
-                        <Text style={[Textstyles.text_cmedium, { color: "#ffffff" }]}>{data.profile.firstName} {data.profile.lastName}</Text>
-                        <EmptyView height={10} />
-                        <View className="flex-row gap-x-2">
-                            <FontAwesome5 color="red" name="toolbox" size={15} />
-                            <Text style={[Textstyles.text_xsma, { color: "#ffffff" }]}>{data.profession.title}</Text>
-                            <Text style={[Textstyles.text_xsma, { color: "#ffffff" }]}>{data.yearsOfExp} years</Text>
+                        {/* Avatar */}
+                        <View className="relative">
+                            <Image
+                                source={
+                                    professionalData?.profile?.avatar && professionalData.profile.avatar.startsWith('http')
+                                        ? { uri: professionalData.profile.avatar }
+                                        : require('../../../assets/professional.png')
+                                }
+                                className="w-24 h-24 rounded-full"
+                                style={{
+                                    borderWidth: 3,
+                                    borderColor: '#ffffff' + '30',
+                                    backgroundColor: theme === 'dark' ? '#374151' : '#F3F4F6'
+                                }}
+                            />
+                            {professionalData?.profile?.verified && (
+                                <View
+                                    style={{
+                                        position: 'absolute',
+                                        bottom: -2,
+                                        right: -2,
+                                        width: 24,
+                                        height: 24,
+                                        backgroundColor: primaryColor,
+                                        borderRadius: 12,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        borderWidth: 2,
+                                        borderColor: '#ffffff'
+                                    }}
+                                >
+                                    <FontAwesome5 name="check" size={12} color="#ffffff" />
+                                </View>
+                            )}
                         </View>
-                        <EmptyView height={5} />
-                        <View className="flex-row gap-x-2">
-                            <FontAwesome6 name="location-dot" size={12} color={primaryColor} />
-                            <Text style={[Textstyles.text_xsma, { color: "#ffffff" }]}>{data.profile.user.location.lga}, {data.profile.user.location.state} State</Text>
-                        </View>
-                        <EmptyView height={5} />
-                        <View className="flex-row items-center gap-x-3">
-                            <View>
-                                <RatingStar numberOfStars={data.avgRating} />
-                            </View>
-                            <View className="flex-col">
-                                <Text style={[Textstyles.text_small, { color: "#ffffff", fontWeight: 'bold' }]}>
-                                    {data.avgRating.toFixed(1)} out of 5
+
+                        {/* Name and Title */}
+                        <View className="items-center mt-4">
+                            <Text style={{
+                                fontSize: 24,
+                                fontWeight: '700',
+                                color: '#ffffff',
+                                fontFamily: 'TTFirsNeue',
+                                textAlign: 'center'
+                            }}>
+                                {professionalData?.profile?.firstName || 'Professional'} {professionalData?.profile?.lastName || 'Name'}
+                            </Text>
+                            
+                            <View className="flex-row items-center mt-2">
+                                <FontAwesome5 name="toolbox" size={14} color="#ffffff" />
+                                <Text style={{
+                                    fontSize: 14,
+                                    color: '#ffffff',
+                                    fontFamily: 'TTFirsNeue',
+                                    marginLeft: 6
+                                }}>
+                                    {professionalData?.profession?.title || 'Professional'}
                                 </Text>
-                                <Text style={[Textstyles.text_xxxsmall, { color: "#ffffff80" }]}>
-                                    {data.profile.totalJobsCompleted > 0 ? `Based on ${data.profile.totalJobsCompleted} jobs` : 'No jobs yet'}
+                                {professionalData?.yearsOfExp && (
+                                    <Text style={{
+                                        fontSize: 14,
+                                        color: '#ffffff' + '80',
+                                        fontFamily: 'TTFirsNeue',
+                                        marginLeft: 8
+                                    }}>
+                                        • {professionalData.yearsOfExp} years
+                                    </Text>
+                                )}
+                            </View>
+
+                            {/* Location */}
+                            <View className="flex-row items-center mt-2">
+                                <FontAwesome6 name="location-dot" size={12} color="#ffffff" />
+                                <Text style={{
+                                    fontSize: 13,
+                                    color: '#ffffff' + '90',
+                                    fontFamily: 'TTFirsNeue',
+                                    marginLeft: 4
+                                }}>
+                                    {professionalData?.profile?.user?.location?.lga || 'Location'}, {professionalData?.profile?.user?.location?.state || 'State'}
                                 </Text>
                             </View>
-                        </View>
-                        <EmptyView height={5} />
-                        <View>
-                            <Text style={[Textstyles.text_xsma, { color: "#ffffff" }]}>Jobs Completed: {data.profile.totalJobsCompleted}</Text>
+
+                            {/* Rating */}
+                            <View className="flex-row items-center mt-3">
+                                <RatingStar numberOfStars={Math.round(professionalData?.avgRating || 0)} />
+                                <Text style={{
+                                    fontSize: 16,
+                                    fontWeight: '600',
+                                    color: '#ffffff',
+                                    fontFamily: 'TTFirsNeue',
+                                    marginLeft: 8
+                                }}>
+                                    {(professionalData?.avgRating || 0).toFixed(1)}
+                                </Text>
+                                <Text style={{
+                                    fontSize: 12,
+                                    color: '#ffffff' + '70',
+                                    fontFamily: 'TTFirsNeue',
+                                    marginLeft: 4
+                                }}>
+                                    ({professionalData?.numRating || 0} reviews)
+                                </Text>
+                            </View>
+
+                            {/* Status */}
+                            <View
+                                style={{
+                                    backgroundColor: professionalData?.available ? primaryColor : backgroundColortwo,
+                                    paddingHorizontal: 16,
+                                    paddingVertical: 6,
+                                    borderRadius: 20,
+                                    marginTop: 12
+                                }}
+                            >
+                                <Text style={{
+                                    fontSize: 12,
+                                    fontWeight: '600',
+                                    color: '#ffffff',
+                                    fontFamily: 'TTFirsNeue'
+                                }}>
+                                    {professionalData?.available ? 'Available' : 'Busy'}
+                                </Text>
+                            </View>
                         </View>
                     </View>
-                    <EmptyView height={20} />
-                    <View className="w-full items-center">
-                        <TouchableOpacity onPress={handleNextFn} style={{ backgroundColor: primaryColor }} className="px-3 h-10 items-start justify-center rounded-2xl">
-                            <Text style={[Textstyles.text_small, { color: "#ffffff" }]}>
-                                Send a job request
+                </View>
+            </View>
+
+            {/* Action Buttons */}
+            <View className="px-4 py-4" style={{ backgroundColor: selectioncardColor }}>
+                <View className="flex-row gap-3">
+                    <TouchableOpacity
+                        onPress={handleContactProfessional}
+                        style={{
+                            flex: 1,
+                            backgroundColor: primaryColor,
+                            paddingVertical: 12,
+                            borderRadius: 12,
+                            alignItems: 'center'
+                        }}
+                    >
+                        <Text style={{
+                            color: '#ffffff',
+                            fontSize: 14,
+                            fontWeight: '600',
+                            fontFamily: 'TTFirsNeue'
+                        }}>
+                            Send Job Request
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        onPress={handleShareProfile}
+                        style={{
+                            backgroundColor: selectioncardColor,
+                            borderWidth: 1,
+                            borderColor: primaryColor,
+                            paddingVertical: 12,
+                            paddingHorizontal: 16,
+                            borderRadius: 12,
+                            alignItems: 'center'
+                        }}
+                    >
+                        <FontAwesome5 name="share-alt" size={16} color={primaryColor} />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Contact Options */}
+                <View className="flex-row gap-3 mt-3">
+                    {professionalData?.profile?.user?.phone && (
+                        <TouchableOpacity
+                            onPress={handleCallProfessional}
+                            style={{
+                                flex: 1,
+                                backgroundColor: selectioncardColor,
+                                borderWidth: 1,
+                                borderColor: secondaryTextColor + '30',
+                                paddingVertical: 10,
+                                borderRadius: 12,
+                                alignItems: 'center',
+                                flexDirection: 'row',
+                                justifyContent: 'center'
+                            }}
+                        >
+                            <Ionicons name="call-outline" size={16} color={primaryColor} />
+                            <Text style={{
+                                color: primaryColor,
+                                fontSize: 12,
+                                fontWeight: '600',
+                                fontFamily: 'TTFirsNeue',
+                                marginLeft: 6
+                            }}>
+                                Call
                             </Text>
                         </TouchableOpacity>
-                    </View>
+                    )}
 
-                    <DraggablePanel backgroundColor={backgroundColor}>
-                        <ScrollView contentContainerStyle={{ paddingVertical: 20 }}>
-                            <ProfessionalDetails data={data} />
-                        </ScrollView>
-                    </DraggablePanel>
-                </ImageBackground>
+                    {professionalData?.profile?.user?.email && (
+                        <TouchableOpacity
+                            onPress={handleEmailProfessional}
+                            style={{
+                                flex: 1,
+                                backgroundColor: selectioncardColor,
+                                borderWidth: 1,
+                                borderColor: secondaryTextColor + '30',
+                                paddingVertical: 10,
+                                borderRadius: 12,
+                                alignItems: 'center',
+                                flexDirection: 'row',
+                                justifyContent: 'center'
+                            }}
+                        >
+                            <Ionicons name="mail-outline" size={16} color={primaryColor} />
+                            <Text style={{
+                                color: primaryColor,
+                                fontSize: 12,
+                                fontWeight: '600',
+                                fontFamily: 'TTFirsNeue',
+                                marginLeft: 6
+                            }}>
+                                Email
+                            </Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
-        </>
-    )
-}
 
-export default ProfessionalProfile
+            {/* Tabs */}
+            <View className="px-4 py-2" style={{ backgroundColor: selectioncardColor }}>
+                <View className="flex-row bg-gray-100 rounded-xl p-1">
+                    {[
+                        { key: 'overview', label: 'Overview', icon: 'person' },
+                        { key: 'experience', label: 'Experience', icon: 'briefcase' },
+                        { key: 'portfolio', label: 'Portfolio', icon: 'images' },
+                        { key: 'reviews', label: 'Reviews', icon: 'star' }
+                    ].map((tab) => (
+                        <TouchableOpacity
+                            key={tab.key}
+                            onPress={() => setActiveTab(tab.key as any)}
+                            style={{
+                                flex: 1,
+                                backgroundColor: activeTab === tab.key ? primaryColor : 'transparent',
+                                paddingVertical: 8,
+                                borderRadius: 8,
+                                alignItems: 'center'
+                            }}
+                        >
+                            <Ionicons
+                                name={tab.icon as any}
+                                size={16}
+                                color={activeTab === tab.key ? '#ffffff' : secondaryTextColor}
+                            />
+                            <Text style={{
+                                fontSize: 11,
+                                fontWeight: '600',
+                                color: activeTab === tab.key ? '#ffffff' : secondaryTextColor,
+                                fontFamily: 'TTFirsNeue',
+                                marginTop: 2
+                            }}>
+                                {tab.label}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </View>
 
-interface ProfessionalDetailsProps {
+            {/* Tab Content */}
+            <ScrollView className="flex-1 px-4 py-4">
+                {professionalData && (
+                <ProfessionalDetailsTab 
+                    data={professionalData} 
+                    activeTab={activeTab} 
+                    theme={theme}
+                    colors={{ primaryColor, secondaryTextColor, selectioncardColor, backgroundColortwo }}
+                />
+            )}
+            </ScrollView>
+        </View>
+    );
+};
+
+interface ProfessionalDetailsTabProps {
     data: ProfessionalData;
+    activeTab: 'overview' | 'experience' | 'portfolio' | 'reviews';
+    theme: string;
+    colors: {
+        primaryColor: string;
+        secondaryTextColor: string;
+        selectioncardColor: string;
+        backgroundColortwo: string;
+    };
 }
 
-const ProfessionalDetails = ({ data }: ProfessionalDetailsProps) => {
-    const { theme } = useTheme()
-    const { secondaryTextColor, primaryColor, backgroundColortwo, backgroundColor, selectioncardColor } = getColors(theme)
-    const workExpArray = data.profile.experience ?? []
-    const portfolioArr = data.profile.portfolio ?? []
-    const educationArr = data.profile.education ?? []
-    const professionalReviewsArr = data.profile.user.professionalReviews ?? []
-    const certificationArr = data.profile.certification ?? []
+const ProfessionalDetailsTab = ({ data, activeTab, theme, colors }: ProfessionalDetailsTabProps) => {
+    const { primaryColor, secondaryTextColor, selectioncardColor, backgroundColortwo } = colors;
 
-    return (
-        <>
-            <View className="w-full h-full rounded-t-2xl px-3">
-                <ThemeText size={Textstyles.text_medium}>
-                    Overview
-                </ThemeText>
-                <View className={`${theme === "dark" ? "border-slate-300" : "border-slate-400"} border-b`} />
-                <EmptyView height={10} />
-                <ThemeText size={Textstyles.text_cmedium} >
-                    About
-                </ThemeText>
-                <Text style={[Textstyles.text_xsma, { color: secondaryTextColor }]}>
-                    {data.intro}
+    // Add null check for data
+    if (!data) {
+        return (
+            <View className="flex-1 justify-center items-center py-8">
+                <Ionicons name="alert-circle-outline" size={48} color={secondaryTextColor} />
+                <Text style={{
+                    fontSize: 14,
+                    color: secondaryTextColor,
+                    fontFamily: 'TTFirsNeue',
+                    marginTop: 12,
+                    textAlign: 'center'
+                }}>
+                    Professional data not available
                 </Text>
-                <ThemeText size={Textstyles.text_cmedium} >
-                    Work Experience
-                </ThemeText>
+            </View>
+        );
+    }
 
-                {workExpArray.length > 0 ? workExpArray.map((item) => (
-                    <View key={item.id}>
-                        <EmptyView height={10} />
-                        <View>
-                            <Text style={[Textstyles.text_cmedium, { color: secondaryTextColor }]}>
-                                {item.postHeld}
-                            </Text>
-                            <Text style={[Textstyles.text_xsma, { color: secondaryTextColor }]}>
-                                {item.workPlace}
-                            </Text>
-                            <Text style={[Textstyles.text_xsma, { color: secondaryTextColor }]}>
-                                {item.startDate}- {item.endDate}
+    if (activeTab === 'overview') {
+        return (
+            <View>
+                {/* About */}
+                <View className="mb-6">
+                    <Text style={{
+                        fontSize: 18,
+                        fontWeight: '600',
+                        color: theme === 'dark' ? '#FFFFFF' : '#1F2937',
+                        fontFamily: 'TTFirsNeue',
+                        marginBottom: 12
+                    }}>
+                        About
+                    </Text>
+                    <Text style={{
+                        fontSize: 14,
+                        color: secondaryTextColor,
+                        fontFamily: 'TTFirsNeue',
+                        lineHeight: 20
+                    }}>
+                        {data.intro || 'No bio available yet.'}
+                    </Text>
+                </View>
+
+                {/* Skills */}
+                <View className="mb-6">
+                    <Text style={{
+                        fontSize: 18,
+                        fontWeight: '600',
+                        color: theme === 'dark' ? '#FFFFFF' : '#1F2937',
+                        fontFamily: 'TTFirsNeue',
+                        marginBottom: 12
+                    }}>
+                        Professional Details
+                    </Text>
+                    <View className="space-y-3">
+                        <View className="flex-row items-center">
+                            <FontAwesome5 name="toolbox" size={14} color={primaryColor} />
+                            <Text style={{
+                                fontSize: 14,
+                                color: secondaryTextColor,
+                                fontFamily: 'TTFirsNeue',
+                                marginLeft: 12
+                            }}>
+                                {data?.profession?.title || 'Professional'}
                             </Text>
                         </View>
-                    </View>
-                )) : <Text style={[Textstyles.text_cmedium, { color: secondaryTextColor }]}>
-                    No Record for Work Experience
-                </Text>}
-               
-                <EmptyView height={10} />
-                <ThemeText size={Textstyles.text_medium} >
-                    Portfolio and Work Samples
-                </ThemeText>
-                {portfolioArr.length > 0 ?
-                    portfolioArr.map((item) => (
-                        <View key={item.id}>
-                            <EmptyView height={10} />
-                            <View>
-                                <Text style={[Textstyles.text_small, { color: secondaryTextColor }]}>
-                                    {item.title}
+                        <View className="flex-row items-center">
+                            <FontAwesome6 name="location-dot" size={14} color={primaryColor} />
+                            <Text style={{
+                                fontSize: 14,
+                                color: secondaryTextColor,
+                                fontFamily: 'TTFirsNeue',
+                                marginLeft: 12
+                            }}>
+                                {data?.profile?.user?.location?.lga || 'Location'}, {data?.profile?.user?.location?.state || 'State'}
+                            </Text>
+                        </View>
+                        <View className="flex-row items-center">
+                            <Ionicons name="checkmark-circle-outline" size={14} color={primaryColor} />
+                            <Text style={{
+                                fontSize: 14,
+                                color: secondaryTextColor,
+                                fontFamily: 'TTFirsNeue',
+                                marginLeft: 12
+                            }}>
+                                {data?.numRating || 0} reviews received
+                            </Text>
+                        </View>
+                        {data.chargeFrom && (
+                            <View className="flex-row items-center">
+                                <FontAwesome5 name="naira-sign" size={14} color={primaryColor} />
+                                <Text style={{
+                                    fontSize: 14,
+                                    color: secondaryTextColor,
+                                    fontFamily: 'TTFirsNeue',
+                                    marginLeft: 12
+                                }}>
+                                    Starts from {data.chargeFrom}
                                 </Text>
-                                <EmptyView height={6} />
-                                <Text style={[Textstyles.text_xsma, { color: secondaryTextColor }]}>
-                                    {item.description}
-                                </Text>
-                                <EmptyView height={6} />
-                                <View className="flex-row justify-around gap-x-2">
-                                    <Image resizeMode="contain" source={require('../../../assets/samplework.png')} className="w-16 h-16 rounded-xl" />
-                                    <Image resizeMode="contain" source={require('../../../assets/samplework.png')} className="w-16 h-16 rounded-xl" />
-                                    <Image resizeMode="contain" source={require('../../../assets/samplework.png')} className="w-16 h-16 rounded-xl" />
-                                    <Image resizeMode="contain" source={require('../../../assets/samplework.png')} className="w-16 h-16 rounded-xl" />
-                                    <Image resizeMode="contain" source={require('../../../assets/samplework.png')} className="w-16 h-16 rounded-xl" />
-                                </View>
                             </View>
-                        </View>
-                    )) : <Text style={[Textstyles.text_cmedium, { color: secondaryTextColor }]}>
-                    No Record for Portfolio
-                </Text>}
-               
-                <EmptyView height={10} />
-                <ThemeText size={Textstyles.text_medium} >
-                    Work Complete
-                </ThemeText>
-                <EmptyView height={10} />
-                <View style={{ backgroundColor: selectioncardColor, elevation: 4 }} className="w-full px-3 py-2 h-36 rounded-2xl shadow-slate-300 shadow-sm justify-center">
-                    <Text style={[Textstyles.text_small, { color: secondaryTextColor }]}>
-                        Residential Renovation-Kitchen Remodelling
-                    </Text>
-                    <EmptyView height={6} />
-                    <Text style={[Textstyles.text_xsma, { color: secondaryTextColor }]}>
-                        Managed a Kitchen remodeling project, including
-                        new cabinetry, electrical work and plumbing
-                        upgrade
-                    </Text>
-                    <EmptyView height={6} />
-                    <View className="flex-row justify-between">
-                        <Text style={[Textstyles.text_small]} className="text-green-500">
-                            N50,000
-                        </Text>
-                        <View className="flex-row gap-x-2">
-                            <FontAwesome6 name="location-dot" size={12} color={primaryColor} />
-                            <Text style={[Textstyles.text_xsma, { color: secondaryTextColor }]}>
-                                Akure, Ondo State
-                            </Text>
-                        </View>
+                        )}
                     </View>
-                    <Divider />
-                    <EmptyView height={6} />
-                    <View className="flex-row justify-between">
-                        <View className="flex-row gap-x-2">
-                            <FontAwesome6 name="location-dot" size={12} color={primaryColor} />
-                            <Text style={[Textstyles.text_xsma, { color: secondaryTextColor }]}>
-                                July 23, 2023
+                </View>
+
+                {/* Stats */}
+                <View className="mb-6">
+                    <Text style={{
+                        fontSize: 18,
+                        fontWeight: '600',
+                        color: theme === 'dark' ? '#FFFFFF' : '#1F2937',
+                        fontFamily: 'TTFirsNeue',
+                        marginBottom: 12
+                    }}>
+                        Performance
+                    </Text>
+                    <View className="flex-row gap-4">
+                        <View style={{
+                            backgroundColor: selectioncardColor,
+                            padding: 16,
+                            borderRadius: 12,
+                            flex: 1,
+                            alignItems: 'center'
+                        }}>
+                            <Text style={{
+                                fontSize: 24,
+                                fontWeight: '700',
+                                color: primaryColor,
+                                fontFamily: 'TTFirsNeue'
+                            }}>
+                                {(data.avgRating || 0).toFixed(1)}
+                            </Text>
+                            <Text style={{
+                                fontSize: 12,
+                                color: secondaryTextColor,
+                                fontFamily: 'TTFirsNeue',
+                                marginTop: 4
+                            }}>
+                                Rating
                             </Text>
                         </View>
-                        <View className="flex-row gap-x-2">
-                            <FontAwesome6 name="clock" size={12} color={primaryColor} />
-                            <Text style={[Textstyles.text_xsma, { color: secondaryTextColor }]}>
-                                3 months ago
+                        <View style={{
+                            backgroundColor: selectioncardColor,
+                            padding: 16,
+                            borderRadius: 12,
+                            flex: 1,
+                            alignItems: 'center'
+                        }}>
+                            <Text style={{
+                                fontSize: 24,
+                                fontWeight: '700',
+                                color: primaryColor,
+                                fontFamily: 'TTFirsNeue'
+                            }}>
+                                {data.numRating || 0}
+                            </Text>
+                            <Text style={{
+                                fontSize: 12,
+                                color: secondaryTextColor,
+                                fontFamily: 'TTFirsNeue',
+                                marginTop: 4
+                            }}>
+                                Reviews
                             </Text>
                         </View>
                     </View>
                 </View>
-                
-                <EmptyView height={10} />
-                <ThemeText size={Textstyles.text_medium} >
-                    Education
-                </ThemeText>
-                {educationArr.length > 0 ? educationArr.map((item) => (
-                    <View key={item.id}>
-                        <EmptyView height={10} />
-                        <View>
-                            <Text style={[Textstyles.text_small, { color: secondaryTextColor }]}>
-                                {item.course}
-                            </Text>
-                            <EmptyView height={6} />
-                            <Text style={[Textstyles.text_xsma, { color: secondaryTextColor }]}>
-                                {item.school}
-                            </Text>
-                            <EmptyView height={6} />
-                        </View>
-                    </View>
-                )) : <Text style={[Textstyles.text_cmedium, { color: secondaryTextColor }]}>
-                    No Record for Education
-                </Text>}
-                
-                <Divider />
-                <EmptyView height={10} />
-                <ThemeText size={Textstyles.text_medium} >
-                    Review
-                </ThemeText>
-               
-                {professionalReviewsArr.length > 0 ? professionalReviewsArr.map((item) => (
-                    <View key={item.id}>
-                        <EmptyView height={10} />
-                        <Text style={[Textstyles.text_small, { color: secondaryTextColor }]}>
-                            {item.clientUser.profile.firstName} {item.clientUser.profile.lastName}
-                        </Text>
-                        <EmptyView height={6} />
-                        <Text style={[Textstyles.text_xsma, { color: secondaryTextColor }]}>
-                            {item.review}
-                        </Text>
-                        <EmptyView height={6} />
-                        <RatingStar numberOfStars={item.rating} />
-                        <EmptyView height={6} />
-                        <Divider />
-                    </View>
-                )) : <Text style={[Textstyles.text_cmedium, { color: secondaryTextColor }]}>
-                    No Reviews
-                </Text>}
-                
-                <EmptyView height={10} />
-                <ThemeText size={Textstyles.text_medium} >
-                    Language
-                </ThemeText>
-                <EmptyView height={10} />
-                <Text style={[Textstyles.text_small, { color: secondaryTextColor }]}>
-                    {data.language}
-                </Text>
-                <EmptyView height={6} />
-
-                <Divider />
-                <EmptyView height={10} />
-                {certificationArr.length > 0 ? certificationArr.map((item) => (
-                    <View key={item.id}>
-                        <ThemeText size={Textstyles.text_medium} >
-                            Certification
-                        </ThemeText>
-                        <EmptyView height={10} />
-                        <Text style={[Textstyles.text_small, { color: secondaryTextColor }]}>
-                            {item.title}
-                        </Text>
-                        <Text style={[Textstyles.text_xsma, { color: secondaryTextColor }]}>
-                            {item.date}
-                        </Text>
-                    </View>
-                )) : <Text style={[Textstyles.text_cmedium, { color: secondaryTextColor }]}>
-                    No Certifications
-                </Text>}
             </View>
-        </>
-    )
-}
+        );
+    }
+
+    if (activeTab === 'experience') {
+        return (
+            <View>
+                <Text style={{
+                    fontSize: 18,
+                    fontWeight: '600',
+                    color: theme === 'dark' ? '#FFFFFF' : '#1F2937',
+                    fontFamily: 'TTFirsNeue',
+                    marginBottom: 16
+                }}>
+                    Work Experience
+                </Text>
+                {data.profile?.experience && data.profile.experience.length > 0 ? (
+                    data.profile.experience?.map((exp) => (
+                        <View key={exp.id} style={{
+                            backgroundColor: selectioncardColor,
+                            padding: 16,
+                            borderRadius: 12,
+                            marginBottom: 12
+                        }}>
+                            <Text style={{
+                                fontSize: 16,
+                                fontWeight: '600',
+                                color: theme === 'dark' ? '#FFFFFF' : '#1F2937',
+                                fontFamily: 'TTFirsNeue',
+                                marginBottom: 4
+                            }}>
+                                {exp.position}
+                            </Text>
+                            <Text style={{
+                                fontSize: 14,
+                                color: primaryColor,
+                                fontFamily: 'TTFirsNeue',
+                                marginBottom: 8
+                            }}>
+                                {exp.company}
+                            </Text>
+                            <Text style={{
+                                fontSize: 12,
+                                color: secondaryTextColor,
+                                fontFamily: 'TTFirsNeue',
+                                marginBottom: 8
+                            }}>
+                                {exp.startDate} - {exp.endDate || 'Present'}
+                            </Text>
+                            <Text style={{
+                                fontSize: 13,
+                                color: secondaryTextColor,
+                                fontFamily: 'TTFirsNeue',
+                                lineHeight: 18
+                            }}>
+                                {exp.description}
+                            </Text>
+                        </View>
+                    ))
+                ) : (
+                    <View className="items-center py-8">
+                        <Ionicons name="briefcase-outline" size={48} color={secondaryTextColor} />
+                        <Text style={{
+                            fontSize: 14,
+                            color: secondaryTextColor,
+                            fontFamily: 'TTFirsNeue',
+                            marginTop: 12
+                        }}>
+                            No work experience added yet
+                        </Text>
+                    </View>
+                )}
+
+                <Text style={{
+                    fontSize: 18,
+                    fontWeight: '600',
+                    color: theme === 'dark' ? '#FFFFFF' : '#1F2937',
+                    fontFamily: 'TTFirsNeue',
+                    marginBottom: 16,
+                    marginTop: 24
+                }}>
+                    Education
+                </Text>
+                {data.profile?.education && data.profile.education.length > 0 ? (
+                    data.profile.education?.map((edu) => (
+                        <View key={edu.id} style={{
+                            backgroundColor: selectioncardColor,
+                            padding: 16,
+                            borderRadius: 12,
+                            marginBottom: 12
+                        }}>
+                            <Text style={{
+                                fontSize: 16,
+                                fontWeight: '600',
+                                color: theme === 'dark' ? '#FFFFFF' : '#1F2937',
+                                fontFamily: 'TTFirsNeue',
+                                marginBottom: 4
+                            }}>
+                                {edu.degree} in {edu.field}
+                            </Text>
+                            <Text style={{
+                                fontSize: 14,
+                                color: primaryColor,
+                                fontFamily: 'TTFirsNeue',
+                                marginBottom: 8
+                            }}>
+                                {edu.institution}
+                            </Text>
+                            <Text style={{
+                                fontSize: 12,
+                                color: secondaryTextColor,
+                                fontFamily: 'TTFirsNeue'
+                            }}>
+                                {edu.startDate} - {edu.endDate || 'Present'}
+                            </Text>
+                        </View>
+                    ))
+                ) : (
+                    <View className="items-center py-8">
+                        <Ionicons name="school-outline" size={48} color={secondaryTextColor} />
+                        <Text style={{
+                            fontSize: 14,
+                            color: secondaryTextColor,
+                            fontFamily: 'TTFirsNeue',
+                            marginTop: 12
+                        }}>
+                            No education added yet
+                        </Text>
+                    </View>
+                )}
+            </View>
+        );
+    }
+
+    if (activeTab === 'portfolio') {
+        return (
+            <View>
+                <Text style={{
+                    fontSize: 18,
+                    fontWeight: '600',
+                    color: theme === 'dark' ? '#FFFFFF' : '#1F2937',
+                    fontFamily: 'TTFirsNeue',
+                    marginBottom: 16
+                }}>
+                    Portfolio
+                </Text>
+                {data.profile?.portfolios && data.profile.portfolios.length > 0 ? (
+                    data.profile.portfolios?.map((item) => (
+                        <View key={item.id} style={{
+                            backgroundColor: selectioncardColor,
+                            padding: 16,
+                            borderRadius: 12,
+                            marginBottom: 12
+                        }}>
+                            <Text style={{
+                                fontSize: 16,
+                                fontWeight: '600',
+                                color: theme === 'dark' ? '#FFFFFF' : '#1F2937',
+                                fontFamily: 'TTFirsNeue',
+                                marginBottom: 8
+                            }}>
+                                {item.title}
+                            </Text>
+                            <Text style={{
+                                fontSize: 13,
+                                color: secondaryTextColor,
+                                fontFamily: 'TTFirsNeue',
+                                lineHeight: 18,
+                                marginBottom: 8
+                            }}>
+                                {item.description}
+                            </Text>
+                            <Text style={{
+                                fontSize: 11,
+                                color: secondaryTextColor + '60',
+                                fontFamily: 'TTFirsNeue'
+                            }}>
+                                Completed: {new Date(item.completedAt).toLocaleDateString()}
+                            </Text>
+                        </View>
+                    ))
+                ) : (
+                    <View className="items-center py-8">
+                        <Ionicons name="images-outline" size={48} color={secondaryTextColor} />
+                        <Text style={{
+                            fontSize: 14,
+                            color: secondaryTextColor,
+                            fontFamily: 'TTFirsNeue',
+                            marginTop: 12
+                        }}>
+                            No portfolio items added yet
+                        </Text>
+                    </View>
+                )}
+            </View>
+        );
+    }
+
+    if (activeTab === 'reviews') {
+        return (
+            <View>
+                <Text style={{
+                    fontSize: 18,
+                    fontWeight: '600',
+                    color: theme === 'dark' ? '#FFFFFF' : '#1F2937',
+                    fontFamily: 'TTFirsNeue',
+                    marginBottom: 16
+                }}>
+                    Reviews
+                </Text>
+                {data.profile?.user?.professionalReviews && data.profile.user.professionalReviews.length > 0 ? (
+                    data.profile.user.professionalReviews?.map((review) => (
+                        <View key={review.id} style={{
+                            backgroundColor: selectioncardColor,
+                            padding: 16,
+                            borderRadius: 12,
+                            marginBottom: 12
+                        }}>
+                            <View className="flex-row items-start mb-3">
+                                <Image
+                                    source={{
+                                        uri: review.clientUser.profile.avatar || 'https://placehold.co/40x40?text=Avatar'
+                                    }}
+                                    className="w-10 h-10 rounded-full"
+                                    style={{ marginRight: 12 }}
+                                />
+                                <View className="flex-1">
+                                    <Text style={{
+                                        fontSize: 14,
+                                        fontWeight: '600',
+                                        color: theme === 'dark' ? '#FFFFFF' : '#1F2937',
+                                        fontFamily: 'TTFirsNeue'
+                                    }}>
+                                        {review.clientUser.profile.firstName} {review.clientUser.profile.lastName}
+                                    </Text>
+                                    <View className="flex-row items-center mt-1">
+                                        <RatingStar numberOfStars={5} />
+                                        <Text style={{
+                                            fontSize: 11,
+                                            color: secondaryTextColor,
+                                            fontFamily: 'TTFirsNeue',
+                                            marginLeft: 6
+                                        }}>
+                                            5.0
+                                        </Text>
+                                    </View>
+                                </View>
+                            </View>
+                            <Text style={{
+                                fontSize: 13,
+                                color: secondaryTextColor,
+                                fontFamily: 'TTFirsNeue',
+                                lineHeight: 18
+                            }}>
+                                {review.text}
+                            </Text>
+                            <Text style={{
+                                fontSize: 11,
+                                color: secondaryTextColor + '60',
+                                fontFamily: 'TTFirsNeue',
+                                marginTop: 8
+                            }}>
+                                {new Date(review.createdAt).toLocaleDateString()}
+                            </Text>
+                        </View>
+                    ))
+                ) : (
+                    <View className="items-center py-8">
+                        <Ionicons name="star-outline" size={48} color={secondaryTextColor} />
+                        <Text style={{
+                            fontSize: 14,
+                            color: secondaryTextColor,
+                            fontFamily: 'TTFirsNeue',
+                            marginTop: 12
+                        }}>
+                            No reviews yet
+                        </Text>
+                        <Text style={{
+                            fontSize: 12,
+                            color: secondaryTextColor + '70',
+                            fontFamily: 'TTFirsNeue',
+                            marginTop: 4,
+                            textAlign: 'center'
+                        }}>
+                            Be the first to review {data.profile?.firstName || 'this professional'}!
+                        </Text>
+                    </View>
+                )}
+            </View>
+        );
+    }
+
+    return null;
+};
+
+export default ProfessionalProfile;

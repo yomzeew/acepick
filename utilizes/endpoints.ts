@@ -1,108 +1,429 @@
-import { config } from '../config/environment';
+/**
+ * API Endpoints for Acepick Mobile App
+ */
 
-export const baseUrl: string = config.baseUrl;
+const getDevBaseUrl = () => {
+  // adb reverse tcp:3000 tcp:3000 maps localhost on emulator to host
+  //return 'http://localhost:3000/api';
+  return 'https://acepickbackend.onrender.com/api'
+};
+
+export const API_BASE_URL = __DEV__ 
+  ? getDevBaseUrl()
+  : 'https://acepickbackend.onrender.com/api';
 
 // Auth endpoints
-export const loginUrl: string = `${baseUrl}/api/auth/login`;
-export const sendOtpUrl: string = `${baseUrl}/api/auth/send-otp`;
-export const verifyOtpUrl: string = `${baseUrl}/api/auth/verify-otp`;
-export const uploadUrl: string = `${baseUrl}/api/auth/upload_avatar`;
-export const registerUrl: string = `${baseUrl}/api/auth/register`;
-export const registerUrlArtisan: string = `${baseUrl}/api/auth/register-professional`;
-export const corporateUrl: string = `${baseUrl}/api/auth/register-corperate`;
-export const forgotpassword: string = `${baseUrl}/api/auth/change-password-forgot`;
+export const AUTH = {
+  LOGIN: '/auth/login',
+  WORKER_LOGIN: '/auth/worker/login',
+  WORKER_PASSWORD_LOGIN: '/auth/worker/password-login',
+  WORKER_REGISTER: '/auth/worker/register',
+  WORKER_VERIFY_OTP: '/auth/worker/verify-otp',
+  WORKER_SAVE_PROFILE: '/auth/worker/save-profile',
+  WORKER_SAVE_SKILLS: '/auth/worker/save-skills',
+  WORKER_DOCUMENTS: '/auth/worker/documents',
+  WORKER_PROFILE_PIC: '/auth/worker/profile-pic',
+  WORKER_VERIFY_RTW: '/auth/worker/verify-rtw',
+  WORKER_COMPLETE_ONBOARDING: '/auth/worker/complete-onboarding',
+  SEND_OTP: '/auth/send-otp',
+  VERIFY_OTP: '/auth/verify-otp',
+  REGISTER: '/auth/register',
+  REGISTER_PROFESSIONAL: '/auth/register-professional',
+  REGISTER_CORPERATE: '/auth/register-corperate',
+  REGISTER_RIDER: '/auth/register-rider',
+  UPDATE_PROFILE: '/auth/update-profile',
+  UPDATE_RIDER: '/auth/update-rider',
+  CHANGE_PASSWORD_LOGGED_IN: '/auth/change-password-loggedin',
+  CHANGE_PASSWORD_FORGOT: '/auth/change-password-forgot',
+  UPDATE_PUSH_TOKEN: '/auth/update-push-token',
+  VERIFY_TOKEN: '/auth/verify-token',
+  AUTHORIZE: '/auth/authorize',
+  DELETE_USERS: '/auth/delete-users',
+  VERIFY_BVN: '/auth/verify-bvn',
+  VERIFY_WEBHOOK: '/auth/verify/webhook',
+  ME: '/auth/me',
+  UPDATE_ME: '/auth/me',
+  CHANGE_PASSWORD: '/auth/change-password',
+  FORGOT_PASSWORD: '/auth/forgot-password',
+  RESET_PASSWORD: '/auth/reset-password',
+  LOGOUT: '/auth/logout',
+  UPLOAD_AVATAR: '/auth/upload_avatar',
+} as const;
 
-// List of Sector and Professions
-export const sectorUrl: string = `${baseUrl}/api/sectors`;
-export const professionalUrl: string = `${baseUrl}/api/professions`;
-export const pushTokenUrl: string = `${baseUrl}/api/auth/update-push-token`;
+// Sectors & Professions
+export const SECTORS = {
+  LIST: '/sectors',
+  DETAILS: '/sectors/details',
+  CREATE: '/sectors',
+  UPDATE: (id: string) => `/sectors/${id}`,
+  DELETE: (id: string) => `/sectors/${id}`,
+} as const;
 
-// List of Artisan and Corporate
-export const sectorUrlDetails: string = `${baseUrl}/api/sectors/details`;
-export const listofArtisan: string = `${baseUrl}/api/professionals?`;
-export const getProfessionUrl: string = `${baseUrl}/api/professionals`;
-export const getProfessionByUserIdUrl: string = `${baseUrl}/api/professionals/user`;
+export const SKILLS = {
+  LIST: '/skills',
+  POPULAR: '/skills/popular',
+  CATEGORIES: '/skills/categories',
+  DETAILS: (id: string) => `/skills/${id}`,
+  CREATE: '/skills',
+  UPDATE: (id: string) => `/skills/${id}`,
+  DELETE: (id: string) => `/skills/${id}`,
+} as const;
 
-// Update location
-export const locationUrl: string = `${baseUrl}/api/location`;
+export const PROFESSIONS = {
+  LIST: '/professions',
+  GET_BY_ID: (id: string) => `/professions/${id}`,
+  CREATE: '/professions',
+  UPDATE: (id: string) => `/professions/${id}`,
+  DELETE: (id: string) => `/professions/${id}`,
+} as const;
 
-// Job endpoints
-export const jobsUrl: string = `${baseUrl}/api/jobs`;
-export const jobUrlatest: string = `${baseUrl}/api/jobs/latest`;
-export const jobUrlAcceptDecline: string = `${baseUrl}/api/jobs/response`;
-export const jobUrlComplete: string = `${baseUrl}/api/jobs/complete`;
-export const jobUrlApproved: string = `${baseUrl}/api/jobs/approve`;
+// Professionals
+export const PROFESSIONALS = {
+  LIST: '/professionals',
+  GET_BY_ID: (professionalId: string) => `/professionals/${professionalId}`,
+  GET_BY_USER_ID: (userId: string) => `/professionals/user/${userId}`,
+  UPDATE_PROFILE: '/professionals/profile',
+  COOPERATES: '/cooperates',
+} as const;
 
-// Invoice endpoints
-export const invoiceUrl: string = `${baseUrl}/api/jobs/invoice`;
+// Jobs Management
+export const JOBS = {
+  LIST: '/jobs',
+  LATEST: '/jobs/latest',
+  GET_BY_ID: (jobId: string) => `/jobs/${jobId}`,
+  CREATE: '/jobs',
+  RESPOND: (jobId: string) => `/jobs/response/${jobId}`,
+  COMPLETE: (jobId: string) => `/jobs/complete/${jobId}`,
+  APPROVE: (jobId: string) => `/jobs/approve/${jobId}`,
+  DISPUTE: (jobId: string) => `/jobs/dispute/${jobId}`,
+  CANCEL: (jobId: string) => `/jobs/cancel/${jobId}`,
+  UPDATE: (jobId: string) => `/jobs/update/${jobId}`,
+  INVOICE: '/jobs/invoice',
+  INVOICE_BY_ID: (jobId: string) => `/jobs/invoice/${jobId}`,
+  VIEW_INVOICE: (jobId: string) => `/jobs/invoice/${jobId}`,
+  RESOLVE_DISPUTE: (jobId: string) => `/jobs/dispute/resolve/${jobId}`,
+} as const;
 
-// PIN endpoints
-export const setPinUrl: string = `${baseUrl}/api/set-pin`;
-export const resetPinUrl: string = `${baseUrl}/api/reset-pin`;
+// Locations
+export const LOCATIONS = {
+  ADD: '/locations',
+  UPDATE: (locationId: string) => `/location/${locationId}`,
+  GET_BY_ID: (id: string) => `/locations/${id}`,
+  DELETE: (id: string) => `/locations/${id}`,
+  MY_LOCATIONS: '/my-locations',
+  FIND_NEARBY: '/nearest-person',
+} as const;
 
-// Payment endpoints
-export const initiatepayment: string = `${baseUrl}/api/payments/initiate`;
-export const verifypayment: string = `${baseUrl}/api/payments/verify`;
-export const initiatetransfer: string = `${baseUrl}/api/transfer/initiate`;
-export const verifytransfer: string = `${baseUrl}/api/transfer/verify/`;
+// Education, Experience, Certifications, Portfolios
+export const EDUCATION = {
+  LIST: '/education',
+  ADD: '/education',
+  UPDATE: (id: string) => `/education/${id}`,
+  DELETE: (id: string) => `/education/${id}`,
+} as const;
 
-// Debit payment from wallet
-export const debitWallet: string = `${baseUrl}/api/debit-wallet`;
+export const CERTIFICATIONS = {
+  LIST: '/certificates',
+  ADD: '/certificates',
+  UPDATE: (id: string) => `/certificates/${id}`,
+  DELETE: (id: string) => `/certificates/${id}`,
+} as const;
 
-// Account endpoints
-export const getBanksUrl: string = `${baseUrl}/api/accounts/banks`;
-export const resolveUrl: string = `${baseUrl}/api/accounts/resolve`;
-export const addbankDetailsUrl: string = `${baseUrl}/api/accounts`;
-export const getbanksDetails: string = `${baseUrl}/api/accounts`;
-export const updatebanksDetails: string = `${baseUrl}/api/accounts`;
-export const deletebankDetails: string = `${baseUrl}/api/accounts`;
+export const EXPERIENCES = {
+  LIST: '/experiences',
+  ADD: '/experiences',
+  UPDATE: (id: string) => `/experiences/${id}`,
+  DELETE: (id: string) => `/experiences/${id}`,
+} as const;
 
-// General user details
-export const userDetailsgeneralUrl: string = `${baseUrl}/api/profile`;
+export const PORTFOLIOS = {
+  LIST: '/portfolios',
+  ADD: '/portfolios',
+  UPDATE: (id: string) => `/portfolios/${id}`,
+  DELETE: (id: string) => `/portfolios/${id}`,
+} as const;
 
-// Client endpoints
-export const clientDetailUrl: string = `${baseUrl}/api/clients/`;
+// Wallet & Transactions
+export const WALLET = {
+  CREATE: '/create-wallet',
+  VIEW: '/view-wallet',
+  CREDIT: '/credit-wallet',
+  DEBIT: '/debit-wallet',
+  DEBIT_PRODUCT: '/debit-wallet/product',
+  SET_PIN: '/set-pin',
+  RESET_PIN: '/reset-pin',
+  FORGOT_PIN: '/forgot-pin',
+  TRANSACTIONS: '/transactions',
+  TRANSACTION_BY_ID: (id: string) => `/transactions/${id}`,
+} as const;
 
-// Wallet endpoints
-export const viewWalletUrl: string = `${baseUrl}/api/view-wallet`;
+// Payment & Transfer
+export const PAYMENTS = {
+  INITIATE: '/payments/initiate',
+  VERIFY: (ref: string) => `/payments/verify/${ref}`,
+  WEBHOOK: '/paystack/webhook',
+} as const;
 
-// Update profile endpoints
-export const educationUrl: string = `${baseUrl}/api/education`;
-export const certificationUrl: string = `${baseUrl}/api/certificates`;
-export const experienceUrl: string = `${baseUrl}/api/experiences`;
-export const portfolioUrl: string = `${baseUrl}/api/portfolios`;
+export const TRANSFERS = {
+  INITIATE: '/transfer/initiate',
+  FINALIZE: '/transfer/finalize',
+  VERIFY: (ref: string) => `/transfer/verify/${ref}`,
+} as const;
 
-// Market Place endpoints
-export const getCategoriesUrl: string = `${baseUrl}/api/categories`;
-export const productUrl: string = `${baseUrl}/api/products`;
-export const uploadProductUrl: string = `${baseUrl}/api/products/upload`;
-export const getProductmineUrl: string = `${baseUrl}/api/products/mine`;
-export const getProductTransUrl: string = `${baseUrl}/api/products/transactions`;
-export const getSoldProductUrl: string = `${baseUrl}/api/products/transactions/sold`;
-export const getBoughtProductUrl: string = `${baseUrl}/api/products/transactions/bought`;
-export const selectProdectUrl: string = `${baseUrl}/api/products/select`;
-export const getProductbyTransactionId: string = `${baseUrl}/api/products/transactions`;
+// Products & Categories
+export const PRODUCTS = {
+  LIST: '/products',
+  GET_BY_ID: (id: string) => `/products/${id}`,
+  ADD: '/products',
+  UPDATE: (id: string) => `/products/${id}`,
+  DELETE: (id: string) => `/products/${id}`,
+  MINE: '/products/mine',
+  UPLOAD: '/products/upload',
+  SELECT: '/products/select',
+  RESTOCK: '/products/restock',
+  SOLD_TRANSACTIONS: '/products/transactions/sold',
+  BOUGHT_TRANSACTIONS: '/products/transactions/bought',
+  TRANSACTION_BY_ID: (id: string) => `/products/transactions/${id}`,
+} as const;
 
-// Delivery endpoints
-export const pendingdeliveryUrl: string = `${baseUrl}/api/paid-orders`;
-export const acceptdeliveryUrl: string = `${baseUrl}/api/orders/accept`;
-export const pickupdeliveryUrl: string = `${baseUrl}/api/orders/pickup`;
-export const confirmPickupUrl: string = `${baseUrl}/api/orders/confirm_pickup`;
-export const intransitdeliveryUrl: string = `${baseUrl}/api/orders/transport`;
-export const deliveredUrl: string = `${baseUrl}/api/orders/deliver`;
-export const confirmDeliveredUrl: string = `${baseUrl}/api/orders/confirm_delivery`;
-export const createOrderUrl: string = `${baseUrl}/api/create-order`;
+export const CATEGORIES = {
+  LIST: '/categories',
+  ADD: '/categories',
+  UPDATE: (id: string) => `/categories/${id}`,
+  DELETE: (id: string) => `/categories/${id}`,
+} as const;
 
-export const getRiderDeliveryUrl: string = `${baseUrl}/api/rider-orders`;
+// Orders
+export const ORDERS = {
+  CREATE: '/create-order',
+  PAID_ORDERS: '/paid-orders',
+  RIDER_ORDERS: '/rider-orders',
+  BUYER_ORDERS: '/buyer-orders',
+  SELLER_ORDERS: '/seller-orders',
+  GET_BY_ID: (orderId: string) => `/orders/${orderId}`,
+  ACCEPT: (orderId: string) => `/orders/accept/${orderId}`,
+  EN_ROUTE_TO_PICKUP: (orderId: string) => `/orders/en_route_to_pickup/${orderId}`,
+  ARRIVED_AT_PICKUP: (orderId: string) => `/orders/arrived_at_pickup/${orderId}`,
+  PICKUP: (orderId: string) => `/orders/pickup/${orderId}`,
+  CONFIRM_PICKUP: (orderId: string) => `/orders/confirm_pickup/${orderId}`,
+  ARRIVED_AT_DROPOFF: (orderId: string) => `/orders/arrived_at_dropoff/${orderId}`,
+  DELIVER: (orderId: string) => `/orders/deliver/${orderId}`,
+  CONFIRM_DELIVERY: (productTransactionId: string) => `/orders/confirm_delivery/${productTransactionId}`,
+  CANCEL: (orderId: string) => `/orders/cancel/${orderId}`,
+  RETRY: (orderId: string) => `/orders/retry/${orderId}`,
+  DISPUTE: '/orders/dispute',
+  RESOLVE_DISPUTE: (disputeId: string) => `/orders/dispute/resolve/${disputeId}`,
+  SELLER_ACCEPT: (ptId: string) => `/orders/seller-accept/${ptId}`,
+  SELLER_REJECT: (ptId: string) => `/orders/seller-reject/${ptId}`,
+  SELLER_MARK_READY: (ptId: string) => `/orders/seller-mark-ready/${ptId}`,
+  SELLER_CONFIRM: (ptId: string) => `/orders/seller-confirm/${ptId}`,
+  RETURN_REQUEST: '/orders/return-request',
+  RESOLVE_RETURN: (returnRequestId: string) => `/orders/return-request/resolve/${returnRequestId}`,
+  AUTO_RELEASE: '/orders/auto-release-payments',
+} as const;
 
-// List of contact endpoints
-export const contactUrl: string = `${baseUrl}/api/contacts`;
-export const addContactUrl: string = `${baseUrl}/api/contacts/add`;
-export const removeContactUrl: string = `${baseUrl}/api/contacts/remove`;
-export const listofContactUrl: string = `${baseUrl}/api/contacts`;
-export const getLocationUrl: string = `${baseUrl}/api/my-locations`;
-export const ratingUrl: string = `${baseUrl}/api/ratings`;
+// Ratings & Reviews
+export const RATINGS = {
+  GIVE: '/ratings',
+  IS_RATED: '/is-rated',
+  UPDATE: (id: string) => `/ratings/${id}`,
+  DELETE: (id: string) => `/ratings/${id}`,
+  AVERAGE: '/ratings/average',
+  BY_USER: (userId: string) => `/ratings/user/${userId}`,
+  FOR_USER: (userId: string) => `/ratings/for-user/${userId}`,
+  STATS: (userId: string) => `/ratings/stats/${userId}`,
+  REPORT: (ratingId: string) => `/ratings/${ratingId}/report`,
+} as const;
 
-// Commented out endpoints for future use
-// export const sendSMSOtpUrl: string = `${baseUrl}/api/auth/send-sms`;
-// export const sendEmailOtpUrl: string = `${baseUrl}/api/auth/send-email`;
+export const REVIEWS = {
+  MY: '/reviews/my',
+  GIVE: '/reviews',
+  EDIT: (reviewId: string) => `/reviews/${reviewId}`,
+  DELETE: (reviewId: string) => `/reviews/${reviewId}`,
+  BY_USER: (userId: string) => `/reviews/user/${userId}`,
+  FOR_USER: (userId: string) => `/reviews/user/${userId}`,
+  BY_PRODUCT: (productId: string) => `/reviews/product/${productId}`,
+  BY_SERVICE: (serviceId: string) => `/reviews/service/${serviceId}`,
+  LIKE: (reviewId: string) => `/reviews/${reviewId}/like`,
+  REPORT: (reviewId: string) => `/reviews/${reviewId}/report`,
+  RESPOND: (reviewId: string) => `/reviews/${reviewId}/respond`,
+  STATS: '/reviews/stats',
+  SUMMARY: '/reviews/summary',
+} as const;
+
+// Accounts
+export const ACCOUNTS = {
+  BANKS: '/accounts/banks',
+  ADD: '/accounts',
+  LIST: '/accounts',
+  RESOLVE: '/accounts/resolve',
+  UPDATE: (recipientCode: string) => `/accounts/${recipientCode}`,
+  DELETE: (recipientCode: string) => `/accounts/${recipientCode}`,
+} as const;
+
+// Profile
+export const PROFILE = {
+  ME: '/profile',
+  USER: (userId: string) => `/profile/${userId}`,
+  UPDATE: '/profile',
+  CONTACTS: '/contacts',
+  CLIENT: (id: string) => `/clients/${id}`,
+} as const;
+
+// WebRTC TURN credentials
+export const TURN = {
+  CREDENTIALS: '/turn-credentials',
+} as const;
+
+// Dashboard endpoints
+export const DASHBOARD = {
+  CLIENT: '/dashboard/client',
+  PROFESSIONAL: '/dashboard/professional',
+  DELIVERY: '/dashboard/delivery',
+} as const;
+
+// Admin endpoints
+export const ADMIN = {
+  USERS_BY_ROLE: (role: string) => `/admin/${role}/all`,
+  USER_BY_ID: (userId: string) => `/admin/user/${userId}`,
+  TOGGLE_SUSPENSION: (userId: string) => `/admin/user/togggle-suspend/${userId}`,
+  EMAIL_MESSAGE: '/admin/email/message',
+  DEACTIVATE: (userId: string) => `/admin/user/deactivate/${userId}`,
+  SUSPEND: (userId: string) => `/admin/user/suspend/${userId}`,
+  REACTIVATE: (userId: string) => `/admin/user/reactivate/${userId}`,
+  PRODUCTS: '/admin/products',
+  APPROVE_PRODUCT: (productId: string) => `/admin/products/approve/${productId}`,
+  DASHBOARD_OVERVIEW: '/admin/dashboard/overview',
+  ACTIVITIES: '/admin/dashboard/activities',
+  TOP_PERFORMERS: '/admin/dashboard/top-performers',
+  NEW_USERS_TODAY: '/admin/dashboard/new-users-today',
+  CUMULATIVE_USERS: '/admin/dashboard/cummulative-users',
+} as const;
+
+// Test endpoints
+export const TEST = {
+  NOTIFICATION: '/notification-test',
+  SEND_SMS: '/send-sms',
+  SEND_EMAIL: '/send-email',
+  FIND_NEARBY: '/nearest-person',
+  REDIS_TEST: '/redis-test',
+  GET_PROFESSIONAL: (professionalId: string) => `/get-professional-test/${professionalId}`,
+} as const;
+
+// ─── Legacy aliases (backward compat for userService.ts etc.) ─────────
+export const viewWalletUrl = `${API_BASE_URL}${WALLET.VIEW}`;
+export const debitWallet = `${API_BASE_URL}${WALLET.DEBIT}`;
+export const debitWalletUrl = `${API_BASE_URL}${WALLET.DEBIT}`;
+export const setPinUrl = `${API_BASE_URL}${WALLET.SET_PIN}`;
+export const resetPinUrl = `${API_BASE_URL}${WALLET.RESET_PIN}`;
+export const pushTokenUrl = `${API_BASE_URL}${AUTH.UPDATE_PUSH_TOKEN}`;
+export const locationUrl = `${API_BASE_URL}${LOCATIONS.ADD}`;
+export const getLocationUrl = (id: string) => `${API_BASE_URL}${LOCATIONS.GET_BY_ID(id)}`;
+export const jobsUrl = `${API_BASE_URL}${JOBS.LIST}`;
+export const jobUrlatest = `${API_BASE_URL}${JOBS.LATEST}`;
+export const jobUrlAcceptDecline = (jobId: string) => `${API_BASE_URL}${JOBS.RESPOND(jobId)}`;
+export const jobUrlComplete = (jobId: string) => `${API_BASE_URL}${JOBS.COMPLETE(jobId)}`;
+export const jobUrlApproved = (jobId: string) => `${API_BASE_URL}${JOBS.APPROVE(jobId)}`;
+export const jobUrlUpdate = (jobId: string) => `${API_BASE_URL}${JOBS.UPDATE(jobId)}`;
+export const jobUrlDispute = (jobId: string) => `${API_BASE_URL}${JOBS.DISPUTE(jobId)}`;
+export const jobUrlCancel = (jobId: string) => `${API_BASE_URL}${JOBS.CANCEL(jobId)}`;
+export const invoiceUrl = `${API_BASE_URL}${JOBS.INVOICE}`;
+export const educationUrl = `${API_BASE_URL}${EDUCATION.ADD}`;
+export const certificationUrl = `${API_BASE_URL}${CERTIFICATIONS.ADD}`;
+export const experienceUrl = `${API_BASE_URL}${EXPERIENCES.ADD}`;
+export const portfolioUrl = `${API_BASE_URL}${PORTFOLIOS.ADD}`;
+export const ratingUrl = `${API_BASE_URL}${RATINGS.GIVE}`;
+export const listofArtisan = `${API_BASE_URL}${PROFESSIONALS.LIST}`;
+export const listofContactUrl = `${API_BASE_URL}${PROFILE.CONTACTS}`;
+export const userDetailsgeneralUrl = (userId: string) => `${API_BASE_URL}${PROFILE.USER(userId)}`;
+export const clientDetailUrl = (id: string) => `${API_BASE_URL}${PROFILE.CLIENT(id)}`;
+export const getProfessionUrl = `${API_BASE_URL}${PROFESSIONS.LIST}`;
+export const getProfessionByUserIdUrl = (userId: string) => `${API_BASE_URL}${PROFESSIONALS.GET_BY_USER_ID(userId)}`;
+export const updateProfessionalProfileUrl = `${API_BASE_URL}${PROFESSIONALS.UPDATE_PROFILE}`;
+export const sectorUrl = `${API_BASE_URL}/public/sectors`;
+export const sectorUrlDetails = `${API_BASE_URL}${SECTORS.DETAILS}`;
+export const skillsUrl = `${API_BASE_URL}/public/skills`;
+export const popularSkillsUrl = `${API_BASE_URL}/public/skills/popular`;
+export const skillCategoriesUrl = `${API_BASE_URL}/public/skills/categories`;
+export const initiatepayment = `${API_BASE_URL}${PAYMENTS.INITIATE}`;
+export const verifypayment = (ref: string) => `${API_BASE_URL}${PAYMENTS.VERIFY(ref)}`;
+export const initiatetransfer = `${API_BASE_URL}${TRANSFERS.INITIATE}`;
+export const verifytransfer = (ref: string) => `${API_BASE_URL}${TRANSFERS.VERIFY(ref)}`;
+export const resolveUrl = `${API_BASE_URL}${ACCOUNTS.RESOLVE}`;
+export const getBanksUrl = `${API_BASE_URL}${ACCOUNTS.BANKS}`;
+export const addbankDetailsUrl = `${API_BASE_URL}${ACCOUNTS.ADD}`;
+export const getbanksDetails = `${API_BASE_URL}${ACCOUNTS.LIST}`;
+export const updatebanksDetails = (code: string) => `${API_BASE_URL}${ACCOUNTS.UPDATE(code)}`;
+
+// Legacy product endpoints
+export const productUrl = `${API_BASE_URL}/public/products`;
+export const getProductUrl = (id: string) => `${API_BASE_URL}${PRODUCTS.GET_BY_ID(id)}`;
+export const addProductUrl = `${API_BASE_URL}${PRODUCTS.ADD}`;
+export const updateProductUrl = (id: string) => `${API_BASE_URL}${PRODUCTS.UPDATE(id)}`;
+export const deleteProductUrl = (id: string) => `${API_BASE_URL}${PRODUCTS.DELETE(id)}`;
+export const getProductmineUrl = `${API_BASE_URL}${PRODUCTS.MINE}`;
+export const uploadFilesUrl = `${API_BASE_URL}${PRODUCTS.UPLOAD}`;
+export const selectProductUrl = `${API_BASE_URL}${PRODUCTS.SELECT}`;
+export const restockProductUrl = `${API_BASE_URL}${PRODUCTS.RESTOCK}`;
+export const soldProductsUrl = `${API_BASE_URL}${PRODUCTS.SOLD_TRANSACTIONS}`;
+export const boughtProductsUrl = `${API_BASE_URL}${PRODUCTS.BOUGHT_TRANSACTIONS}`;
+export const getProductTransactionByIdUrl = (id: string) => `${API_BASE_URL}${PRODUCTS.TRANSACTION_BY_ID(id)}`;
+export const getCategoriesUrl = `${API_BASE_URL}/public/categories`;
+export const addCategoryUrl = `${API_BASE_URL}${CATEGORIES.ADD}`;
+export const updateCategoryUrl = (id: string) => `${API_BASE_URL}${CATEGORIES.UPDATE(id)}`;
+export const deleteCategoryUrl = (id: string) => `${API_BASE_URL}${CATEGORIES.DELETE(id)}`;
+export const uploadProductUrl = `${API_BASE_URL}${PRODUCTS.UPLOAD}`;
+export const selectProdectUrl = `${API_BASE_URL}${PRODUCTS.SELECT}`;
+export const getProductTransUrl = `${API_BASE_URL}${PRODUCTS.SOLD_TRANSACTIONS}`;
+export const getSoldProductUrl = `${API_BASE_URL}${PRODUCTS.SOLD_TRANSACTIONS}`;
+export const getBoughtProductUrl = `${API_BASE_URL}${PRODUCTS.BOUGHT_TRANSACTIONS}`;
+
+// Legacy delivery endpoints
+export const acceptdeliveryUrl = (orderId: string) => `${API_BASE_URL}${ORDERS.ACCEPT(orderId)}`;
+export const enRouteToPickupUrl = (orderId: string) => `${API_BASE_URL}${ORDERS.EN_ROUTE_TO_PICKUP(orderId)}`;
+export const arrivedAtPickupUrl = (orderId: string) => `${API_BASE_URL}${ORDERS.ARRIVED_AT_PICKUP(orderId)}`;
+export const pickupdeliveryUrl = (orderId: string) => `${API_BASE_URL}${ORDERS.PICKUP(orderId)}`;
+export const confirmPickupUrl = (orderId: string) => `${API_BASE_URL}${ORDERS.CONFIRM_PICKUP(orderId)}`;
+export const arrivedAtDropoffUrl = (orderId: string) => `${API_BASE_URL}${ORDERS.ARRIVED_AT_DROPOFF(orderId)}`;
+export const deliveredUrl = (orderId: string) => `${API_BASE_URL}${ORDERS.DELIVER(orderId)}`;
+export const confirmDeliveredUrl = (ptId: string) => `${API_BASE_URL}${ORDERS.CONFIRM_DELIVERY(ptId)}`;
+export const retryRiderSearchUrl = (orderId: string) => `${API_BASE_URL}${ORDERS.RETRY(orderId)}`;
+export const getOrderByIdUrl = (orderId: string) => `${API_BASE_URL}${ORDERS.GET_BY_ID(orderId)}`;
+export const paidOrdersUrl = `${API_BASE_URL}${ORDERS.PAID_ORDERS}`;
+export const riderOrdersUrl = `${API_BASE_URL}${ORDERS.RIDER_ORDERS}`;
+export const buyerOrdersUrl = `${API_BASE_URL}${ORDERS.BUYER_ORDERS}`;
+export const sellerOrdersUrl = `${API_BASE_URL}${ORDERS.SELLER_ORDERS}`;
+export const createOrderUrl = `${API_BASE_URL}${ORDERS.CREATE}`;
+
+// Delivery slice URL exports
+export const getNearestPaidOrdersUrl = `${API_BASE_URL}${ORDERS.PAID_ORDERS}`;
+export const getOrdersRiderUrl = `${API_BASE_URL}${ORDERS.RIDER_ORDERS}`;
+export const getOrdersBuyerUrl = `${API_BASE_URL}${ORDERS.BUYER_ORDERS}`;
+export const getOrdersSellerUrl = `${API_BASE_URL}${ORDERS.SELLER_ORDERS}`;
+export const acceptOrderUrl = (orderId: string) => `${API_BASE_URL}${ORDERS.ACCEPT(orderId)}`;
+export const enRouteToPickupOrderUrl = (orderId: string) => `${API_BASE_URL}${ORDERS.EN_ROUTE_TO_PICKUP(orderId)}`;
+export const arrivedAtPickupOrderUrl = (orderId: string) => `${API_BASE_URL}${ORDERS.ARRIVED_AT_PICKUP(orderId)}`;
+export const pickupOrderUrl = (orderId: string) => `${API_BASE_URL}${ORDERS.PICKUP(orderId)}`;
+export const arrivedAtDropoffOrderUrl = (orderId: string) => `${API_BASE_URL}${ORDERS.ARRIVED_AT_DROPOFF(orderId)}`;
+export const deliverOrderUrl = (orderId: string) => `${API_BASE_URL}${ORDERS.DELIVER(orderId)}`;
+export const confirmDeliveryUrl = (ptId: string) => `${API_BASE_URL}${ORDERS.CONFIRM_DELIVERY(ptId)}`;
+export const cancelOrderUrl = (orderId: string) => `${API_BASE_URL}${ORDERS.CANCEL(orderId)}`;
+export const retryOrderUrl = (orderId: string) => `${API_BASE_URL}${ORDERS.RETRY(orderId)}`;
+export const disputeOrderUrl = `${API_BASE_URL}${ORDERS.DISPUTE}`;
+export const resolveDisputeUrl = (disputeId: string) => `${API_BASE_URL}${ORDERS.RESOLVE_DISPUTE(disputeId)}`;
+export const sellerAcceptOrderUrl = (ptId: string) => `${API_BASE_URL}${ORDERS.SELLER_ACCEPT(ptId)}`;
+export const sellerRejectOrderUrl = (ptId: string) => `${API_BASE_URL}${ORDERS.SELLER_REJECT(ptId)}`;
+export const sellerMarkReadyUrl = (ptId: string) => `${API_BASE_URL}${ORDERS.SELLER_MARK_READY(ptId)}`;
+export const sellerConfirmUrl = (ptId: string) => `${API_BASE_URL}${ORDERS.SELLER_CONFIRM(ptId)}`;
+export const returnRequestUrl = `${API_BASE_URL}${ORDERS.RETURN_REQUEST}`;
+export const resolveReturnUrl = (returnRequestId: string) => `${API_BASE_URL}${ORDERS.RESOLVE_RETURN(returnRequestId)}`;
+export const giveRatingUrl = `${API_BASE_URL}${RATINGS.GIVE}`;
+export const isRatedUrl = `${API_BASE_URL}${RATINGS.IS_RATED}`;
+export const giveReviewUrl = `${API_BASE_URL}${REVIEWS.GIVE}`;
+export const editReviewUrl = (reviewId: string) => `${API_BASE_URL}${REVIEWS.EDIT(reviewId)}`;
+export const deleteReviewUrl = (reviewId: string) => `${API_BASE_URL}${REVIEWS.DELETE(reviewId)}`;
+export const getMyReviewsUrl = `${API_BASE_URL}${REVIEWS.MY}`;
+export const getReviewsForUserUrl = (userId: string) => `${API_BASE_URL}${REVIEWS.FOR_USER(userId)}`;
+
+// Legacy sector/profession endpoints
+export const sectorUrlLegacy = `${API_BASE_URL}${SECTORS.LIST}`;

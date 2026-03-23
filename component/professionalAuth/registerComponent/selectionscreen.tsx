@@ -17,7 +17,7 @@ const SelectionScreen=()=>{
     const {dispatch}=useRole()
     const handlePressArtisan=(value:'corperate'|'artisan')=>{
         dispatch({ type: 'SET_ROLE', payload: value });
-        router.push(`/registerlayout?type=${value}`)
+        router.push(`/onboarding-professional?type=${value}`)
     }
    
   

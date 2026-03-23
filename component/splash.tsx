@@ -21,26 +21,26 @@ const Splash = () => {
     {
       image: require('../assets/first.png'),
       svg: <FirstSvg />,
-      header: "You are welcome to StaffSync",
+      header: "Welcome to Acepick",
       body: "Your gateway to a world of possibilities. Connect with skilled professionals, explore a transparent marketplace, and experience secure transactions. Join us on this journey where clients and professionals thrive together.",
     },
     {
       image: require('../assets/2nd.png'),
       svg: <SecondSvg />,
       header: "Direct Connections, Seamless Chats",
-      body: "Clients, engage in direct chats with professionals across sectors. Discuss projects, explore services, and build connections. StaffSync simplifies communication for a personalized and efficient experience.",
+      body: "Clients, engage in direct chats with professionals across sectors. Discuss projects, explore services, and build connections. Acepick simplifies communication for a personalized and efficient experience.",
     },
     {
       image: require('../assets/3rd.png'),
       svg: <ThirdSvg />,
       header: "Explore the Marketplace",
-      body: "Discover our Marketplace, where you can confirm prices of items, explore businesses, and find the best deals. StaffSync is committed to transparency, ensuring a seamless experience whether you're hiring professionals or exploring the market.",
+      body: "Discover our Marketplace, where you can confirm prices of items, explore businesses, and find the best deals. Acepick is committed to transparency, ensuring a seamless experience whether you're hiring professionals or exploring the market.",
     },
     {
       image: require('../assets/4th.png'),
       svg: <FourthSvg />,
-      header: "Secure Transactions, Effortless works",
-      body: "StaffSync prioritizes your security. Experience secure transactions, transparent processes, and an intuitive platform. Clients, approve invoices with ease, and professionals, showcase your skills and create invoices effortlessly. StaffSync, where every connection leads to success.",
+      header: "Secure Transactions, Effortless Works",
+      body: "Acepick prioritizes your security. Experience secure transactions, transparent processes, and an intuitive platform. Clients, approve invoices with ease, and professionals, showcase your skills and create invoices effortlessly. Acepick, where every connection leads to success.",
     },
   ];
 

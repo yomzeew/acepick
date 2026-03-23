@@ -29,7 +29,7 @@ function ForgetOtp() {
   const [shouldProceed, setShouldProceed] = useState<boolean>(false);
 
   // Get phone number from Redux
-  const email = useSelector((state: RootState) => state.register.userData?.email ?? "");
+  const email = useSelector((state: RootState) => state.auth.registrationData?.email ?? "");
  
 
   // Countdown timer logic

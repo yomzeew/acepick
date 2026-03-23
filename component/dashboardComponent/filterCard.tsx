@@ -1,78 +1,72 @@
-import { View, TextInput, TouchableOpacity,Keyboard  } from "react-native"
+import { View, TextInput, TouchableOpacity, Keyboard } from "react-native"
 import { useTheme } from "../../hooks/useTheme"
 import { getColors } from "../../static/color"
 import { ThemeText } from "../ThemeText"
 import { Textstyles } from "../../static/textFontsize"
-import EmptyView from "../emptyview"
 import { FontAwesome5 } from "@expo/vector-icons"
-import { useState } from "react"
-import { useSelector } from "react-redux"
-import { RootState } from "redux/store"
-import { useMutation } from "@tanstack/react-query"
-import { getArtisanListFn } from "services/userService"
 
-
-interface FilterCardProps{
-    showprofession:boolean;
-    setshowprofession:(value:boolean)=>void;
-    professionalValue:string;
-    setProfessionValue:(value:string)=>void
-
+interface FilterCardProps {
+    showprofession: boolean;
+    setshowprofession: (value: boolean) => void;
+    professionalValue: string;
+    setProfessionValue: (value: string) => void;
 }
 
-const FilterCard=({showprofession,setshowprofession,professionalValue,setProfessionValue}:FilterCardProps)=>{
-    const {theme}=useTheme()
-    const {selectioncardColor,secondaryTextColor,primaryColor}=getColors(theme)
-    
+const FilterCard = ({ showprofession, setshowprofession, professionalValue, setProfessionValue }: FilterCardProps) => {
+    const { theme } = useTheme()
+    const { selectioncardColor, secondaryTextColor, primaryColor } = getColors(theme)
 
-
-
-    const handleSubmit=()=>{
-       // const queryString:string=`profession=${encodeURIComponent(professionValue)}`
+    const handleSubmit = () => {
         setshowprofession(!showprofession)
         Keyboard.dismiss()
     }
 
     return (
-        <>
-            <View 
-                style={{ 
-                    backgroundColor: selectioncardColor, 
-                    elevation: 4 
-                }} 
-                className="w-full h-24 rounded-2xl shadow-slate-500 shadow-sm px-5 py-2"
-            >
-                <ThemeText size={Textstyles.text_xmedium} type="secondary">
-                    Who are you looking for?
-                </ThemeText>
-                
-                <EmptyView height={10} />
-                
-                <View className="relative w-full">
-                    <TextInput 
-                        placeholder="electrician" 
-                        placeholderTextColor={primaryColor} 
-                        placeholderClassName="text-blue-900" 
-                        style={{
-                            backgroundColor: theme === 'dark' ? '#4F4F4F' : '#e2e8f0', 
-                            color: secondaryTextColor, 
-                            borderColor: theme === 'dark' ? '#4F4F4F' : '#cbd5e1'
-                        }} 
-                        className="rounded-3xl border h-12 px-3 w-full"
-                        value={professionalValue}
-                        onChangeText={(text) => setProfessionValue(text)}
-                    />
-                    
-                    <TouchableOpacity 
-                        onPress={handleSubmit} 
-                        style={{ backgroundColor: '#033A62' }} 
-                        className="h-12 w-12 z-50 absolute right-0 items-center justify-center rounded-full"
-                    >
-                        <FontAwesome5 color={"#ffffff"} size={20} name="arrow-right" />
-                    </TouchableOpacity>
+        <View
+            style={{
+                backgroundColor: selectioncardColor,
+                elevation: 2,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.06,
+                shadowRadius: 4,
+            }}
+            className="w-full rounded-2xl px-4 py-4"
+        >
+            <ThemeText size={Textstyles.text_xmedium} type="secondary">
+                Find a Professional
+            </ThemeText>
+
+            <View className="relative w-full mt-3">
+                <View className="absolute left-3.5 top-0 bottom-0 justify-center z-10">
+                    <FontAwesome5 name="search" size={14} color={theme === 'dark' ? '#9CA3AF' : '#94a3b8'} />
                 </View>
+                <TextInput
+                    placeholder="Search electrician, plumber..."
+                    placeholderTextColor={theme === 'dark' ? '#6B7280' : '#94a3b8'}
+                    style={{
+                        backgroundColor: theme === 'dark' ? '#1F2937' : '#f1f5f9',
+                        color: secondaryTextColor,
+                        fontFamily: 'TTFirsNeue',
+                        fontSize: 14,
+                    }}
+                    className="rounded-xl h-12 pl-10 pr-14 w-full"
+                    value={professionalValue}
+                    onChangeText={(text) => setProfessionValue(text)}
+                    onSubmitEditing={handleSubmit}
+                    returnKeyType="search"
+                />
+
+                <TouchableOpacity
+                    onPress={handleSubmit}
+                    activeOpacity={0.8}
+                    style={{ backgroundColor: primaryColor }}
+                    className="h-10 w-10 absolute right-1 top-1 items-center justify-center rounded-lg"
+                >
+                    <FontAwesome5 color="#ffffff" size={16} name="arrow-right" />
+                </TouchableOpacity>
             </View>
-        </>
+        </View>
     )
 }
 export default FilterCard

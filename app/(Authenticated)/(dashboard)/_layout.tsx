@@ -6,6 +6,8 @@ import { View } from "react-native";
 
 export default function ClientLayout() {
   const { theme } = useTheme()
+  
+  // Notifications are now handled by NotificationWrapper in appProvider
 
   const activeBg = theme === "dark" ? "#033A62" : "#ffffff";
   const activeColor = theme === "dark" ? "#ffffff" : "#033A62";
@@ -13,7 +15,7 @@ export default function ClientLayout() {
   const tabBarBg = theme === "dark" ? "#333333" : "#033A62";
 
   return (
-    <Tabs
+    <Tabs initialRouteName="homelayout"
       screenOptions={({ route }) => ({
         tabBarShowLabel: true,
         headerShown: false,

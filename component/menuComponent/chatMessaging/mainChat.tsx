@@ -1,335 +1,3 @@
-// import React, { useEffect, useRef, useState } from "react";
-// import {
-//   View,
-//   Text,
-//   ScrollView,
-//   Image,
-//   KeyboardAvoidingView,
-//   Platform,
-//   TouchableOpacity,
-//   Linking,
-//   Keyboard,
-//   TouchableWithoutFeedback,
-//   ActivityIndicator,
-// } from "react-native";
-// import { AntDesign, FontAwesome5, FontAwesome6 } from "@expo/vector-icons";
-// import { useRouter } from "expo-router";
-// import { useDispatch, useSelector } from "react-redux";
-// import { RootState } from "redux/store";
-// import { addMessage, setMessages, setRoom } from "redux/chatSlice";
-// import MessageInput from "./messageInput";
-// import { useSocket } from "hooks/useSocket";
-// import { selectChatMessages } from "utilizes/chatselector";
-// import ContainerTemplate from "component/dashboardComponent/containerTemplate";
-// import { ProfessionalData, UserData } from "types/type";
-// import { useMutation } from "@tanstack/react-query";
-// import { getClientDetailFn, getProfessionDetailFn } from "services/userService";
-// import { useTheme } from "hooks/useTheme";
-// import { getColors } from "static/color";
-// import { ThemeText } from "component/ThemeText";
-// import { Textstyles } from "static/textFontsize";
-// import { findTime } from "utilizes/findtime";
-
-
-// interface Message {
-//   from: string;
-//   to: string;
-//   text?: string;
-//   image?: string;
-//   time: string;
-//   fromSelf?: boolean;
-//   room?: string;
-//   fileName?: string;
-//   timestamp?:any
-// }
-
-// interface MainProps {
-//   userDetails: string;
-// }
-
-// const MainChatScreen = ({ userDetails }: MainProps) => {
-//     const user = useSelector((state: RootState) => state?.auth.user);
-//     const role=user?.role
-//   const ids = JSON.parse(userDetails);
-
-//   const receiverId = ids?.userId;
-//   const professionalId = ids.professionalId;
-
-//   const payload=role==='client'?professionalId:receiverId
-//   const scrollRef = useRef<ScrollView>(null);
-//   const [message, setMessage] = useState<string>("");
-//   const [data, setData] = useState<any>(null);
-
-//   const { socket } = useSocket();
-//   const dispatch = useDispatch();
-//   const router = useRouter();
-  
-//   const userId = user?.id!;
-//   const roomId = useSelector((state: RootState) => state.chat.roomId);
-//   const messages = useSelector(selectChatMessages(roomId));
-
-//   const { theme } = useTheme();
-//   const { selectioncardColor, primaryColor } = getColors(theme);
-//   const functiontoUse=role==='client'?getProfessionDetailFn:getClientDetailFn
- 
-//   const mutation = useMutation({
-//     mutationFn: functiontoUse,
-//     onSuccess: (response) => setData(response.data),
-//     onError: (error: any) => {
-//       let msg = "An unexpected error occurred";
-//       if (error?.response?.data) {
-//         msg =
-//           error.response.data.message ||
-//           error.response.data.error ||
-//           JSON.stringify(error.response.data);
-//       } else if (error?.message) {
-//         msg = error.message;
-//       }
-//       console.error("failed:", msg);
-//     },
-//   });
-
-//   useEffect(() => {
-//     mutation.mutate(payload);
-//   }, []);
-
-
- 
-
-// const roomRef = useRef<string>("");
-
-
-
-// // ✅ Define this BEFORE you use it
-// const cleanupListeners = () => {
-//   socket?.off("joined_room");
-//   socket?.off("got_previous_chats");
-//   socket?.off("receive_message");
-//   socket?.off("receive_messages");
-//   socket?.off("receive_file");
-// };
-
-// useEffect(() => {
-//   if (!socket || !receiverId || !userId) return;
-
-//   socket.io.on("error", (error) => {
-//     console.log(error);
-// });
-
-// socket.on('connected', () => {
-//     socket.emit("previous_chats");
-// })
-
-// socket.on("reconnect", () => {
-//     console.log("reconnect")
-// })
-
-
-//   socket.emit("join_room", { contactId: receiverId });
-
-//   cleanupListeners(); // ✅ safe to call now
-
-//   const handleJoinedRoom = (backendRoomId: string) => {
-//     roomRef.current = backendRoomId;
-//     dispatch(setRoom(backendRoomId));
-//     socket.emit("get_messages", { room: backendRoomId });
-//   };
- 
-//   socket.on("receive_messages", (messages) => {
-//     dispatch(setMessages({ roomId: roomRef.current, messages }));
-//   });
-
-
-
-//   const handleReceiveMessage = (msg: Message) => {
-//     if (msg.from !== userId && roomRef.current) {
-//       dispatch(addMessage({ roomId: roomRef.current, message: msg }));
-//     }
-//   };
-
-//   const handleUploadFile = (msg: Message) => {
-//     if (msg.from !== userId && roomRef.current) {
-//       dispatch(addMessage({ roomId: roomRef.current, message: msg }));
-//     }
-//   };
-
-
-//   socket.once("joined_room", handleJoinedRoom);
-//   socket.on("receive_message", handleReceiveMessage);
-//   socket.on("receive_file", handleUploadFile);
-
-//   return () => {
-//     if (roomRef.current) {
-//       socket.emit("leave_room", { room: roomRef.current });
-//     }
-//     cleanupListeners();
-//   };
-// }, [socket, receiverId, userId,message,messages]);
-
-  
-  
-
-//   const handleSend = () => {
-//     console.log(userId,receiverId)
-//     if (!message.trim() || !userId || !receiverId || !roomId) return;
-
-//     const msgPayload: Message = {
-//       from: userId,
-//       to: receiverId,
-//       text: message,
-//       room: roomId,
-//       time: new Date().toISOString(),
-//       timestamp:new Date().toISOString(),
-//     };
-
-//     socket?.emit("send_message", msgPayload);
-//     dispatch(addMessage({ roomId, message: { ...msgPayload, fromSelf: true } }));
-//     console.log(messages[messages.length-1])
-//     setMessage("");
-//   };
-
-//   useEffect(() => {
-//     if (scrollRef.current) {
-//       scrollRef.current.scrollToEnd({ animated: true });
-//     }
-//   }, [messages]);
-
-//   if (!data) return <ContainerTemplate><View className="justify-center items-center w-full h-full"><ActivityIndicator/></View></ContainerTemplate>
-
-//   return (
-//     <ContainerTemplate>
-//       <KeyboardAvoidingView
-//         className="flex-1"
-//         behavior={Platform.OS === "ios" ? "padding" : "height"}
-//         keyboardVerticalOffset={Platform.OS === "ios" ? 20 : 0}
-//       >
-//         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-//           <View className="flex-1">
-
-//             {/* Header */}
-//             <View className="pt-16 justify-between flex-row px-4">
-//               <View className="flex-row items-center gap-x-2">
-//                 <TouchableOpacity onPress={() => router.back()}>
-//                   <AntDesign name="left" size={20} color={primaryColor} />
-//                 </TouchableOpacity>
-//                 <Image
-//                   source={{ uri: data.profile.avatar }}
-//                   className="w-12 h-12 rounded-full"
-//                 />
-//                 <ThemeText size={Textstyles.text_cmedium}>
-//                   {data.profile.firstName}
-//                 </ThemeText>
-//               </View>
-//               <View className="flex-row gap-x-2">
-//                 <FontAwesome5 name="video" size={20} color={primaryColor} />
-//                 <FontAwesome5 name="phone" size={20} color={primaryColor} />
-//                 <FontAwesome5 name="search" size={20} color={primaryColor} />
-//               </View>
-//             </View>
-
-//             {/* Info */}
-//             <View className="flex-row items-center justify-center gap-x-2 mb-4 mt-2">
-//               <FontAwesome5 name="toolbox" size={12} color="red" />
-//               {role==='client'&&<ThemeText size={Textstyles.text_xsmall}>{data.profession.title}</ThemeText>}
-//               <ThemeText size={Textstyles.text_xsmall}>{data.yearsOfExp} years</ThemeText>
-//               <FontAwesome6 name="location-dot" size={12} color="red" />
-//               {role === 'client' ? (
-//   <ThemeText size={Textstyles.text_xsmall}>
-//     {data?.profile?.user?.location?.lga || ''} {data?.profile?.user?.location?.state || ''}
-//   </ThemeText>
-// ) : (
-//   <ThemeText size={Textstyles.text_xsmall}>
-//     {data?.location?.lga || ''} {data?.location?.state || ''}
-//   </ThemeText>
-// )}
-
-//             </View>
-
-//             {/* Messages */}
-//             <ScrollView
-//               ref={scrollRef}
-//               className="flex-1 px-4"
-//               contentContainerStyle={{ paddingBottom: 110 }}
-//               showsVerticalScrollIndicator={false}
-//               onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
-//             >
-//               {messages.map((msg, index) => (
-//                 <View
-//                   key={index}
-//                   className={`w-full mt-3 items-${msg.from === userId ? "end" : "start"}`}
-//                 >
-//                   {msg.image ? (
-//                     <TouchableOpacity
-//                       onPress={() =>
-//                         Linking.openURL(`data:image/jpeg;base64,${msg.image}`)
-//                       }
-//                     >
-//                       <Image
-//                         source={{ uri: `data:image/jpeg;base64,${msg.image}` }}
-//                         className="w-40 h-40 rounded-lg"
-//                         resizeMode="cover"
-//                       />
-//                       {msg.fileName && (
-//                         <Text className="text-xs text-gray-500 mt-1">{msg.fileName}</Text>
-//                       )}
-//                       <Text className="text-xs text-gray-400 mt-1">
-//                       { findTime(msg.timestamp)}
-//                       </Text>
-//                     </TouchableOpacity>
-//                   ) : (
-//                     <View
-//                       className={`w-2/3 px-3 py-2 rounded-lg ${
-//                         msg.from === userId
-//                           ? "bg-blue-600 rounded-tr-none"
-//                           : "bg-gray-200 rounded-tl-none"
-//                       }`}
-//                     >
-//                       <Text
-//                         className={`text-sm ${
-//                           msg.from === userId ? "text-white" : "text-black"
-//                         }`}
-//                       >
-//                         {msg.text}
-//                       </Text>
-//                       <View className="flex-row justify-between mt-1">
-//                         <Text
-//                           className={`text-xs ${
-//                             msg.from === userId ? "text-white" : "text-black"
-//                           }`}
-//                         >
-//                           {msg.from === userId ? "Delivered" : "Received"}
-//                         </Text>
-//                         <Text
-//                           className={`text-xs ${
-//                             msg.from === userId ? "text-white" : "text-black"
-//                           }`}
-//                         >
-//                             {findTime(msg.timestamp)}
-//                         </Text>
-//                       </View>
-//                     </View>
-//                   )}
-//                 </View>
-//               ))}
-//             </ScrollView>
-
-//             {/* Input */}
-//             <MessageInput
-//               receiverId={receiverId}
-//               message={message}
-//               setMessage={setMessage}
-//               onSend={handleSend}
-//             />
-//           </View>
-//         </TouchableWithoutFeedback>
-//       </KeyboardAvoidingView>
-//     </ContainerTemplate>
-//   );
-// };
-
-// export default MainChatScreen;
-
-
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   View,
@@ -339,233 +7,220 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
-  Linking,
   Keyboard,
   TouchableWithoutFeedback,
   ActivityIndicator,
-  Share,
 } from "react-native";
-import { AntDesign, FontAwesome5, FontAwesome6 } from "@expo/vector-icons";
+import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "redux/store";
-import { addMessage, setMessages, setRoom } from "redux/chatSlice";
+import { addMessage, setRoom, setMessages, clearRoom, ChatMessage } from "redux/slices/chatSlice";
 import { useSocket } from "hooks/useSocket";
-import { selectChatMessages } from "utilizes/chatselector";
 import ContainerTemplate from "component/dashboardComponent/containerTemplate";
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
 import { useMutation } from "@tanstack/react-query";
-import { generalUserDetailFn, getClientDetailFn, getProfessionDetailFn } from "services/userService";
+import { generalUserDetailFn } from "services/userService";
 import { useTheme } from "hooks/useTheme";
 import { getColors } from "static/color";
-import { ThemeText } from "component/ThemeText";
-import { Textstyles } from "static/textFontsize";
 import { findTime } from "utilizes/findtime";
 import MessageInput from "component/menuComponent/chatMessaging/messageInput";
 import { Profile } from "types/userDetailsType";
+import { getInitials } from "utilizes/initialsName";
 
-
-
-interface Message {
-  from: string;
-  to: string;
-  text?: string;
-  image?: string;
-  time: string;
-  fromSelf?: boolean;
-  room?: string;
-  fileName?: string;
-  timestamp?:any
-}
+// Role config colors applied dynamically from theme inside component
+const ROLE_CONFIG_KEYS = {
+  client: { icon: "person", label: "Client" },
+  professional: { icon: "construct", label: "Professional" },
+  delivery: { icon: "bicycle", label: "Delivery" },
+};
 
 interface MainProps {
   userDetails?: string;
 }
 
-const MainChatScreen = ({ userDetails = '{}' }: MainProps) => {
-  console.log('ohhj')
-    const user = useSelector((state: RootState) => state?.auth.user);
-    const receiverId = user?.id || '';
-    const role=user?.role
+const MainChatScreen = ({ userDetails = "{}" }: MainProps) => {
+  const user = useSelector((state: RootState) => state?.auth.user);
+  const ids = JSON.parse(userDetails || "{}");
+  const partnerId = ids.userId;
 
-  const ids = JSON.parse(userDetails || '{}');
-  const partnerId=ids.userId
-  
-
-
- 
   const scrollRef = useRef<ScrollView>(null);
-  const [message, setMessage] = useState<string>("");
+  const [message, setMessage] = useState("");
   const [data, setData] = useState<Profile | null>(null);
+  const [imageError, setImageError] = useState(false);
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
 
   const { socket } = useSocket();
   const dispatch = useDispatch();
   const router = useRouter();
-  
+
   const userId = user?.id!;
   const roomId = useSelector((state: RootState) => state.chat.roomId);
-  const messages = useSelector(selectChatMessages(roomId));
+  const messages = useSelector((state: RootState) => state.chat.messages);
 
   const { theme } = useTheme();
-  const { selectioncardColor, primaryColor } = getColors(theme);
- 
- 
+  const {
+    selectioncardColor,
+    primaryColor,
+    backgroundColor,
+    secondaryTextColor,
+    subText,
+    borderColor,
+    backgroundColortwo,
+  } = getColors(theme);
+
+  const ROLE_CONFIG: Record<string, { icon: string; color: string; label: string }> = {
+    client: { icon: "person", color: primaryColor, label: "Client" },
+    professional: { icon: "construct", color: backgroundColortwo, label: "Professional" },
+    delivery: { icon: "bicycle", color: primaryColor, label: "Delivery" },
+  };
+
   const mutation = useMutation({
     mutationFn: generalUserDetailFn,
     onSuccess: (response) => setData(response.data),
-    onError: (error: any) => {
-      let msg = "An unexpected error occurred";
-      if (error?.response?.data) {
-        msg =
-          error.response.data.message ||
-          error.response.data.error ||
-          JSON.stringify(error.response.data);
-      } else if (error?.message) {
-        msg = error.message;
-      }
-      console.error("failed;;:", msg);
-    },
+    onError: (error: any) => console.error("Failed to load user:", error?.message),
   });
 
   useEffect(() => {
     mutation.mutate(partnerId);
   }, []);
 
+  // ── Socket setup ────────────────────────────────────────────────────
+  const roomRef = useRef<string>("");
 
- 
+  useEffect(() => {
+    if (!socket || !partnerId || !userId) return;
 
-const roomRef = useRef<string>("");
+    const handleError = (error: any) => console.log(error);
+    const handleConnected = () => socket.emit("previous_chats");
+    const handleReconnect = () => console.log("reconnect");
 
+    socket.io.on("error", handleError);
+    socket.on("connected", handleConnected);
+    socket.on("reconnect", handleReconnect);
 
+    const handleJoinedRoom = (backendRoomId: string) => {
+      roomRef.current = backendRoomId;
+      dispatch(setRoom(backendRoomId));
+      socket.emit("get_messages", { room: backendRoomId });
+    };
 
-// ✅ Define this BEFORE you use it
-const cleanupListeners = () => {
-  socket?.off("joined_room");
-  socket?.off("got_previous_chats");
-  socket?.off("receive_message");
-  socket?.off("receive_messages");
-  socket?.off("receive_file");
-};
+    const handleReceiveMessages = (msgs: ChatMessage[]) => {
+      dispatch(setMessages(msgs));
+    };
 
-useEffect(() => {
-  if (!socket || !partnerId || !userId) return;
+    const handleReceiveMessage = (msg: ChatMessage) => {
+      if (msg.from !== userId && msg.room === roomRef.current) {
+        dispatch(addMessage(msg));
+      }
+    };
 
-  socket.io.on("error", (error) => {
-    console.log(error);
-});
+    const handleUploadFile = (msg: ChatMessage) => {
+      if (msg.from !== userId && msg.room === roomRef.current) {
+        dispatch(addMessage(msg));
+      }
+    };
 
-socket.on('connected', () => {
-    socket.emit("previous_chats");
-})
+    // Register ALL listeners BEFORE emitting join_room to avoid race condition
+    socket.once("joined_room", handleJoinedRoom);
+    socket.on("receive_messages", handleReceiveMessages);
+    socket.on("receive_message", handleReceiveMessage);
+    socket.on("receive_file", handleUploadFile);
 
-socket.on("reconnect", () => {
-    console.log("reconnect")
-})
+    socket.emit("join_room", { contactId: partnerId });
 
+    return () => {
+      if (roomRef.current) socket.emit("leave_room", { room: roomRef.current });
+      dispatch(clearRoom());
+      socket.io.off("error", handleError);
+      socket.off("connected", handleConnected);
+      socket.off("reconnect", handleReconnect);
+      socket.off("joined_room", handleJoinedRoom);
+      socket.off("receive_messages", handleReceiveMessages);
+      socket.off("receive_message", handleReceiveMessage);
+      socket.off("receive_file", handleUploadFile);
+    };
+  }, [socket, partnerId, userId, dispatch]);
 
-  socket.emit("join_room", { contactId: partnerId });
-
-  cleanupListeners(); // ✅ safe to call now
-
-  const handleJoinedRoom = (backendRoomId: string) => {
-    roomRef.current = backendRoomId;
-    dispatch(setRoom(backendRoomId));
-    socket.emit("get_messages", { room: backendRoomId });
-  };
- 
-  socket.on("receive_messages", (messages) => {
-    dispatch(setMessages({ roomId: roomRef.current, messages }));
-  });
-
-
-
-  const handleReceiveMessage = (msg: Message) => {
-    if (msg.from !== userId && roomRef.current) {
-      dispatch(addMessage({ roomId: roomRef.current, message: msg }));
-    }
-  };
-
-  const handleUploadFile = (msg: Message) => {
-    if (msg.from !== userId && roomRef.current) {
-      dispatch(addMessage({ roomId: roomRef.current, message: msg }));
-    }
-  };
-
-
-  socket.once("joined_room", handleJoinedRoom);
-  socket.on("receive_message", handleReceiveMessage);
-  socket.on("receive_file", handleUploadFile);
-
-  return () => {
-    if (roomRef.current) {
-      socket.emit("leave_room", { room: roomRef.current });
-    }
-    cleanupListeners();
-  };
-}, [socket, partnerId, userId,message,messages]);
-
-  
-  
-
+  // ── Handlers ────────────────────────────────────────────────────────
   const handleSend = () => {
-    console.log(userId,receiverId)
     if (!message.trim() || !userId || !partnerId || !roomId) return;
-
-    const msgPayload: Message = {
+    const msgPayload: ChatMessage = {
       from: userId,
       to: partnerId,
       text: message,
       room: roomId,
-      time: new Date().toISOString(),
-      timestamp:new Date().toISOString(),
+      timestamp: new Date().toISOString(),
     };
-
     socket?.emit("send_message", msgPayload);
-    dispatch(addMessage({ roomId, message: { ...msgPayload, fromSelf: true } }));
-    console.log(messages[messages.length-1])
+    dispatch(addMessage(msgPayload));
     setMessage("");
   };
 
   useEffect(() => {
-    if (scrollRef.current) {
-      setTimeout(() => {
-        scrollRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
   }, [messages]);
 
   const handleVideoCall = useCallback(() => {
-    console.log("Video call initiated");
-    router.push(`/callchat/${JSON.stringify({userId: partnerId})}`);
+    router.push(`/videocall/${JSON.stringify({ userId: partnerId })}`);
   }, [router, partnerId]);
 
   const handleVoiceCall = useCallback(() => {
-    console.log("Voice call initiated");
-    router.push(`/callchat/${JSON.stringify({userId: partnerId})}`);
+    router.push(`/callchat/${JSON.stringify({ userId: partnerId })}`);
   }, [router, partnerId]);
-
-  const handleSearchChat = useCallback(() => {
-    console.log("Chat search initiated");
-    // Can implement chat search functionality here
-  }, []);
 
   const handleOpenAttachment = async (base64: string, fileName?: string) => {
     try {
-      const name = fileName || 'attachment.jpg';
+      const name = fileName || "attachment.jpg";
       const fileUri = `${FileSystem.cacheDirectory}${name}`;
       await FileSystem.writeAsStringAsync(fileUri, base64, {
         encoding: FileSystem.EncodingType.Base64,
       });
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri);
-      }
+      if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(fileUri);
     } catch (err) {
-      console.error('Failed to open attachment:', err);
+      console.error("Failed to open attachment:", err);
     }
   };
 
-  if (!data) return <ContainerTemplate><View className="justify-center items-center w-full h-full"><ActivityIndicator/></View></ContainerTemplate>
+  const scrollToBottom = () => scrollRef.current?.scrollToEnd({ animated: true });
+
+  // ── Helpers ─────────────────────────────────────────────────────────
+  const sortedMessages = [...messages].sort((a: ChatMessage, b: ChatMessage) => {
+    return new Date(a.timestamp || "").getTime() - new Date(b.timestamp || "").getTime();
+  });
+
+  const getDateLabel = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days === 0) return "Today";
+    if (days === 1) return "Yesterday";
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  const shouldShowDate = (index: number) => {
+    if (index === 0) return true;
+    const curr = sortedMessages[index].timestamp || "";
+    const prev = sortedMessages[index - 1].timestamp || "";
+    return new Date(curr).toDateString() !== new Date(prev).toDateString();
+  };
+
+  const displayName = data ? `${data.firstName || ""} ${data.lastName || ""}`.trim() : "";
+  const roleConfig = data?.user?.role ? ROLE_CONFIG[data.user.role] : null;
+
+  // ── Loading state ───────────────────────────────────────────────────
+  if (!data) {
+    return (
+      <ContainerTemplate>
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color={primaryColor} />
+          <Text style={{ color: subText, marginTop: 12, fontSize: 13 }}>Loading chat...</Text>
+        </View>
+      </ContainerTemplate>
+    );
+  }
 
   return (
     <ContainerTemplate>
@@ -576,158 +231,277 @@ socket.on("reconnect", () => {
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View className="flex-1">
+            {/* ── Header ─────────────────────────────────── */}
+            <View
+              className="pt-14 pb-3 flex-row items-center justify-between"
+              style={{
+                backgroundColor: selectioncardColor,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.06,
+                shadowRadius: 6,
+                elevation: 3,
+              }}
+            >
+              <View className="flex-row items-center flex-1 px-4">
+                <TouchableOpacity
+                  onPress={() => router.back()}
+                  className="w-9 h-9 rounded-full items-center justify-center mr-3"
+                  style={{ backgroundColor: primaryColor + "15" }}
+                >
+                  <AntDesign name="left" size={16} color={primaryColor} />
+                </TouchableOpacity>
 
-            {/* Header */}
-            <View className="pt-16 justify-between flex-row px-4">
-              <View className="flex-row items-center gap-x-2">
-                <TouchableOpacity onPress={() => router.back()}>
-                  <AntDesign name="left" size={20} color={primaryColor} />
+                {/* Avatar */}
+                <TouchableOpacity className="relative mr-3" activeOpacity={0.8}>
+                  <View
+                    className="w-11 h-11 rounded-full overflow-hidden items-center justify-center"
+                    style={{ backgroundColor: primaryColor + "15" }}
+                  >
+                    {data.avatar && !imageError ? (
+                      <Image
+                        source={{ uri: data.avatar }}
+                        className="w-full h-full"
+                        resizeMode="cover"
+                        onError={() => setImageError(true)}
+                      />
+                    ) : (
+                      <Text style={{ color: primaryColor, fontSize: 16, fontWeight: "700" }}>
+                        {getInitials({ firstName: data.firstName || "", lastName: data.lastName || "" })}
+                      </Text>
+                    )}
+                  </View>
+                  <View
+                    className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2"
+                    style={{ backgroundColor: primaryColor, borderColor: selectioncardColor }}
+                  />
                 </TouchableOpacity>
-                <Image
-                  source={{ uri: data.avatar }}
-                  className="w-12 h-12 rounded-full"
-                />
-                <ThemeText size={Textstyles.text_cmedium}>
-                  {data.firstName}
-                </ThemeText>
+
+                {/* Name + role */}
+                <View className="flex-1">
+                  <Text
+                    style={{ color: secondaryTextColor, fontFamily: "TTFirsNeueMedium", fontSize: 16 }}
+                    numberOfLines={1}
+                  >
+                    {displayName}
+                  </Text>
+                  <View className="flex-row items-center mt-0.5">
+                    {roleConfig && (
+                      <View
+                        className="flex-row items-center px-1.5 py-0.5 rounded mr-2"
+                        style={{ backgroundColor: roleConfig.color + "18" }}
+                      >
+                        <Ionicons name={roleConfig.icon as any} size={9} color={roleConfig.color} />
+                        <Text
+                          style={{ color: roleConfig.color, fontSize: 10, fontWeight: "600", marginLeft: 3 }}
+                        >
+                          {roleConfig.label}
+                        </Text>
+                      </View>
+                    )}
+                    {data?.user?.location?.state && (
+                      <View className="flex-row items-center">
+                        <Ionicons name="location-outline" size={10} color={subText} />
+                        <Text style={{ color: subText, fontSize: 10, marginLeft: 2 }}>
+                          {data.user.location.lga || ""} {data.user.location.state}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
               </View>
-              <View className="flex-row gap-x-4 items-center">
-                <TouchableOpacity onPress={handleVideoCall}>     
-                  <FontAwesome5 name="video" size={20} color={primaryColor} />
+
+              {/* Action buttons */}
+              <View className="flex-row items-center gap-x-1 px-4">
+                <TouchableOpacity
+                  onPress={handleVoiceCall}
+                  className="w-9 h-9 rounded-full items-center justify-center"
+                  style={{ backgroundColor: primaryColor + "15" }}
+                >
+                  <Ionicons name="call-outline" size={18} color={primaryColor} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={handleVoiceCall}>     
-                  <FontAwesome5 name="phone" size={20} color={primaryColor} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleSearchChat}>
-                  <FontAwesome5 name="search" size={20} color={primaryColor} />
+                <TouchableOpacity
+                  onPress={handleVideoCall}
+                  className="w-9 h-9 rounded-full items-center justify-center"
+                  style={{ backgroundColor: primaryColor + "15" }}
+                >
+                  <Ionicons name="videocam-outline" size={18} color={primaryColor} />
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* Info */}
-            <View className="flex-row items-center justify-center gap-x-3 mb-4 mt-2">
-  {/* CLIENT */}
-  {data?.user?.role === "client" && (
-    <View className="flex-row items-center gap-x-2">
-      <FontAwesome6 name="user" size={12} color="blue" />
-      <ThemeText size={Textstyles.text_xsmall}>Client</ThemeText>
-    </View>
-  )}
-
-  {/* PROFESSIONAL */}
-  {data?.user?.role === "professional" && (
-    <>
-      <View className="flex-row items-center gap-x-2">
-        <FontAwesome5 name="toolbox" size={12} color="red" />
-        <ThemeText size={Textstyles.text_xsmall}>
-          {data?.professional?.profession?.title || "Profession"}
-        </ThemeText>
-      </View>
-
-      <View className="flex-row items-center gap-x-2">
-        <FontAwesome6 name="clock" size={12} color="orange" />
-        <ThemeText size={Textstyles.text_xsmall}>
-          {data?.professional?.yearsOfExp
-            ? `${data.professional.yearsOfExp} yrs`
-            : "No exp"}
-        </ThemeText>
-      </View>
-    </>
-  )}
-
-  {/* DELIVERY */}
-  {data?.user?.role === "delivery" && (
-    <View className="flex-row items-center gap-x-2">
-      <FontAwesome5 name="motorcycle" size={12} color="green" />
-      <ThemeText size={Textstyles.text_xsmall}>Delivery Agent</ThemeText>
-    </View>
-  )}
-
-  {/* LOCATION - shown for all */}
-  <View className="flex-row items-center gap-x-2">
-    <FontAwesome6 name="location-dot" size={12} color="red" />
-    <ThemeText size={Textstyles.text_xsmall}>
-      {data?.user?.location?.lga || ""} {data?.user?.location?.state || ""}
-    </ThemeText>
-  </View>
-</View>
-
-            {/* Messages */}
+            {/* ── Messages ────────────────────────────────── */}
             <ScrollView
               ref={scrollRef}
               className="flex-1 px-4"
-              contentContainerStyle={{ paddingBottom: 110 }}
+              contentContainerStyle={{ paddingTop: 12, paddingBottom: 16 }}
               showsVerticalScrollIndicator={false}
               onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+              onScroll={(e) => {
+                const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
+                const distFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
+                setShowScrollBtn(distFromBottom > 200);
+              }}
+              scrollEventThrottle={100}
             >
-              {messages
-                .sort((a, b) => {
-                  // Sort by timestamp, oldest first
-                  const timeA = new Date(a.timestamp || a.time).getTime();
-                  const timeB = new Date(b.timestamp || b.time).getTime();
-                  return timeA - timeB;
-                })
-                .map((msg, index) => (
-                <View
-                  key={index}
-                  className={`w-full mt-3 items-${msg.from === userId ? "end" : "start"}`}
-                >
-                  {msg.image ? (
-                    <TouchableOpacity
-                      onPress={() => handleOpenAttachment(msg.image!, msg.fileName)}
-                    >
-                      <Image
-                        source={{ uri: `data:image/jpeg;base64,${msg.image}` }}
-                        className="w-40 h-40 rounded-lg"
-                        resizeMode="cover"
-                      />
-                      {msg.fileName && (
-                        <Text className="text-xs text-gray-500 mt-1">{msg.fileName}</Text>
-                      )}
-                      <Text className="text-xs text-gray-400 mt-1">
-                      { findTime(msg.timestamp)}
-                      </Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <View
-                      className={`w-2/3 px-3 py-2 rounded-lg ${
-                        msg.from === userId
-                          ? "bg-blue-600 rounded-tr-none"
-                          : "bg-gray-200 rounded-tl-none"
-                      }`}
-                    >
-                      <Text
-                        className={`text-sm ${
-                          msg.from === userId ? "text-white" : "text-black"
-                        }`}
-                      >
-                        {msg.text}
-                      </Text>
-                      <View className="flex-row justify-between mt-1">
-                        <Text
-                          className={`text-xs ${
-                            msg.from === userId ? "text-white" : "text-black"
-                          }`}
-                        >
-                          {msg.from === userId ? "Delivered" : "Received"}
-                        </Text>
-                        <Text
-                          className={`text-xs ${
-                            msg.from === userId ? "text-white" : "text-black"
-                          }`}
-                        >
-                            {findTime(msg.timestamp)}
-                        </Text>
-                      </View>
-                    </View>
-                  )}
+              {sortedMessages.length === 0 && (
+                <View className="items-center py-20">
+                  <View
+                    className="w-16 h-16 rounded-full items-center justify-center mb-4"
+                    style={{ backgroundColor: primaryColor + "12" }}
+                  >
+                    <Ionicons name="chatbubble-ellipses-outline" size={28} color={primaryColor} />
+                  </View>
+                  <Text style={{ color: subText, fontSize: 14, fontFamily: "TTFirsNeue" }}>
+                    Start the conversation
+                  </Text>
+                  <Text style={{ color: subText + "80", fontSize: 12, marginTop: 4 }}>
+                    Say hello to {data.firstName}
+                  </Text>
                 </View>
-              ))}
+              )}
+
+              {sortedMessages.map((msg: ChatMessage, index: number) => {
+                const isMine = msg.from === userId;
+                const time = findTime(msg.timestamp || new Date().toISOString());
+                const showDate = shouldShowDate(index);
+
+                return (
+                  <React.Fragment key={index}>
+                    {/* Date separator */}
+                    {showDate && (
+                      <View className="items-center my-4">
+                        <View
+                          className="px-3 py-1 rounded-full"
+                          style={{ backgroundColor: borderColor }}
+                        >
+                          <Text style={{ color: subText, fontSize: 11, fontFamily: "TTFirsNeue" }}>
+                            {getDateLabel(msg.timestamp || "")}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Message bubble */}
+                    <View
+                      className={`mb-1.5 ${isMine ? "items-end" : "items-start"}`}
+                      style={{ maxWidth: "80%" , alignSelf: isMine ? "flex-end" : "flex-start" }}
+                    >
+                      {msg.image ? (
+                        <TouchableOpacity
+                          onPress={() => handleOpenAttachment(msg.image!, msg.fileName)}
+                          activeOpacity={0.85}
+                        >
+                          <View
+                            className="rounded-2xl overflow-hidden"
+                            style={{
+                              backgroundColor: isMine ? primaryColor : selectioncardColor,
+                              padding: 4,
+                            }}
+                          >
+                            <Image
+                              source={{ uri: `data:image/jpeg;base64,${msg.image}` }}
+                              style={{ width: 200, height: 200, borderRadius: 14 }}
+                              resizeMode="cover"
+                            />
+                            {msg.fileName && (
+                              <Text
+                                style={{
+                                  color: isMine ? "rgba(255,255,255,0.7)" : subText,
+                                  fontSize: 10,
+                                  marginTop: 4,
+                                  paddingHorizontal: 4,
+                                }}
+                              >
+                                {msg.fileName}
+                              </Text>
+                            )}
+                            <Text
+                              style={{
+                                color: isMine ? "rgba(255,255,255,0.6)" : subText,
+                                fontSize: 10,
+                                textAlign: "right",
+                                paddingHorizontal: 4,
+                                paddingBottom: 2,
+                                marginTop: 2,
+                              }}
+                            >
+                              {time}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      ) : (
+                        <View
+                          style={{
+                            backgroundColor: isMine ? primaryColor : selectioncardColor,
+                            paddingHorizontal: 14,
+                            paddingVertical: 10,
+                            borderRadius: 20,
+                            borderTopRightRadius: isMine ? 6 : 20,
+                            borderTopLeftRadius: isMine ? 20 : 6,
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 1 },
+                            shadowOpacity: 0.04,
+                            shadowRadius: 3,
+                            elevation: 1,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: isMine ? "#fff" : secondaryTextColor,
+                              fontSize: 14,
+                              lineHeight: 20,
+                              fontFamily: "TTFirsNeue",
+                            }}
+                          >
+                            {msg.text}
+                          </Text>
+                          <View className="flex-row items-center justify-end mt-1 gap-x-1">
+                            <Text
+                              style={{
+                                color: isMine ? "rgba(255,255,255,0.6)" : subText,
+                                fontSize: 10,
+                              }}
+                            >
+                              {time}
+                            </Text>
+                            {isMine && (
+                              <Ionicons
+                                name="checkmark-done"
+                                size={12}
+                                color="rgba(255,255,255,0.6)"
+                              />
+                            )}
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  </React.Fragment>
+                );
+              })}
             </ScrollView>
 
-            {/* Input */}
+            {/* Scroll-to-bottom FAB */}
+            {showScrollBtn && (
+              <TouchableOpacity
+                onPress={scrollToBottom}
+                className="absolute right-4 bottom-24 w-10 h-10 rounded-full items-center justify-center"
+                style={{
+                  backgroundColor: selectioncardColor,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.15,
+                  shadowRadius: 4,
+                  elevation: 4,
+                }}
+              >
+                <Ionicons name="chevron-down" size={20} color={primaryColor} />
+              </TouchableOpacity>
+            )}
+
+            {/* ── Input ──────────────────────────────────── */}
             <MessageInput
-              receiverId={receiverId}
+              receiverId={partnerId}
               message={message}
               setMessage={setMessage}
               onSend={handleSend}
@@ -740,4 +514,3 @@ socket.on("reconnect", () => {
 };
 
 export default MainChatScreen;
-

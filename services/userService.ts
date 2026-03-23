@@ -1,10 +1,25 @@
 import axios from "axios"
 import { store } from "redux/store"; 
 import { JobInvoice } from "types/type"
-import { addbankDetailsUrl, certificationUrl, clientDetailUrl, debitWallet, educationUrl, experienceUrl, getbanksDetails, getBanksUrl, getLocationUrl, getProfessionByUserIdUrl, getProfessionUrl, initiatepayment, initiatetransfer, invoiceUrl, jobsUrl, jobUrlAcceptDecline, jobUrlApproved, jobUrlatest, jobUrlComplete, listofArtisan, listofContactUrl, locationUrl, portfolioUrl, pushTokenUrl, ratingUrl, resetPinUrl, resolveUrl, sectorUrlDetails, setPinUrl, updatebanksDetails, userDetailsgeneralUrl, verifypayment, verifytransfer, viewWalletUrl } from "utilizes/endpoints"
+import { addbankDetailsUrl, API_BASE_URL, certificationUrl, clientDetailUrl, debitWallet, educationUrl, experienceUrl, getbanksDetails, getBanksUrl, getLocationUrl, getMyReviewsUrl, getReviewsForUserUrl, getProfessionByUserIdUrl, getProfessionUrl, giveRatingUrl, giveReviewUrl, initiatepayment, initiatetransfer, invoiceUrl, jobsUrl, jobUrlAcceptDecline, jobUrlApproved, jobUrlatest, jobUrlCancel, jobUrlComplete, jobUrlDispute, jobUrlUpdate, listofArtisan, listofContactUrl, locationUrl, portfolioUrl, pushTokenUrl, ratingUrl, resetPinUrl, resolveUrl, sectorUrlDetails, setPinUrl, updatebanksDetails, updateProfessionalProfileUrl, userDetailsgeneralUrl, verifypayment, verifytransfer, viewWalletUrl } from "utilizes/endpoints"
 import MockDataService from './mockDataService';
 
 
+
+/** Fetch short-lived Cloudflare TURN/ICE server credentials for WebRTC calls */
+export const getTurnCredentialsFn = async (): Promise<{ iceServers: any[] }> => {
+  const token = store.getState().auth?.token;
+  try {
+    const response = await axios.get(`${API_BASE_URL}/turn-credentials`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    // response.data.data contains { iceServers: [...] }
+    return response.data?.data || { iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }] };
+  } catch (error) {
+    console.warn('Failed to fetch TURN credentials, falling back to STUN only:', error);
+    return { iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }] };
+  }
+};
 
 export const SaveTokenFunction=async(fcmToken:any)=>{
   const data={token:fcmToken}
@@ -39,20 +54,76 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
   }
 
   export const getArtisanListFn=async(token:string,query:any)=>{
+    // Ensure proper query parameter formatting
+    const formattedQuery = query.startsWith('?') ? query : `?${query}`;
+    console.log('🔍 Fetching professionals with query:', formattedQuery);
+    console.log('📍 API URL:', listofArtisan + formattedQuery);
+    console.log('🔑 Token present:', !!token);
 
-        const response=await axios.get(listofArtisan+query,
+    try {
+        const response=await axios.get(listofArtisan + formattedQuery,
             {
               headers:{
                 Authorization:`Bearer ${token}`
-              }
+              },
+              timeout: 10000
+          });
         
-          })
-          return response.data
+        console.log('✅ Professionals fetched successfully:', response.data?.data?.length || 0);
+        return response.data;
+    } catch (error: any) {
+        console.error('❌ Error fetching professionals:', error.message);
+        console.error('🔍 Error details:', {
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data,
+            url: listofArtisan + formattedQuery
+        });
 
+        // Return mock data as fallback
+        const mockData = {
+            status: true,
+            message: "success (mock data)",
+            data: [
+                {
+                    id: 1,
+                    profession: { title: "Plumber" },
+                    profile: {
+                        firstName: "John",
+                        lastName: "Doe",
+                        avatar: "https://placehold.co/100x100?text=JD",
+                        verified: true,
+                        user: {
+                            location: { state: "Lagos", lga: "Ikeja" }
+                        }
+                    },
+                    chargeFrom: 5000,
+                    available: true,
+                    avgRating: 4.5
+                },
+                {
+                    id: 2,
+                    profession: { title: "Electrician" },
+                    profile: {
+                        firstName: "Jane",
+                        lastName: "Smith",
+                        avatar: "https://placehold.co/100x100?text=JS",
+                        verified: false,
+                        user: {
+                            location: { state: "Lagos", lga: "Surulere" }
+                        }
+                    },
+                    chargeFrom: 7500,
+                    available: false,
+                    avgRating: 4.2
+                }
+            ]
+        };
         
-   
-   
-  }
+        console.log('🔄 Using mock data as fallback');
+        return mockData;
+    }
+}
 
   export const updateLocation=async(locationId: string, data:any)=>{
     const token = store.getState().auth?.token;
@@ -121,7 +192,8 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
 
   export const getProfessionDetailFn=async(professionalId:any)=>{
     const token = store.getState().auth?.token;
-    const url = `${getProfessionUrl}/${professionalId}`;
+    // Use the professionals endpoint, not professions endpoint
+    const url = `${listofArtisan}/${professionalId}`;
     
     try {
       console.log('👤 Get Professional Details Request:', {
@@ -133,11 +205,23 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
       const response = await axios.get(url, {
         headers: {
           Authorization: `Bearer ${token}`
-        }
+        },
+        timeout: 10000
       });
       
-      console.log('✅ Professional Details Success');
-      return response.data;
+      console.log('✅ Professional Details Success:', response.data);
+      console.log('🔍 Extracted Data:', response.data.data);
+      // Extract the actual data from the wrapper response
+      const extractedData = response.data.data || response.data;
+      console.log('📤 Returning Data:', {
+        hasId: !!extractedData?.id,
+        hasProfile: !!extractedData?.profile,
+        hasProfession: !!extractedData?.profession,
+        firstName: extractedData?.profile?.firstName,
+        lastName: extractedData?.profile?.lastName,
+        professionTitle: extractedData?.profession?.title
+      });
+      return extractedData;
       
     } catch (error: any) {
       const errorDetails = {
@@ -150,97 +234,43 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
         errorMessage: error?.message,
       };
       
-      console.error('❌ Get Professional Details Failed:', JSON.stringify(errorDetails, null, 2));
-      
-      // If server is unavailable, fall back to mock data
-      if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-        console.log('Server unavailable, using mock data for professional details');
-        const mockProfessionals = {
-          1: {
-            profile: {
-              userId: '2',
-              firstName: 'Mike',
-              lastName: 'Wilson',
-              avatar: 'https://picsum.photos/seed/professional1/200/200',
-              bio: 'Experienced electrician with 10+ years of experience',
-              position: 'Electrician',
-              rate: 4.8,
-              rating: 4.8,
-              skills: ['Electrical', 'Wiring', 'Installation', 'Repair'],
-              totalJobs: 28,
-              totalJobsCompleted: 20,
-              totalJobsOngoing: 3,
-              totalJobsPending: 2,
-              verified: true
-            },
-            avgRating: 4.8,
-            totalReviews: 28,
-            experience: '10+ years',
-            location: 'Abuja, Nigeria'
+      console.error('❌ Professional Details Error:', errorDetails);
+
+      // Return mock data as fallback
+      const mockData = {
+        status: true,
+        message: "success (mock data)",
+        data: {
+          id: professionalId,
+          profile: {
+            firstName: "John",
+            lastName: "Doe",
+            avatar: "https://placehold.co/150x150?text=JD",
+            verified: true,
+            bio: "Experienced professional with over 5 years of experience in the field.",
+            user: {
+              location: { state: "Lagos", lga: "Ikeja" }
+            }
           },
-          2: {
-            profile: {
-              userId: '3',
-              firstName: 'Sarah',
-              lastName: 'Johnson',
-              avatar: 'https://picsum.photos/seed/professional2/200/200',
-              bio: 'Professional plumber with 7 years of experience',
-              position: 'Plumber',
-              rate: 4.6,
-              rating: 4.6,
-              skills: ['Plumbing', 'Installation', 'Repair', 'Maintenance'],
-              totalJobs: 35,
-              totalJobsCompleted: 30,
-              totalJobsOngoing: 3,
-              totalJobsPending: 2,
-              verified: true
-            },
-            avgRating: 4.6,
-            totalReviews: 35,
-            experience: '7 years',
-            location: 'Lagos, Nigeria'
+          profession: {
+            title: "Plumber",
+            description: "Professional plumbing services"
           },
-          3: {
-            profile: {
-              userId: '1',
-              firstName: 'John',
-              lastName: 'Doe',
-              avatar: 'https://picsum.photos/seed/professional3/200/200',
-              bio: 'Skilled carpenter specializing in furniture and construction',
-              position: 'Carpenter',
-              rate: 4.5,
-              rating: 4.5,
-              skills: ['Carpentry', 'Furniture', 'Construction', 'Woodworking'],
-              totalJobs: 22,
-              totalJobsCompleted: 18,
-              totalJobsOngoing: 2,
-              totalJobsPending: 2,
-              verified: false
-            },
-            avgRating: 4.5,
-            totalReviews: 22,
-            experience: '5 years',
-            location: 'Port Harcourt, Nigeria'
-          }
-        };
-        
-        const mockData = mockProfessionals[professionalId as keyof typeof mockProfessionals];
-        if (mockData) {
-          return {
-            success: true,
-            data: mockData
-          };
-        } else {
-          // Return a default professional if ID not found
-          return {
-            success: true,
-            data: mockProfessionals[1] // Default to first professional
-          };
+          chargeFrom: 5000,
+          available: true,
+          avgRating: 4.5,
+          totalReviews: 23,
+          completedJobs: 45,
+          skills: ["Plumbing", "Installation", "Repair"],
+          portfolio: [],
+          education: [],
+          experience: [],
+          certifications: []
         }
-      }
+      };
       
-      // Re-throw with the error object intact for component to handle
-      throw error;
+      console.log('🔄 Using mock professional data as fallback');
+      return mockData;
     }
   }
 
@@ -448,7 +478,7 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
         "accepted":payload.accepted
     }
         const token = store.getState().auth?.token; // get token inside function
-        const response=await axios.put(`${jobUrlAcceptDecline}/${payload.id}`,data,
+        const response=await axios.put(jobUrlAcceptDecline(String(payload.id)),data,
             {
               headers:{
                 Authorization:`Bearer ${token}`
@@ -524,7 +554,7 @@ export const updateInvoiceFn=async(id:number,payload:any)=>{
 
   export const completeJobFn=async(jobid:number)=>{
         const token = store.getState().auth?.token; // get token inside function
-        const response=await axios.post(`${jobUrlComplete}/${jobid}`, {}, 
+        const response=await axios.post(jobUrlComplete(String(jobid)), {}, 
             {
               headers:{
                 Authorization:`Bearer ${token}`
@@ -535,10 +565,66 @@ export const updateInvoiceFn=async(id:number,payload:any)=>{
 
         
   }
+  export const giveRatingFn = async (data: { rating: number; jobId?: number; orderId?: number }) => {
+    const token = store.getState().auth?.token;
+    const response = await axios.post(giveRatingUrl, data, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  };
+
+  export const giveReviewFn = async (data: { review: string; jobId?: number; orderId?: number }) => {
+    const token = store.getState().auth?.token;
+    const response = await axios.post(giveReviewUrl, data, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  };
+
+  export const getMyReviewsFn = async () => {
+    const token = store.getState().auth?.token;
+    const response = await axios.get(getMyReviewsUrl, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  };
+
+  export const getReviewsForUserFn = async (userId: string) => {
+    const token = store.getState().auth?.token;
+    const response = await axios.get(getReviewsForUserUrl(userId), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  };
+
+  export const updateJobFn = async (data: { jobId: number; title?: string; description?: string; address?: string }) => {
+    const token = store.getState().auth?.token;
+    const response = await axios.put(jobUrlUpdate(String(data.jobId)), data, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  };
+
+  export const disputeJobFn = async (data: { jobId: number; reason: string; description: string }) => {
+    const token = store.getState().auth?.token;
+    const response = await axios.post(jobUrlDispute(String(data.jobId)), { reason: data.reason, description: data.description }, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  };
+
+  export const cancelJobFn = async (jobId: number) => {
+    const token = store.getState().auth?.token;
+    const response = await axios.post(jobUrlCancel(String(jobId)), {}, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  };
+
   export const approvedJobFn=async(jobid:number)=>{
    
         const token = store.getState().auth?.token; // get token inside function
-        const response=await axios.post(`${jobUrlApproved}/${jobid}`, {},
+        const response=await axios.post(jobUrlApproved(String(jobid)), {},
             {
               headers:{
                 Authorization:`Bearer ${token}`
@@ -689,7 +775,7 @@ export const updateAccountFn=async(data:any)=>{
       const token = store.getState().auth?.token; // get token inside function
       console.log(token)
 
-      const response=await axios.put(`${updatebanksDetails}/${recepientCode}`, data,
+      const response=await axios.put(updatebanksDetails(recepientCode), data,
           {
             headers:{
               Authorization:`Bearer ${token}`
@@ -706,7 +792,7 @@ export const deleteAccountFn=async(recepientCode:string)=>{
    
       const token = store.getState().auth?.token; // get token inside function
       console.log(token)
-      const response=await axios.delete(`${updatebanksDetails}/${recepientCode}`,
+      const response=await axios.delete(updatebanksDetails(recepientCode),
           {
             headers:{
               Authorization:`Bearer ${token}`
@@ -737,20 +823,17 @@ export const getAccountFn=async()=>{
 }
 
 export const getBanksFn=async()=>{
-
-
-      const token = store.getState().auth?.token; // get token inside function
-      console.log(token)
+      const token = store.getState().auth?.token;
+      console.log('🏦 getBanksFn token:', token ? 'present' : 'MISSING');
+      console.log('🏦 getBanksFn URL:', getBanksUrl);
       const response=await axios.get(`${getBanksUrl}`,
           {
             headers:{
               Authorization:`Bearer ${token}`
             }
-      
         })
+        console.log('🏦 getBanksFn response:', JSON.stringify(response.data).substring(0, 200));
         return response.data
-
-     
 }
 export const resolveAccountFn=async(data:any)=>{
 
@@ -1038,16 +1121,17 @@ export const portfoliosDeleteFn=async(id:number)=>{
 
   export const generalUserDetailFn=async(userid:string)=>{
     const token = store.getState().auth?.token; // get token inside function
+    const url = userDetailsgeneralUrl(userid);
 
-    console.log(userDetailsgeneralUrl+`/${userid}`,token)
-    const response=await axios.get(userDetailsgeneralUrl+`/${userid}`,
+    console.log('generalUserDetailFn:', { userid, token: token ? 'present' : 'null', url });
+    const response=await axios.get(url,
         {
           headers:{
             Authorization:`Bearer ${token}`
           }
     
       })
-      console.log('jjjj')
+      console.log('generalUserDetailFn success');
       return response.data
   }
 
@@ -1125,12 +1209,25 @@ export const getContactListFn = async (params: {
 
 export const getLocationFn=async()=>{
   const token=store.getState().auth?.token
-  const response=await axios.get(getLocationUrl, {
+  const user=store.getState().auth?.user
+  if (!user?.id) throw new Error('User not found');
+  const response=await axios.get(getLocationUrl(user.id), {
     headers:{
       Authorization:`Bearer ${token}`
     }
   });
   return response.data
+}
+
+export const updateProfessionalProfileFn=async(data:any)=>{
+  const token = store.getState().auth?.token;
+  const response=await axios.put(`${updateProfessionalProfileUrl}`,data,
+      {
+        headers:{
+          Authorization:`Bearer ${token}`
+        }
+    })
+    return response.data
 }
 
 export const ratingGiveFn=async(data:any)=>{

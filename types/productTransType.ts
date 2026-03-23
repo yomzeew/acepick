@@ -5,14 +5,15 @@ export interface ProductTransaction {
     sellerId: string;
     quantity: number;
     price: string;
-    status: "ordered" | "pending" | "delivered" | "cancelled"; // extend as needed
-    orderMethod: "delivery" | "pickup"; // extend as needed
+    status: "ordered" | "pending" | "delivered" | "cancelled" | "disputed";
+    orderMethod: "delivery" | "pickup" | "self_pickup";
     date: string; // ISO timestamp
     createdAt: string;
     updatedAt: string;
     product: Product;
     order: Order;
     buyer: Buyer;
+    seller?: Buyer;
   }
   
   export interface Product {

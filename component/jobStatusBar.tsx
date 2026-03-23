@@ -1,48 +1,51 @@
-import { View,Text } from "react-native"
-import { ThemeTextsecond } from "./ThemeText"
-import { Textstyles } from "static/textFontsize"
+import { View, Text } from "react-native"
+import { Ionicons } from "@expo/vector-icons"
+import { useTheme } from "hooks/useTheme"
+import { getColors } from "static/color"
 
 interface JobStatusProps {
-  status: 'COMPLETED' | 'APPROVED' | 'DISPUTED' | 'PENDING' | 'DECLINED' | 'ONGOING' | 'CANCELED' | 'REJECTED' | string;
+  status: 'COMPLETED' | 'APPROVED' | 'DISPUTED' | 'PENDING' | 'DECLINED' | 'ONGOING' | 'CANCELED' | 'CANCELLED' | 'REJECTED' | string;
 }
+
+type StatusConfig = {
+  bg: string;
+  color: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+};
+
+const getStatusMap = (primary: string, secondary: string): Record<string, StatusConfig> => ({
+  PENDING:   { bg: secondary + '15', color: secondary, icon: 'time-outline',             label: 'Pending' },
+  ONGOING:   { bg: primary + '15',   color: primary,   icon: 'play-circle-outline',      label: 'In Progress' },
+  COMPLETED: { bg: primary + '15',   color: primary,   icon: 'checkmark-done-outline',   label: 'Completed' },
+  APPROVED:  { bg: primary + '15',   color: primary,   icon: 'shield-checkmark-outline', label: 'Approved' },
+  DISPUTED:  { bg: secondary + '15', color: secondary, icon: 'warning-outline',          label: 'Disputed' },
+  DECLINED:  { bg: secondary + '15', color: secondary, icon: 'close-circle-outline',     label: 'Declined' },
+  REJECTED:  { bg: secondary + '15', color: secondary, icon: 'close-circle-outline',     label: 'Rejected' },
+  CANCELED:  { bg: secondary + '15', color: secondary, icon: 'ban-outline',              label: 'Cancelled' },
+  CANCELLED: { bg: secondary + '15', color: secondary, icon: 'ban-outline',              label: 'Cancelled' },
+});
 
 const JobStatusBar = ({ status }: JobStatusProps) => {
-    // Define colors based on status
-    const getStatusColor = () => {
-        switch (status) {
-            case 'COMPLETED':
-                return { bg: 'bg-green-100', text: 'text-green-800' }
-            case 'APPROVED':
-                return { bg: 'bg-blue-100', text: 'text-blue-800' }
-            case 'DISPUTED':
-                return { bg: 'bg-yellow-100', text: 'text-yellow-800' }
-            case 'PENDING':
-                return { bg: 'bg-orange-100', text: 'text-orange-800' }
-            case 'DECLINED':
-            case 'REJECTED':
-            case 'CANCELED':
-                return { bg: 'bg-red-100', text: 'text-red-800' }
-            case 'ONGOING':
-                return { bg: 'bg-purple-100', text: 'text-purple-800' }
-            default:
-                return { bg: 'bg-gray-100', text: 'text-gray-800' }
-        }
-    }
+  const { theme } = useTheme();
+  const { primaryColor, backgroundColortwo } = getColors(theme);
+  const STATUS_MAP = getStatusMap(primaryColor, backgroundColortwo);
+  const DEFAULT_CONFIG: StatusConfig = { bg: backgroundColortwo + '15', color: backgroundColortwo, icon: 'help-circle-outline', label: 'Unknown' };
+  const config = STATUS_MAP[status] || DEFAULT_CONFIG;
 
-    const { bg, text } = getStatusColor()
-
-    return (
-        <View className={`${bg} absolute right-0 rounded-l-2xl px-3 py-1`}>
-            <Text
-            style={[Textstyles.text_xsmall]}
-                className={text}
-            >
-                {status.toLowerCase().split('_').map(word => 
-                    word.charAt(0).toUpperCase() + word.slice(1)
-                ).join(' ')}
-            </Text>
-        </View>
-    )
-}
+  return (
+    <View
+      className="flex-row items-center self-start rounded-full px-3 py-1.5"
+      style={{ backgroundColor: config.bg, gap: 5 }}
+    >
+      <Ionicons name={config.icon} size={13} color={config.color} />
+      <Text
+        style={{ color: config.color, fontSize: 11, fontWeight: '600', letterSpacing: 0.3 }}
+      >
+        {config.label}
+      </Text>
+    </View>
+  );
+};
 
 export default JobStatusBar

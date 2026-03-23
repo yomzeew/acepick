@@ -3,37 +3,54 @@ import {
   RefreshControl,
   View,
   TouchableOpacity,
-  Dimensions
+  Text,
 } from "react-native";
 import HeaderComponent from "./headercomponent"
 import { useTheme } from "../../hooks/useTheme";
 import { getColors } from "../../static/color";
 import ContainerTemplate from "./containerTemplate";
 import WalletCard from "./walletcompoment";
-import EmptyView from "../emptyview";
 import FilterCard from "./filterCard";
-import { ThemeText } from "../ThemeText";
-import { Textstyles } from "../../static/textFontsize";
-import ProfessionalCard from "./professionalCard";
 import { useEffect, useState } from "react";
 import SliderModalTemplate, { SliderModalNoScrollview } from "component/slideupModalTemplate";
 import { useRouter } from "expo-router";
-import JobCard from "component/jobs/jobsCard";
 import ListofAPmodal from "./listofA&Pmodal";
-import { FontAwesome5 } from "@expo/vector-icons";
+import { FontAwesome5, Feather } from "@expo/vector-icons";
 import SectorsComponent from "./sectorsComponent";
 import { useCurrentLocation } from "hooks/useLocation";
 import { useMutation } from "@tanstack/react-query";
 import { SaveTokenFunction, updateLocation } from "services/userService";
 import { useSelector } from "react-redux";
 import { RootState } from "redux/store";
+import { useDashboard } from "hooks/useDashboard";
 import PaymentModal from "component/menuComponent/walletPages/paymentModal";
 import TransferFund from "component/menuComponent/walletPages/transferfund";
 import { AlertMessageBanner } from "component/AlertMessageBanner";
 import JobStatistics from "component/jobStatistics";
 
+const SectionHeader = ({ title, actionText, onAction }: { title: string; actionText?: string; onAction?: () => void }) => {
+  const { theme } = useTheme();
+  const { secondaryTextColor, primaryColor } = getColors(theme);
+  return (
+    <View className="flex-row justify-between items-center mb-3">
+      <Text style={{ fontFamily: 'TTFirsNeueMedium', fontSize: 16, color: secondaryTextColor }}>
+        {title}
+      </Text>
+      {actionText && onAction && (
+        <TouchableOpacity onPress={onAction} activeOpacity={0.7}>
+          <Text style={{ fontFamily: 'TTFirsNeue', fontSize: 13, color: primaryColor }}>
+            {actionText}
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
+
 const HomeComp = () => {
   const router = useRouter()
+  const { theme } = useTheme();
+  const { selectioncardColor, borderColor, secondaryTextColor, successColor, errorColor } = getColors(theme);
   const [showmodal, setshowmodal] = useState<boolean>(false)
   const [showwithdraw, setshowwithdraw] = useState<boolean>(false)
   const [showprofession, setshowprofession] = useState(false)
@@ -41,77 +58,56 @@ const HomeComp = () => {
   const [errorMessage, setErrorMessage] = useState('')
   const [errorPMessage, setErrorPMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [filterData, setFilterData] = useState<any[]>([])
   const [refreshing, setRefreshing] = useState(false);
-  const [balanceRefreshTrigger, setBalanceRefreshTrigger] = useState(false); // 👈 Trigger to re-fetch wallet
+  const [balanceRefreshTrigger, setBalanceRefreshTrigger] = useState(false);
   const user = useSelector((state: RootState) => state.auth?.user) ?? null;
-  const fcmToken=useSelector((state:RootState)=>(state.auth.user?.fcmToken))
+  const fcmToken = useSelector((state: RootState) => (state.auth.user?.fcmToken))
+  const { data: dashboardData, refresh: refreshDashboard } = useDashboard();
+  const recentTransactions = (dashboardData as any)?.recentTransactions || [];
 
-  const saveFcmToken=async()=>{
-                 try {
-                   const response = await SaveTokenFunction(fcmToken);
-                 } catch (error) {
-                 }
-    }
+  const saveFcmToken = async () => {
+    try {
+      await SaveTokenFunction(fcmToken);
+    } catch (error) {}
+  }
 
   const onRefresh = () => {
     setRefreshing(true);
-    // Toggle the trigger for WalletCard
     setBalanceRefreshTrigger(prev => !prev);
-    // Add delay to simulate loading
+    refreshDashboard();
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);
   };
-  
 
-
-  // const handlenavcategory=(value:string)=>{
-  //     router.push(`/category/${value}`)
-
-  // }
-  const { location, address, state, lga, loading, error } = useCurrentLocation();
+  const { location, address, state, lga } = useCurrentLocation();
 
   const mutation = useMutation({
     mutationFn: ({ locationId, data }: { locationId: string; data: any }) => updateLocation(locationId, data),
-    onSuccess: async (response) => {
-      //console.log(response,'okkk');
-    },
+    onSuccess: async () => {},
     onError: (error: any) => {
       let msg = "An unexpected error occurred";
-
       if (error?.response?.data) {
-        msg =
-          error.response.data.message ||
-          error.response.data.error ||
-          JSON.stringify(error.response.data);
+        msg = error.response.data.message || error.response.data.error || JSON.stringify(error.response.data);
       } else if (error?.message) {
         msg = error.message;
       }
-
       setErrorMessage(msg);
-      console.error("failed:", msg);
     },
   });
+
   const updateLocationFn = () => {
     const locationId = user?.location?.id?.toString();
     if (!locationId) return;
     const { latitude, longitude } = location?.coords ?? {};
     const data = { latitude, longitude, address, state, lga };
-    console.log(data)
-
     mutation.mutate({ locationId, data });
   };
+
   useEffect(() => {
     saveFcmToken();
     updateLocationFn();
-
   }, [])
-
-  const { height } = Dimensions.get('window');
-
-
-
 
 
 
@@ -155,7 +151,7 @@ const HomeComp = () => {
         </SliderModalNoScrollview>
       <ContainerTemplate>
         <HeaderComponent />
-        <EmptyView height={15} />
+        <View style={{ height: 12 }} />
         
         <ScrollView
           refreshControl={
@@ -165,10 +161,10 @@ const HomeComp = () => {
             />
           }
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          contentContainerStyle={{ paddingBottom: 30 }}
         >
           {/* Wallet Section */}
-          <View className="mb-4">
+          <View className="mb-5">
             <WalletCard 
               setshowmodal={setshowmodal} 
               showmodal={showmodal}  
@@ -179,12 +175,17 @@ const HomeComp = () => {
           </View>
           
           {/* Statistics Section */}
-          <View className="mb-4">
+          <View className="mb-5">
+            <SectionHeader 
+              title="Job Overview" 
+              actionText="View All" 
+              onAction={() => router.push('/jobstatusLayout/COMPLETED')} 
+            />
             <JobStatistics />
           </View>
           
-          {/* Filter Section */}
-          <View className="mb-4">
+          {/* Search Section */}
+          <View className="mb-5">
             <FilterCard
               showprofession={showprofession}
               setshowprofession={setshowprofession}
@@ -193,15 +194,60 @@ const HomeComp = () => {
             />
           </View>
           
-          {/* Professional Section */}
+          {/* Sectors Section */}
           <View className="mb-4">
-            <ThemeText size={Textstyles.text_medium} type="secondary" className="mb-3">
-              Professional
-            </ThemeText>
+            <SectionHeader 
+              title="Browse Sectors" 
+              actionText="See All" 
+              onAction={() => router.push('/category/all')} 
+            />
             <SectorsComponent
               setErrorMessage={setErrorMessage}
             />
           </View>
+
+          {/* Recent Transactions */}
+          {recentTransactions.length > 0 && (
+            <View className="mb-5">
+              <SectionHeader
+                title="Recent Transactions"
+                actionText="View All"
+                onAction={() => router.push('/billhistorylayout')}
+              />
+              <View style={{ backgroundColor: selectioncardColor, borderColor: borderColor, borderWidth: 1 }} className="rounded-2xl p-3">
+                {recentTransactions.slice(0, 4).map((txn: any, index: number) => (
+                  <View key={txn.id}>
+                    <View className="flex-row items-center py-2.5">
+                      <View
+                        style={{ backgroundColor: (txn.type === 'credit' ? successColor : errorColor) + '20' }}
+                        className="w-9 h-9 rounded-xl items-center justify-center mr-3"
+                      >
+                        <Feather
+                          name={txn.type === 'credit' ? 'arrow-down-left' : 'arrow-up-right'}
+                          size={16}
+                          color={txn.type === 'credit' ? successColor : errorColor}
+                        />
+                      </View>
+                      <View className="flex-1">
+                        <Text style={{ fontFamily: 'TTFirsNeue', fontSize: 13, color: secondaryTextColor }} numberOfLines={1}>
+                          {txn.description || (txn.type === 'credit' ? 'Credit' : 'Debit')}
+                        </Text>
+                        <Text style={{ fontFamily: 'TTFirsNeue', fontSize: 10, color: secondaryTextColor, opacity: 0.6 }}>
+                          {new Date(txn.createdAt).toLocaleDateString()}
+                        </Text>
+                      </View>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: txn.type === 'credit' ? successColor : errorColor }}>
+                        {txn.type === 'credit' ? '+' : '-'}{Number(txn.amount).toLocaleString()}
+                      </Text>
+                    </View>
+                    {index < Math.min(recentTransactions.length, 4) - 1 && (
+                      <View style={{ backgroundColor: borderColor, height: 1 }} />
+                    )}
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
         </ScrollView>
       </ContainerTemplate>
     </>

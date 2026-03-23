@@ -15,8 +15,8 @@ export const UserDetail = () => {
     const user=useSelector((state:RootState)=>state.auth.user)
 
     const avatar:string=user?.profile?.avatar || ' '
-    const fullName:string= user?.profile?.firstName + ' ' + user?.profile?.lastName || ' '
-    const location:string=user?.location?.lga + ', ' + user?.location?.state || ' '
+    const fullName:string= (user?.profile?.firstName && user?.profile?.lastName) ? `${user.profile.firstName} ${user.profile.lastName}` : ''
+    const location:string= (user?.location?.lga && user?.location?.state) ? `${user.location.lga}, ${user.location.state}` : ''
     const numberOfStars:number=user?.profile?.rate || 1
     const currentBalance:number | string=user?.wallet?.currentBalance || ' '
     const isVerified:boolean=user?.profile?.verified || false
@@ -33,7 +33,7 @@ export const UserDetail = () => {
                         <ThemeText type="primary" size={Textstyles.text_small}>{fullName}</ThemeText>
                         {isVerified && (
                             <View className="flex-row items-center bg-green-100 px-2 py-1 rounded-full">
-                                <FontAwesome5 name="check-circle" size={12} color="#10b981" />
+                                <FontAwesome5 name="check-circle" size={12} color={primaryColor} />
                                 <Text className="text-xs text-green-700 ml-1">Verified</Text>
                             </View>
                         )}

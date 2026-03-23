@@ -1,5 +1,4 @@
 import { useMutation } from "@tanstack/react-query";
-import { AlertMessageBanner } from "component/AlertMessageBanner";
 import ButtonComponent from "component/buttoncomponent";
 import Checkbox from "component/controls/checkbox";
 import ContainerTemplate from "component/dashboardComponent/containerTemplate";
@@ -7,6 +6,7 @@ import HeaderComponent from "component/headerComp";
 import PinModal from "component/pinModal";
 import { SliderModalNoScrollview } from "component/slideupModalTemplate";
 import { ThemeText, ThemeTextsecond } from "component/ThemeText";
+import { useToast } from "context/ToastContext";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "hooks/useTheme";
 import { useEffect, useState } from "react";
@@ -19,14 +19,13 @@ const PaymentScreen = () => {
   const { jobId, workmanship, materialCost } = useLocalSearchParams();
   const {theme}=useTheme()
   const {primaryColor,selectioncardColor}=getColors(theme)
+  const toast = useToast();
 
   const [payMaterial, setPayMaterial] = useState(true);
   const [payWorkmanship, setPayWorkmanship] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState<"wallet" | "instant" | null>('wallet');
   const [pin,setPin]=useState('')
   const [showmodal,setshowmodal]=useState(false)
-  const [errorMessage,setErrorMessage]=useState<string| null>(null)
-  const [successMessage,setSuccessMessage]=useState<string | null>(null)
   const [ref,setRef]=useState(null)
 
   const material = parseFloat(materialCost as string) || 0;
@@ -37,41 +36,13 @@ const PaymentScreen = () => {
 
   const isPaymentReady = total > 0 && paymentMethod !== null;
 
-  
-
   const router = useRouter();
-    useEffect(() => {
-      if (errorMessage) {
-        const timer = setTimeout(() => {
-          setErrorMessage(null);
-        }, 4000);
-        return () => clearTimeout(timer); // Cleanup on unmount or on new error
-      }
-    }, [errorMessage])
-    useEffect(() => {
-      if (errorMessage) {
-        const timer = setTimeout(() => {
-          setSuccessMessage(null);
-        }, 4000);
-        return () => clearTimeout(timer); // Cleanup on unmount or on new error
-      }
-    }, [successMessage])
-   
-  
-    // Clear error message after 4 seconds
-    useEffect(() => {
-      if (errorMessage) {
-        const timer = setTimeout(() => setErrorMessage(null), 4000);
-        return () => clearTimeout(timer);
-      }
-    }, [errorMessage]);
-  
     const mutation = useMutation({
       mutationFn: paymentInitiate,
       onSuccess: (data) => {
         const { reference, authorization_url } = data.data;
         setRef(reference);
-        setSuccessMessage("Payment initiated");
+        toast.success("Payment initiated", "Redirecting to payment gateway...");
         console.log(authorization_url)
         if (authorization_url && reference) {
           router.push({
@@ -90,7 +61,7 @@ const PaymentScreen = () => {
         } else if (error?.message) {
           msg = error.message;
         }
-        setErrorMessage(msg);
+        toast.error("Payment Failed", msg);
         console.error(msg);
       },
     });
@@ -99,10 +70,11 @@ const PaymentScreen = () => {
       mutationFn: walletDebitFn,
       onSuccess: (data) => {
         if(data){
-          setSuccessMessage("Payment Successfull");
-          router.push('/paymentSuccess')
+          toast.success("Payment Successful", "Your payment has been completed successfully!");
+          // Clear entire stack then go to dashboard — prevents back-navigating to stale screens
+          if (router.canDismiss()) router.dismissAll();
+          router.replace("/(Authenticated)/(dashboard)");
         }
-     
       },
       onError: (error: any) => {
         let msg = "An unexpected error occurred";
@@ -114,7 +86,7 @@ const PaymentScreen = () => {
         } else if (error?.message) {
           msg = error.message;
         }
-        setErrorMessage(msg);
+        toast.error("Payment Failed", msg);
         console.error(msg);
       },
     });
@@ -145,12 +117,6 @@ const PaymentScreen = () => {
   }
   return (
     <>
-     {successMessage && (
-                        <AlertMessageBanner type="success" message={successMessage} />
-                      )}
-                      {errorMessage && (
-                        <AlertMessageBanner type="error" message={errorMessage} />
-                      )}
     <ContainerTemplate>
       <View className="h-full w-full px-6 py-4 flex-col">
         <HeaderComponent title="Payment" />

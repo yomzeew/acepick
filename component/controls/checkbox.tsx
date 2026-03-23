@@ -16,18 +16,19 @@ interface CheckboxProps {
 
 const Checkbox: React.FC<CheckboxProps> = ({ isChecked, onToggle }) => {
     const { theme } = useTheme();
-    const { primaryColor } = getColors(theme);
+    const { primaryColor, borderColor } = getColors(theme);
 
     return (
         <TouchableOpacity 
             onPress={() => onToggle(!isChecked)}
             activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             style={{
-                width: 20,
-                height: 20,
+                width: 22,
+                height: 22,
                 borderWidth: 2,
-                borderColor: primaryColor,
-                borderRadius: 4,
+                borderColor: isChecked ? primaryColor : borderColor,
+                borderRadius: 5,
                 justifyContent: 'center',
                 alignItems: 'center',
                 backgroundColor: isChecked ? primaryColor : 'transparent',
@@ -36,9 +37,11 @@ const Checkbox: React.FC<CheckboxProps> = ({ isChecked, onToggle }) => {
             {isChecked && (
                 <View style={{
                     width: 12,
-                    height: 12,
-                    backgroundColor: 'white',
-                    borderRadius: 2,
+                    height: 6,
+                    borderLeftWidth: 2,
+                    borderBottomWidth: 2,
+                    borderColor: 'white',
+                    transform: [{ rotate: '-45deg' }, { translateY: -1 }],
                 }} />
             )}
         </TouchableOpacity>

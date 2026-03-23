@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useSelector } from 'react-redux';
 import { RootState } from '../redux/store';
-import { baseUrl } from 'utilizes/endpoints';
+import { API_BASE_URL } from 'utilizes/endpoints';
 import { setSocket as setGlobalSocket } from '../services/socketInstance';
 import { initializeSocketListeners } from '../services/socketHandler';
 
@@ -36,7 +36,9 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
-    const socketInstance: Socket = io(baseUrl, {
+    // Strip /api from API_BASE_URL – socket connects to the server root
+    const socketBaseUrl = API_BASE_URL.replace('/api', '');
+    const socketInstance: Socket = io(socketBaseUrl, {
       path: '/chat',
       transports: ['websocket'],
       auth: { token }, // Pass token during connection
@@ -82,7 +84,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setSocket(null);
       setIsConnected(false);
     };
-  }, [token, connectionAttempts]); // Re-run when token changes
+  }, [token]); // Re-run when token changes
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

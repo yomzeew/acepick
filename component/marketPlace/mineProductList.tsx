@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import ContainerTemplate from "component/dashboardComponent/containerTemplate";
 import EmptyView from "component/emptyview";
+import FallbackImage from "component/FallbackImage";
 import HeaderComponent from "component/headerComp";
 import { ThemeText } from "component/ThemeText";
 import { useRouter } from "expo-router";
@@ -8,7 +9,6 @@ import { useTheme } from "hooks/useTheme";
 import { useEffect, useState } from "react";
 import {
   View,
-  Image,
   Text,
   TouchableOpacity,
   ActivityIndicator,
@@ -106,7 +106,7 @@ type ProductCardProps = {
   
     const imageUrl = product.images?.[0]
       ? { uri: product.images[0] }
-      : require("../../assets/fallback-product.png"); // fallback image
+      : require("../../assets/homebg.png"); // fallback image
   
     const price = `N${parseFloat(product.price).toLocaleString()}`;
     const isOutOfStock = product.quantity === 0;
@@ -123,7 +123,7 @@ type ProductCardProps = {
         className="w-[45%] h-64 rounded-2xl shadow-slate-500 shadow-sm px-3 py-4"
       >
         <View className="w-full items-center justify-center">
-          <Image
+          <FallbackImage
             className="w-20 h-20 rounded-md"
             source={imageUrl}
             resizeMode="cover"

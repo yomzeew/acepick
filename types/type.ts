@@ -309,6 +309,7 @@ export interface JobMaterial {
     id: number;
     title: string;
     description: string;
+    status: string;
     mode: 'PHYSICAL' | 'VIRTUAL';
     fullAddress: string | null;
     state: string | null;
@@ -319,6 +320,8 @@ export interface JobMaterial {
     durationUnit: string | null;
     durationValue: number | null;
     materials: Material[];
+    createdAt: string;
+    updatedAt: string;
   }
   export interface Wallet {
     id: string;
@@ -326,6 +329,7 @@ export interface JobMaterial {
     currency: string;
     currentBalance: number;
     pin: string | null;
+    isActive: boolean;
     previousBalance: number;
     status: string;
     updatedAt: string;
@@ -505,6 +509,9 @@ export interface JobMaterial {
     discount: number;
     userId: string;
     locationId: number;
+    approved?: boolean | null;
+    createdAt?: string;
+    updatedAt?: string;
     category: categoryProduct;
     location: Location;
   }
@@ -527,6 +534,9 @@ export interface JobMaterial {
     discount: number;
     userId: string;
     locationId: number;
+    approved?: boolean | null;
+    createdAt?: string;
+    updatedAt?: string;
     category: Category;
     location: Location;
     user: User;
@@ -563,29 +573,59 @@ export interface JobMaterial {
     profile: UserProfile;
   }
 
+  export type OrderStatusType =
+    | 'pending'
+    | 'paid'
+    | 'accepted'
+    | 'en_route_to_pickup'
+    | 'arrived_at_pickup'
+    | 'picked_up'
+    | 'confirm_pickup'
+    | 'in_transit'
+    | 'arrived_at_dropoff'
+    | 'delivered'
+    | 'confirm_delivery'
+    | 'cancelled'
+    | 'disputed'
+    | 'expired'
+    | 'not_required';
+
   export interface DeliveryData {
     id: number;
     productTransactionId: number;
-    status: string;
+    status: OrderStatusType;
     cost: string;
     distance: number;
     weight: string;
+    deliveryFee: string | null;
+    pickupAddress: string | null;
+    deliveryAddress: string | null;
+    expiresAt: string | null;
+    assignedAt: string | null;
     locationId: number;
-    riderId: number | null;
-    createdAt: string; // ISO Date string
-    updatedAt: string; // ISO Date string
-    dropoffLocation:{
+    riderId: string | null;
+    createdAt: string;
+    updatedAt: string;
+    rider?: {
+      id: string;
+      profile?: {
+        firstName: string;
+        lastName: string;
+        avatar: string | null;
+      };
+    } | null;
+    dropoffLocation: {
       id: number;
-  address: string | null;
-  lga: string | null; // Local Government Area
-  state: string | null;
-  latitude: number;
-  longitude: number;
-  zipcode: string | null;
-  userId: string;
-  createdAt: string; // ISO 8601 date string
-  updatedAt: string; // ISO 8601 date string
-    }
+      address: string | null;
+      lga: string | null;
+      state: string | null;
+      latitude: number;
+      longitude: number;
+      zipcode: string | null;
+      userId: string;
+      createdAt: string;
+      updatedAt: string;
+    };
     productTransaction: {
       id: number;
       productId: number;
@@ -595,14 +635,22 @@ export interface JobMaterial {
       price: string;
       status: string;
       orderMethod: string;
-      date: string; // ISO Date string
-      createdAt: string; // ISO Date string
-      updatedAt: string; // ISO Date string
+      date: string;
+      createdAt: string;
+      updatedAt: string;
+      seller?: {
+        id: string;
+        profile?: { firstName: string; lastName: string; avatar: string | null };
+      };
+      buyer?: {
+        id: string;
+        profile?: { firstName: string; lastName: string; avatar: string | null };
+      };
       product: {
         id: number;
         name: string;
         description: string;
-        images: string; // JSON string of array of URLs
+        images: string;
         categoryId: number;
         weightPerUnit: number | null;
         quantity: number;
@@ -613,11 +661,9 @@ export interface JobMaterial {
         pickupLocation: {
           latitude: number;
           longitude: number;
-          
+          address?: string | null;
         };
-        destinationLocation:{
-
-        }
+        destinationLocation: {};
       };
     };
   };

@@ -1,6 +1,6 @@
 import { View, Image, TouchableOpacity } from "react-native"
 import { useState, useCallback, useMemo, memo } from "react"
-import NotificationIcon from "../icons/notificationIcon"
+import NotificationIconWithBadge from "../notification/NotificationIconWithBadge"
 import { useSelector } from "react-redux"
 import { RootState } from "../../redux/store"
 import { ThemeText } from "../ThemeText"
@@ -27,14 +27,14 @@ const HeaderComponent: React.FC<HeaderComponentProps> = memo(({
   const [avatarError, setAvatarError] = useState(false)
 
   const navRoute = useMemo(() => 
-    role === 'professional' ? '/(profession)/professionalprofileLayout' : '/(profile)/profilelayout', 
+    role === 'professional' ? '/professionalSettingLayout' : '/(profile)/profilelayout', 
     [role]
   );
 
   const router = useRouter()
     
     const auth = useSelector((state: RootState) => state.auth?.isAuthenticated);
-  const clientName: string = user?.profile?.firstName + ' ' + user?.profile?.lastName || ' '
+  const clientName: string = (user?.profile?.firstName && user?.profile?.lastName) ? `${user.profile.firstName} ${user.profile.lastName}` : ''
   const avatar: string = user?.profile?.avatar || ' '
   
   const userInitials = useMemo(() => 
@@ -58,7 +58,7 @@ const HeaderComponent: React.FC<HeaderComponentProps> = memo(({
   }, [router, navRoute]);
 
   const handleNotificationPress = useCallback(() => {
-    router.push('/notificationLayout');
+    router.push('/notificationlayout');
   }, [router]);
 
   const greeting = useMemo(() => getGreeting(), [getGreeting]);
@@ -117,7 +117,7 @@ const HeaderComponent: React.FC<HeaderComponentProps> = memo(({
           accessibilityLabel="Notifications"
           accessibilityHint="Opens notifications"
         >
-          <NotificationIcon />
+          <NotificationIconWithBadge />
         </TouchableOpacity>
             </View>
         </View>

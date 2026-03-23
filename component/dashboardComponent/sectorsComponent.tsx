@@ -1,104 +1,85 @@
-import { ScrollView, TouchableOpacity, View } from "react-native"
+import { TouchableOpacity, View, Text } from "react-native"
 import ProfessionalCard from "./professionalCard"
-import EmptyView from "component/emptyview"
 import { useRouter } from "expo-router"
 import { useMutation } from "@tanstack/react-query"
 import { ListofSectors } from "services/listProfessionServices"
+import { testConnection } from "services/connectionTest"
 import { useEffect, useState } from "react"
 import SectorSkeletonCard from "component/sectorSkeletonCard"
-import { ThemeTextsecond } from "component/ThemeText"
-import { Textstyles } from "static/textFontsize"
-import { useSelector } from "react-redux"
-import { RootState } from "redux/store"
-import { getSectorByUser } from "services/userService"
+import { useTheme } from "hooks/useTheme"
+import { getColors } from "static/color"
 
-interface SectorsComponentProps{
-    setErrorMessage:(value:string)=>void
+interface SectorsComponentProps {
+    setErrorMessage: (value: string) => void
 }
-const SectorsComponent=({setErrorMessage}:SectorsComponentProps)=>{
-    const [data,setData]=useState<any[]>([])
-     const router=useRouter()
 
-     const token:string=useSelector((state:RootState)=>(state.auth?.token)?? "") 
-     const mutation = useMutation({
+const SectorsComponent = ({ setErrorMessage }: SectorsComponentProps) => {
+    const [data, setData] = useState<any[]>([])
+    const router = useRouter()
+    const { theme } = useTheme()
+    const { secondaryTextColor } = getColors(theme)
+
+    const mutation = useMutation({
         mutationFn: ListofSectors,
-        onSuccess:async (dataResponse) => {
-            // Transform the sector data to match the expected format
+        onSuccess: async (dataResponse) => {
             const transformedData = dataResponse.map((sector: any) => ({
-                title: sector.name,
-                numOfProf: Math.floor(Math.random() * 50) + 10, // Random number of professionals
-                numOfJobs: Math.floor(Math.random() * 100) + 20, // Random number of jobs
+                title: sector.title || sector.name,
+                numOfProf: Math.floor(Math.random() * 50) + 10,
+                numOfJobs: Math.floor(Math.random() * 100) + 20,
                 description: sector.description || ''
             }));
             setData(transformedData);
-            
-        
         },
         onError: (error: any) => {
-          let msg = "An unexpected error occurred";
-        
-          if (error?.response?.data) {
-            // Try multiple common formats
-            msg =
-              error.response.data.message ||         // Common single message
-              error.response.data.error ||           // Alternative key
-              JSON.stringify(error.response.data);   // Fallback: dump full error object
-          } else if (error?.message) {
-            msg = error.message;
-          }
-        
-          setErrorMessage(msg);
-          console.error("List of sectors fetch failed:", msg);
+            let msg = "An unexpected error occurred";
+            if (error?.response?.data) {
+                msg = error.response.data.message || error.response.data.error || JSON.stringify(error.response.data);
+            } else if (error?.message) {
+                msg = error.message;
+            }
+            setErrorMessage(msg);
+            console.error("List of sectors fetch failed:", msg);
         },
-      });
-    
-      // fetch sectors on mount
-      useEffect(() => {
+    });
+
+    useEffect(() => {
+        // Test connection first
+        testConnection();
         mutation.mutate();
-      }, []);
+    }, []);
 
-    const handlenavcategory=(value:string)=>{
+    const handlenavcategory = (value: string) => {
         router.push(`/category/${value}`)
-
     }
-    return(
-        <>
- <View className="flex-1 pb-5">
-    <ScrollView
-      contentContainerStyle={{ paddingBottom: 60, paddingTop: 20 }}
-      showsVerticalScrollIndicator={false}
-    >
-      {mutation.isPending ? (
-        // show 4 skeletons while loading
-        <>
-          {[1, 2, 3, 4].map((_, index) => (
-            <SectorSkeletonCard key={index} />
-          ))}
-        </>
-      ) : data.length > 0 ? (
-        data.map((item, index) => (
-          <View key={index}>
-            <TouchableOpacity
-              onPress={() => handlenavcategory(item?.title || "Unknown")}
-            >
-              <ProfessionalCard
-                profession={item?.title || "Unknown"}
-                numOfProf={item?.numOfProf || 0 }
-                numOfJobs={item?.numOfJobs || 0}
-              
-              />
-            </TouchableOpacity>
-            <EmptyView height={10} />
-          </View>
-        ))
-      ) : (
-        <ThemeTextsecond size={Textstyles.text_cmedium}>
-            No Record
-        </ThemeTextsecond>
-      )}
-    </ScrollView>
-  </View>
-        </>
+
+    return (
+        <View style={{ gap: 10 }}>
+            {mutation.isPending ? (
+                [1, 2, 3, 4].map((_, index) => (
+                    <SectorSkeletonCard key={index} />
+                ))
+            ) : data.length > 0 ? (
+                data.map((item, index) => (
+                    <TouchableOpacity
+                        key={index}
+                        onPress={() => handlenavcategory(item?.title || "Unknown")}
+                        activeOpacity={0.7}
+                    >
+                        <ProfessionalCard
+                            profession={item?.title || "Unknown"}
+                            numOfProf={item?.numOfProf || 0}
+                            numOfJobs={item?.numOfJobs || 0}
+                        />
+                    </TouchableOpacity>
+                ))
+            ) : (
+                <View className="items-center py-8">
+                    <Text style={{ fontSize: 14, color: secondaryTextColor, opacity: 0.5, fontFamily: 'TTFirsNeue' }}>
+                        No sectors available
+                    </Text>
+                </View>
+            )}
+        </View>
     )
 }
 export default SectorsComponent

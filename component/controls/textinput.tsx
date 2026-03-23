@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { View, TextInput, KeyboardTypeOptions, TouchableOpacity, Modal, Platform } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useTheme } from "hooks/useTheme";
@@ -41,17 +41,39 @@ const InputComponent = ({
 }: InputComponentProps) => {
   const { theme } = useTheme();
   const { primaryColor, secondaryTextColor, backgroundColor } = getColors(theme);
-  const [date, setDate] = useState(new Date());
+  // Parse the value prop into a Date, fallback to today for the picker
+  const parseDate = (val: any): Date | null => {
+    if (!val) return null;
+    const str = String(val);
+    if (!str.trim()) return null;
+    const parsed = new Date(str);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const initialDate = parseDate(value);
+  const [date, setDate] = useState<Date>(initialDate ?? new Date());
+  const [hasValue, setHasValue] = useState<boolean>(!!initialDate);
   const [showModal, setShowModal] = useState(false);
+
+  // Sync when value prop changes externally (e.g. editing existing record)
+  useEffect(() => {
+    const parsed = parseDate(value);
+    if (parsed) {
+      setDate(parsed);
+      setHasValue(true);
+    } else {
+      setHasValue(false);
+    }
+  }, [value]);
 
   const handleDateChange = (_event: any, selectedDate?: Date) => {
     if (selectedDate) {
-      // Check if selected date is beyond maxDate
       if (maxDate && selectedDate > maxDate) {
-        return; // Don't allow selection of future dates beyond maxDate
+        return;
       }
       setDate(selectedDate);
-      onChange?.(selectedDate.toISOString().split("T")[0]); // Format date (YYYY-MM-DD)
+      setHasValue(true);
+      onChange?.(selectedDate.toISOString().split("T")[0]);
     }
   };
 
@@ -69,9 +91,15 @@ const InputComponent = ({
       {/* Handle Date Picker */}
       {fieldType === "date" ? (
         <TouchableOpacity onPress={() => setShowModal(true)} className="flex-1 px-12">
-          <ThemeTextsecond size={Textstyles.text_small}>
-            {date.toISOString().split("T")[0] || placeholder}
-          </ThemeTextsecond>
+          {hasValue ? (
+            <ThemeTextsecond size={Textstyles.text_xsmall}>
+              {date.toISOString().split("T")[0]}
+            </ThemeTextsecond>
+          ) : (
+            <ThemeTextsecond size={Textstyles.text_xsmall}>
+              {placeholder}
+            </ThemeTextsecond>
+          )}
         </TouchableOpacity>
       ) : (
         <TextInput

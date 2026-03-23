@@ -4,205 +4,233 @@ import {
     ScrollView,
     RefreshControl,
     TouchableOpacity,
-    Modal
-  } from 'react-native'
-  import { useEffect, useState, memo } from 'react';
+    Modal,
+  } from 'react-native';
+  import { useEffect, useState, useCallback } from 'react';
   import { useRouter } from 'expo-router';
   import { useMutation } from '@tanstack/react-query';
-  import {
-    AntDesign,
-    FontAwesome5,
-  } from '@expo/vector-icons';
+  import { Ionicons } from '@expo/vector-icons';
   
   import ContainerTemplate from 'component/dashboardComponent/containerTemplate';
   import HeaderComponent   from 'component/headerComp';
   import EmptyView         from 'component/emptyview';
   import SectorSkeletonCard from 'component/sectorSkeletonCard';
-  import JobStatusBar       from 'component/jobStatusBar';
   import {
     SliderModalNoScrollview,
   } from 'component/slideupModalTemplate';
-  import { FilterModalByStatus } from 'component/filtermodalByItems';
   import ButtonComponent     from 'component/buttoncomponent';
   import {
     ThemeText,
     ThemeTextsecond,
   } from 'component/ThemeText';
-
   import { AlertMessageBanner } from 'component/AlertMessageBanner';
+  import InputComponent, { InputComponentTextarea } from 'component/controls/textinput';
+  import Divider from 'component/divider';
+  import StarRating from 'component/starRating';
+  import { JobCard } from './lastestJob';
   
   import { useTheme }   from 'hooks/useTheme';
-  import { useIncomingJob } from 'hooks/useIncomingJob';
   
   import {
     getAllJobs,
     approvedJobFn,
     ratingGiveFn,
+    updateJobFn,
+    disputeJobFn,
+    cancelJobFn,
   } from 'services/userService';
   import { getColors } from 'static/color';
   import { Textstyles } from 'static/textFontsize';
   import type { JobProps } from 'types/type';
-import JobAlertScreen from './jobAlertScreen';
-import InputComponent, { InputComponentTextarea } from 'component/controls/textinput';
-import Divider from 'component/divider';
-import ButtonFunction from 'component/buttonfunction';
-import { ProfessionalDetails } from 'component/dashboardComponent/clientdetail';
-import { useSocket } from 'hooks/useSocket';
-import { RootState } from 'redux/store';
-import { useSelector } from 'react-redux';
-import StarRating from 'component/starRating';
 
-  
-  /* -------------------------------------------------------------------------- */
+  /* ─── Filter tabs config ──────────────────────────────── */
+  const TABS = [
+    { key: '',          label: 'All',        icon: 'grid-outline' as const },
+    { key: 'PENDING',   label: 'Pending',    icon: 'time-outline' as const },
+    { key: 'ONGOING',   label: 'Active',     icon: 'play-circle-outline' as const },
+    { key: 'COMPLETED', label: 'Completed',  icon: 'checkmark-done-outline' as const },
+    { key: 'APPROVED',  label: 'Approved',   icon: 'shield-checkmark-outline' as const },
+    { key: 'DISPUTED',  label: 'Disputed',   icon: 'warning-outline' as const },
+  ];
+
+  /* ========================================================================== */
   
   const MyJobScreen = () => {
-    /* ──────────────── basic hooks/colours/state ──────────────── */
     const { theme }              = useTheme();
-    const { primaryColor }       = getColors(theme);
-  
+    const { primaryColor, selectioncardColor, borderColor, secondaryTextColor } = getColors(theme);
     const router                 = useRouter();
   
-    const [filterModal, setFilterModal]   = useState(false);
     const [confirmModal, setConfirmModal] = useState(false);
     const [updateModal,  setUpdateModal ] = useState(false);
+    const [disputeModal, setDisputeModal] = useState(false);
+    const [cancelModal,  setCancelModal]  = useState(false);
+    const [disputeReason, setDisputeReason] = useState('');
+    const [disputeDesc, setDisputeDesc]     = useState('');
   
     const [statusFilter, setStatusFilter] = useState('');
     const [jobs,  setJobs]                = useState<JobProps[]>([]);
-    const [refreshing,        setRefreshing]   = useState(false);
-    const [selectedJobId,     setSelectedJob]  = useState<number | null>(null);
-    const [banner, setBanner]              = useState<{type:'error'|'success';msg:string}|null>(null);
-    const [rating ,setRating]               = useState(0);
-    const [showModalRate,setShowModalRate]   = useState(false);
+    const [refreshing,   setRefreshing]   = useState(false);
+    const [selectedJobId, setSelectedJob] = useState<number | null>(null);
+    const [selectedJobData, setSelectedJobData] = useState<JobProps | null>(null);
+    const [banner, setBanner]             = useState<{type:'error'|'success';msg:string}|null>(null);
+    const [rating, setRating]             = useState(0);
+    const [showModalRate, setShowModalRate] = useState(false);
   
-  
-    /* ──────────────── fetch jobs from API ──────────────── */
     useEffect(() => {
       if (banner) {
-        const timer = setTimeout(() => {
-          setBanner(null);
-        }, 4000); // 4 seconds
-    
-        return () => clearTimeout(timer); // cleanup if banner changes quickly
+        const timer = setTimeout(() => setBanner(null), 4000);
+        return () => clearTimeout(timer);
       }
     }, [banner]);
 
+    /* ── Fetch jobs ── */
     const fetchMutation = useMutation({
       mutationFn : getAllJobs,
       onSuccess  : (res) => setJobs(res.data),
       onError    : (err: any) =>
         setBanner({
-          type:'error',
-          msg:
-            err?.response?.data?.message ??
-            err?.response?.data?.error   ??
-            err?.message                 ??
-            'Unable to fetch jobs',
+          type: 'error',
+          msg: err?.response?.data?.message ?? err?.message ?? 'Unable to fetch jobs',
         }),
       onSettled  : () => setRefreshing(false),
     });
   
-    const loadJobs = () => {
+    const loadJobs = useCallback(() => {
       setRefreshing(true);
       const qs = statusFilter ? `status=${encodeURIComponent(statusFilter)}` : null;
       fetchMutation.mutate(qs);
-    };
+    }, [statusFilter]);
   
-    useEffect(loadJobs, [statusFilter]);     // fetch on mount + on filter change
+    useEffect(loadJobs, [statusFilter]);
   
-    /* ──────────────── approve‑job mutation ──────────────── */
+    /* ── Approve job ── */
     const approveMutation = useMutation({
       mutationFn : approvedJobFn,
       onSuccess  : () => {
-        setBanner({type:'success', msg:'Job approved successfully'});
+        setBanner({ type: 'success', msg: 'Job approved successfully' });
         setConfirmModal(false);
         loadJobs();
-        setShowModalRate(true)
+        setShowModalRate(true);
       },
       onError    : (err: any) =>
         setBanner({
-          type:'error',
-          msg:
-            err?.response?.data?.message ??
-            err?.response?.data?.error   ??
-            err?.message                 ??
-            'Unable to approve job',
+          type: 'error',
+          msg: err?.response?.data?.message ?? err?.message ?? 'Unable to approve job',
         }),
     });
-    console.log(jobs[jobs.length-1])
+
     const handleApprove = () => {
       if (selectedJobId) approveMutation.mutate(selectedJobId);
     };
   
-    /* ──────────────── rating give mutation ──────────────── */
+    /* ── Dispute job ── */
+    const disputeMutation = useMutation({
+      mutationFn: disputeJobFn,
+      onSuccess: () => {
+        setBanner({ type: 'success', msg: 'Dispute filed successfully' });
+        setDisputeModal(false);
+        setDisputeReason('');
+        setDisputeDesc('');
+        loadJobs();
+      },
+      onError: (err: any) =>
+        setBanner({
+          type: 'error',
+          msg: err?.response?.data?.message ?? err?.message ?? 'Unable to file dispute',
+        }),
+    });
+
+    const handleDispute = () => {
+      if (selectedJobId && disputeReason.trim()) {
+        disputeMutation.mutate({ jobId: selectedJobId, reason: disputeReason, description: disputeDesc });
+      }
+    };
+
+    /* ── Cancel job ── */
+    const cancelMutation = useMutation({
+      mutationFn: cancelJobFn,
+      onSuccess: () => {
+        setBanner({ type: 'success', msg: 'Job cancelled successfully' });
+        setCancelModal(false);
+        loadJobs();
+      },
+      onError: (err: any) =>
+        setBanner({
+          type: 'error',
+          msg: err?.response?.data?.message ?? err?.message ?? 'Unable to cancel job',
+        }),
+    });
+
+    const handleCancel = () => {
+      if (selectedJobId) cancelMutation.mutate(selectedJobId);
+    };
+
+    /* ── Rating ── */
     const ratingGiveMutation = useMutation({
       mutationFn : ratingGiveFn,
       onSuccess  : () => {
-        setBanner({type:'success', msg:'Rating given successfully'});
+        setBanner({ type: 'success', msg: 'Rating given successfully' });
         setShowModalRate(false);
         setRating(0);
       },
       onError    : (err: any) =>
         setBanner({
-          type:'error',
-          msg:
-            err?.response?.data?.message ??
-            err?.response?.data?.error   ??
-            err?.message                 ??
-            'Unable to give rating',
+          type: 'error',
+          msg: err?.response?.data?.message ?? err?.message ?? 'Unable to give rating',
         }),
     });
 
     const handleRate = () => {
-      
-      if (selectedJobId) ratingGiveMutation.mutate({jobId:selectedJobId,rating});
+      if (selectedJobId) ratingGiveMutation.mutate({ jobId: selectedJobId, rating });
     };
 
-    /* ------------------------------------------------------------------ */
-    /*                            RENDER                                  */
-    /* ------------------------------------------------------------------ */
+    /* ================================================================== */
     return (
       <>
-      <Modal visible={showModalRate} animationType='slide'>
-  <View className="flex-1 justify-center items-center bg-white">
-    <Text className="text-lg font-semibold mb-4">Rate Job</Text>
-    <StarRating
-      maxStars={5}
-      rating={rating}
-      onChange={(val: number) => setRating(val)}
-    />
-    <TouchableOpacity
-      className="mt-6 bg-blue-500 px-4 py-2 rounded-lg"
-      onPress={handleRate}
-    >
-      <Text className="text-white">Submit Rating</Text>
-    </TouchableOpacity>
-  </View>
-</Modal>
+        {/* ── Rating modal ── */}
+        <Modal visible={showModalRate} animationType="fade" transparent>
+          <View className="flex-1 justify-center items-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <View
+              className="rounded-3xl p-6 items-center mx-6"
+              style={{ backgroundColor: selectioncardColor, width: '85%' }}
+            >
+              <View
+                className="w-16 h-16 rounded-full items-center justify-center mb-4"
+                style={{ backgroundColor: primaryColor + '15' }}
+              >
+                <Ionicons name="star" size={32} color={primaryColor} />
+              </View>
+              <ThemeText size={Textstyles.text_medium}>Rate this Job</ThemeText>
+              <Text style={{ color: secondaryTextColor, fontSize: 13, textAlign: 'center', marginTop: 4, marginBottom: 16 }}>
+                How was your experience with the professional?
+              </Text>
+              <StarRating maxStars={5} rating={rating} onChange={(val: number) => setRating(val)} />
+              <View className="w-full mt-6" style={{ gap: 10 }}>
+                <ButtonComponent
+                  color={primaryColor}
+                  text={ratingGiveMutation.isPending ? 'Submitting…' : 'Submit Rating'}
+                  textcolor="#fff"
+                  onPress={handleRate}
+                  disabled={rating === 0}
+                  isLoading={ratingGiveMutation.isPending}
+                />
+                <TouchableOpacity
+                  onPress={() => { setShowModalRate(false); setRating(0); }}
+                  className="py-2 items-center"
+                >
+                  <Text style={{ color: secondaryTextColor, fontSize: 14 }}>Skip for now</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
-        {/* banners */}
-        {banner && (
-          <AlertMessageBanner
-            type={banner.type}
-            message={banner.msg}
-          />
-        )}
+        {/* ── Banners ── */}
+        {banner && <AlertMessageBanner type={banner.type} message={banner.msg} />}
   
-        {/* filter modal */}
+        {/* ── Confirm approve modal ── */}
         <SliderModalNoScrollview
-          modalHeight="30%"
-          showmodal={filterModal}
-          setshowmodal={setFilterModal}
-        >
-          <FilterModalByStatus
-            showmodal={filterModal}
-            setshowmodal={setFilterModal}
-            setStatus={setStatusFilter}
-          />
-        </SliderModalNoScrollview>
-  
-        {/* confirm‑approve modal */}
-        <SliderModalNoScrollview
-          modalHeight="50%"
+          modalHeight="45%"
           showmodal={confirmModal}
           setshowmodal={setConfirmModal}
         >
@@ -213,42 +241,110 @@ import StarRating from 'component/starRating';
           />
         </SliderModalNoScrollview>
   
-        {/* (Optional) update‑job modal stub */}
+        {/* ── Update job modal ── */}
         <SliderModalNoScrollview
-          modalHeight="80%"
+          modalHeight="75%"
           showmodal={updateModal}
           setshowmodal={setUpdateModal}
         >
-          <UpdateJobPlaceholder />
+          <UpdateJobModal
+            job={selectedJobData}
+            onSuccess={() => {
+              setUpdateModal(false);
+              setBanner({ type: 'success', msg: 'Job updated successfully' });
+              loadJobs();
+            }}
+            onError={(msg: string) => setBanner({ type: 'error', msg })}
+            onClose={() => setUpdateModal(false)}
+          />
+        </SliderModalNoScrollview>
+
+        {/* ── Dispute modal ── */}
+        <SliderModalNoScrollview
+          modalHeight="65%"
+          showmodal={disputeModal}
+          setshowmodal={setDisputeModal}
+        >
+          <DisputeJobModal
+            loading={disputeMutation.isPending}
+            reason={disputeReason}
+            description={disputeDesc}
+            onReasonChange={setDisputeReason}
+            onDescriptionChange={setDisputeDesc}
+            onConfirm={handleDispute}
+            onCancel={() => { setDisputeModal(false); setDisputeReason(''); setDisputeDesc(''); }}
+          />
+        </SliderModalNoScrollview>
+
+        {/* ── Cancel job modal ── */}
+        <SliderModalNoScrollview
+          modalHeight="45%"
+          showmodal={cancelModal}
+          setshowmodal={setCancelModal}
+        >
+          <ConfirmCancelModal
+            loading={cancelMutation.isPending}
+            onConfirm={handleCancel}
+            onCancel={() => setCancelModal(false)}
+          />
         </SliderModalNoScrollview>
   
-        {/* main page */}
+        {/* ── Main page ── */}
         <ContainerTemplate>
           <View className="flex-1">
             <HeaderComponent title="My Jobs" />
-            <EmptyView height={20} />
-  
-            {/* filter button */}
-            <View className="absolute right-3 top-28 z-10">
-              <TouchableOpacity
-                onPress={() => setFilterModal(true)}
-                style={{ backgroundColor: primaryColor }}
-                className="px-3 py-2 rounded-full"
+
+            {/* ── Tab filters ── */}
+            <View className="mt-3 mb-2">
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 4, gap: 8 }}
               >
-                <AntDesign name="filter" size={20} color="#fff" />
-              </TouchableOpacity>
+                {TABS.map((tab) => {
+                  const active = statusFilter === tab.key;
+                  return (
+                    <TouchableOpacity
+                      key={tab.key}
+                      onPress={() => setStatusFilter(tab.key)}
+                      className="flex-row items-center px-3.5 py-2 rounded-full"
+                      style={{
+                        backgroundColor: active ? primaryColor : selectioncardColor,
+                        borderWidth: active ? 0 : 1,
+                        borderColor: borderColor,
+                        gap: 5,
+                      }}
+                    >
+                      <Ionicons
+                        name={tab.icon}
+                        size={14}
+                        color={active ? '#fff' : secondaryTextColor}
+                      />
+                      <Text
+                        style={{
+                          color: active ? '#fff' : secondaryTextColor,
+                          fontSize: 12,
+                          fontWeight: active ? '700' : '500',
+                        }}
+                      >
+                        {tab.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
             </View>
   
-            {/* list */}
+            {/* ── Job list ── */}
             <ScrollView
-              contentContainerStyle={{ paddingBottom: 60, paddingTop: 20 }}
+              contentContainerStyle={{ paddingBottom: 60, paddingTop: 8 }}
               refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={loadJobs} />
               }
               showsVerticalScrollIndicator={false}
             >
               {fetchMutation.isPending && !refreshing ? (
-                Array.from({ length: 4 }).map((_, i) => (
+                Array.from({ length: 3 }).map((_, i) => (
                   <SectorSkeletonCard key={i} />
                 ))
               ) : jobs.length ? (
@@ -258,19 +354,37 @@ import StarRating from 'component/starRating';
                     job={j}
                     onUpdate={() => {
                       setSelectedJob(j.id);
+                      setSelectedJobData(j);
                       setUpdateModal(true);
                     }}
                     onApprove={() => {
                       setSelectedJob(j.id);
                       setConfirmModal(true);
                     }}
+                    onDispute={() => {
+                      setSelectedJob(j.id);
+                      setDisputeModal(true);
+                    }}
+                    onCancel={() => {
+                      setSelectedJob(j.id);
+                      setCancelModal(true);
+                    }}
                     router={router}
                   />
                 ))
               ) : (
-                <ThemeTextsecond size={Textstyles.text_cmedium}>
-                  No Record
-                </ThemeTextsecond>
+                <View className="items-center justify-center py-20">
+                  <View
+                    className="w-20 h-20 rounded-full items-center justify-center mb-4"
+                    style={{ backgroundColor: primaryColor + '12' }}
+                  >
+                    <Ionicons name="briefcase-outline" size={36} color={primaryColor} />
+                  </View>
+                  <ThemeText size={Textstyles.text_cmedium}>No jobs found</ThemeText>
+                  <Text style={{ color: secondaryTextColor, fontSize: 13, textAlign: 'center', marginTop: 4 }}>
+                    {statusFilter ? `No ${statusFilter.toLowerCase()} jobs` : 'Your jobs will appear here'}
+                  </Text>
+                </View>
               )}
             </ScrollView>
           </View>
@@ -281,108 +395,9 @@ import StarRating from 'component/starRating';
   
   export default MyJobScreen;
   
-  interface JobCardProps {
-    job: JobProps;
-    router: ReturnType<typeof useRouter>;
-    onUpdate: () => void;
-    onApprove: () => void;
-  }
-  
-  const JobCard = memo(({ job, router, onUpdate, onApprove }: JobCardProps) => {
-    
-    /* Colors / theme */
-    const { theme }        = useTheme();
-    const { selectioncardColor, primaryColor } = getColors(theme);
-
-    // Debug: Log the job structure to understand the data
-    console.log('🔍 Job Data Structure:', {
-      jobId: job.id,
-      professional: job.professional,
-      professionalProfile: job.professional?.profile,
-      professionalProfileProfessional: job.professional?.profile?.professional,
-      professionalId: job.professional?.profile?.professional?.id
-    });
-
-    /* Which main action button to show? */
-    const showInvoice   = !!job.workmanship;
-    const canApprove    = job.status === 'COMPLETED';
-    const isPending     = job.status === 'PENDING';
-  
-    // Get professional ID safely
-    const professionalId = job.professional?.profile?.professional?.id;
-  
-    return (
-      <View
-        style={{ backgroundColor: selectioncardColor, elevation: 4 }}
-        className="rounded-xl p-4 mb-4"
-      >
-        <JobStatusBar status={job.status} />
-  
-        <ThemeText size={Textstyles.text_small}>{job.title}</ThemeText>
-        <EmptyView height={10} />
-        {professionalId ? (
-          <ProfessionalDetails professionalId={professionalId}/>
-        ) : (
-          <View className="bg-gray-100 rounded-xl p-3">
-            <ThemeTextsecond size={Textstyles.text_small}>
-              Professional details unavailable
-            </ThemeTextsecond>
-          </View>
-        )}
-  
-        <EmptyView height={10} />
-        <ThemeTextsecond size={Textstyles.text_xsma}>{job.description}</ThemeTextsecond>
-  
-        <EmptyView height={15} />
-  
-        <View className="flex-row justify-between">
-          {/* LEFT button */}
-          {showInvoice ? (
-            <ActionBtn
-              label="View Invoice"
-              color={primaryColor}
-              onPress={() => router.push(`/invoiceViewPageLayout?jobId=${job.id}`)}
-            />
-          ) : isPending ? (
-            <ActionBtn
-              label="Update Details"
-              color={primaryColor}
-              onPress={onUpdate}
-            />
-          ) : null}
-  
-          {/* RIGHT button */}
-          {canApprove && (
-            <ActionBtn
-              label="Approve Payment"
-              color={primaryColor}
-              onPress={onApprove}
-            />
-          )}
-        </View>
-      </View>
-    );
-  });
-  
-  const ActionBtn = ({
-    label,
-    color,
-    onPress,
-  }: {
-    label: string;
-    color: string;
-    onPress: () => void;
-  }) => (
-    <TouchableOpacity
-      onPress={onPress}
-      style={{ backgroundColor: color }}
-      className="px-3 h-10 rounded-xl justify-center items-center"
-    >
-      <Text style={{ color: '#fff' }}>{label}</Text>
-    </TouchableOpacity>
-  );
-
-  
+  /* ══════════════════════════════════════════════════════════ */
+  /*  Confirm Approve Modal                                    */
+  /* ══════════════════════════════════════════════════════════ */
   const ConfirmApproveModal = ({
     loading,
     onConfirm,
@@ -392,95 +407,347 @@ import StarRating from 'component/starRating';
     onConfirm: () => void;
     onCancel: () => void;
   }) => {
-    const { theme }          = useTheme();
-    const { primaryColor }   = getColors(theme);
+    const { theme }        = useTheme();
+    const { primaryColor, selectioncardColor, secondaryTextColor } = getColors(theme);
   
     return (
       <View className="flex-1 justify-center items-center px-6">
-        <ThemeText size={Textstyles.text_medium}>Confirm approval</ThemeText>
-        <EmptyView height={10} />
-        <ThemeTextsecond size={Textstyles.text_xsma}>
-          Are you sure you want to approve this job for payment?
-        </ThemeTextsecond>
-  
-        <EmptyView height={30} />
+        <View
+          className="w-16 h-16 rounded-full items-center justify-center mb-4"
+          style={{ backgroundColor: primaryColor + '20' }}
+        >
+          <Ionicons name="shield-checkmark" size={32} color={primaryColor} />
+        </View>
+
+        <ThemeText size={Textstyles.text_medium}>Approve Job?</ThemeText>
+        <EmptyView height={8} />
+        <Text style={{ color: secondaryTextColor, fontSize: 13, textAlign: 'center', lineHeight: 19 }}>
+          By approving, the payment will be released to the professional. This action cannot be undone.
+        </Text>
+
+        <EmptyView height={24} />
   
         <ButtonComponent
           color={primaryColor}
-          text={loading ? 'Submitting…' : 'Approve'}
+          text={loading ? 'Processing…' : 'Approve & Release Payment'}
           textcolor="#fff"
           disabled={loading}
+          isLoading={loading}
           onPress={onConfirm}
         />
   
-        <EmptyView height={15} />
-        <ButtonComponent
-          color="#e5e7eb"
-          text="Cancel"
-          textcolor={primaryColor}
-          onPress={onCancel}
-        />
+        <EmptyView height={10} />
+        <TouchableOpacity onPress={onCancel} className="py-2">
+          <Text style={{ color: secondaryTextColor, fontSize: 14 }}>Cancel</Text>
+        </TouchableOpacity>
       </View>
     );
   };
   
-  
-  const UpdateJobPlaceholder = () => {
-    const { theme } = useTheme()
-    const { selectioncardColor, primaryColor, secondaryTextColor } = getColors(theme)
-    const [title, setTitle] = useState('')
-    const [numOfJobs, setNumOfJobs] = useState(0)
-    const [description, setDescription] = useState('')
-    // const [manualaddress, setManualAddress] = useState('')
-  
-    return (
-     <View className='px-5'>
-      <View className="flex-row justify-between items-center ">
-                    <ThemeTextsecond size={Textstyles.text_cmedium}>
-                        Update Details
-                    </ThemeTextsecond>
-                </View>
-                <Divider />
-                <EmptyView height={20} />
-                <InputComponent
-                    color={primaryColor}
-                    placeholder={"Job title"}
-                    placeholdercolor={secondaryTextColor}
-                    value={title}
-                    onChange={setTitle}
-                />
-                <EmptyView height={20} />
-                <ThemeTextsecond size={Textstyles.text_small}>No of Jobs</ThemeTextsecond>
-                <InputComponent
-                    keyboardType="numeric"
-                    color={primaryColor}
-                    placeholder={""}
-                    placeholdercolor={secondaryTextColor}
-                    value={numOfJobs}
-                    onChange={setNumOfJobs}
-                />
-                <EmptyView height={20} />
-                <ThemeTextsecond size={Textstyles.text_small}>Job description</ThemeTextsecond>
-                <InputComponentTextarea
-                    color={primaryColor}
-                    placeholder={"Type it here"}
-                    placeholdercolor={secondaryTextColor}
-                    onChange={setDescription}
-                    value={description}
-                />
-                <EmptyView height={20} />
-                <View className="w-full">
-                    <ButtonFunction
-                        color={primaryColor}
-                        text={"Update"}
-                        textcolor={secondaryTextColor}
-                        onPress={function (): void {
-                            throw new Error("Function not implemented.")
-                        }}
-                    />
+  /* ══════════════════════════════════════════════════════════ */
+  /*  Update Job Modal                                         */
+  /* ══════════════════════════════════════════════════════════ */
+  const UpdateJobModal = ({
+    job,
+    onSuccess,
+    onError,
+    onClose,
+  }: {
+    job: JobProps | null;
+    onSuccess: () => void;
+    onError: (msg: string) => void;
+    onClose: () => void;
+  }) => {
+    const { theme } = useTheme();
+    const { primaryColor, secondaryTextColor, selectioncardColor } = getColors(theme);
+    const [title, setTitle] = useState(job?.title ?? '');
+    const [description, setDescription] = useState(job?.description ?? '');
+    const [address, setAddress] = useState(job?.fullAddress ?? '');
 
-                </View>
-     </View>
+    useEffect(() => {
+      if (job) {
+        setTitle(job.title ?? '');
+        setDescription(job.description ?? '');
+        setAddress(job.fullAddress ?? '');
+      }
+    }, [job]);
+
+    const mutation = useMutation({
+      mutationFn: updateJobFn,
+      onSuccess: () => onSuccess(),
+      onError: (err: any) =>
+        onError(err?.response?.data?.message ?? err?.message ?? 'Failed to update job'),
+    });
+
+    const hasChanges =
+      title !== (job?.title ?? '') ||
+      description !== (job?.description ?? '') ||
+      address !== (job?.fullAddress ?? '');
+
+    const handleSubmit = () => {
+      if (!job) return;
+      const payload: any = { jobId: job.id };
+      if (title && title !== job.title) payload.title = title;
+      if (description && description !== job.description) payload.description = description;
+      if (address && address !== job.fullAddress) payload.address = address;
+      mutation.mutate(payload);
+    };
+
+    return (
+      <ScrollView className="flex-1 px-5 pt-2" showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View className="flex-row items-center mb-4" style={{ gap: 10 }}>
+          <View
+            style={{ backgroundColor: primaryColor + '20' }}
+            className="w-9 h-9 rounded-full items-center justify-center"
+          >
+            <Ionicons name="create-outline" size={18} color={primaryColor} />
+          </View>
+          <View className="flex-1">
+            <ThemeText size={Textstyles.text_cmedium}>Update Job</ThemeText>
+            <Text style={{ color: secondaryTextColor, fontSize: 11 }}>
+              Edit the details below and save
+            </Text>
+          </View>
+        </View>
+        <Divider />
+        <EmptyView height={16} />
+
+        {/* Title field */}
+        <View
+          style={{ backgroundColor: selectioncardColor }}
+          className="rounded-2xl px-4 py-4 mb-3"
+        >
+          <View className="flex-row items-center mb-2" style={{ gap: 6 }}>
+            <Ionicons name="text-outline" size={14} color={primaryColor} />
+            <Text style={{ color: primaryColor, fontSize: 13, fontFamily: 'TTFirsNeueMedium' }}>
+              Job Title
+            </Text>
+          </View>
+          <InputComponent
+            color={primaryColor}
+            placeholder="Enter job title"
+            placeholdercolor={secondaryTextColor}
+            value={title}
+            onChange={setTitle}
+          />
+        </View>
+
+        {/* Description field */}
+        <View
+          style={{ backgroundColor: selectioncardColor }}
+          className="rounded-2xl px-4 py-4 mb-3"
+        >
+          <View className="flex-row items-center mb-2" style={{ gap: 6 }}>
+            <Ionicons name="document-text-outline" size={14} color={primaryColor} />
+            <Text style={{ color: primaryColor, fontSize: 13, fontFamily: 'TTFirsNeueMedium' }}>
+              Description
+            </Text>
+          </View>
+          <InputComponentTextarea
+            color={primaryColor}
+            placeholder="Describe the job..."
+            placeholdercolor={secondaryTextColor}
+            value={description}
+            onChange={setDescription}
+          />
+        </View>
+
+        {/* Address field */}
+        <View
+          style={{ backgroundColor: selectioncardColor }}
+          className="rounded-2xl px-4 py-4 mb-4"
+        >
+          <View className="flex-row items-center mb-2" style={{ gap: 6 }}>
+            <Ionicons name="location-outline" size={14} color={primaryColor} />
+            <Text style={{ color: primaryColor, fontSize: 13, fontFamily: 'TTFirsNeueMedium' }}>
+              Address
+            </Text>
+          </View>
+          <InputComponent
+            color={primaryColor}
+            placeholder="Job address"
+            placeholdercolor={secondaryTextColor}
+            value={address}
+            onChange={setAddress}
+          />
+        </View>
+
+        {/* Submit */}
+        <TouchableOpacity
+          onPress={handleSubmit}
+          disabled={mutation.isPending || !hasChanges}
+          style={{
+            backgroundColor: hasChanges ? primaryColor : secondaryTextColor + '30',
+            opacity: mutation.isPending ? 0.7 : 1,
+          }}
+          className="h-14 rounded-2xl items-center justify-center flex-row mb-3"
+        >
+          {mutation.isPending ? (
+            <Text style={{ color: '#fff', fontSize: 15, fontFamily: 'TTFirsNeueMedium' }}>
+              Updating…
+            </Text>
+          ) : (
+            <>
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={18}
+                color={hasChanges ? '#fff' : secondaryTextColor}
+                style={{ marginRight: 8 }}
+              />
+              <Text
+                style={{
+                  color: hasChanges ? '#fff' : secondaryTextColor,
+                  fontSize: 15,
+                  fontFamily: 'TTFirsNeueMedium',
+                }}
+              >
+                Save Changes
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={onClose} className="py-2 items-center mb-4">
+          <Text style={{ color: secondaryTextColor, fontSize: 14 }}>Cancel</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  };
+
+  /* ══════════════════════════════════════════════════════════ */
+  /*  Dispute Job Modal                                        */
+  /* ══════════════════════════════════════════════════════════ */
+  const DisputeJobModal = ({
+    loading,
+    reason,
+    description,
+    onReasonChange,
+    onDescriptionChange,
+    onConfirm,
+    onCancel,
+  }: {
+    loading: boolean;
+    reason: string;
+    description: string;
+    onReasonChange: (v: string) => void;
+    onDescriptionChange: (v: string) => void;
+    onConfirm: () => void;
+    onCancel: () => void;
+  }) => {
+    const { theme } = useTheme();
+    const { primaryColor, secondaryTextColor, selectioncardColor, backgroundColortwo } = getColors(theme);
+
+    return (
+      <ScrollView className="flex-1 px-6 pt-2" showsVerticalScrollIndicator={false}>
+        <View className="items-center mb-4">
+          <View
+            className="w-16 h-16 rounded-full items-center justify-center mb-4"
+            style={{ backgroundColor: backgroundColortwo + '20' }}
+          >
+            <Ionicons name="warning" size={32} color={backgroundColortwo} />
+          </View>
+          <ThemeText size={Textstyles.text_medium}>Dispute This Job?</ThemeText>
+          <EmptyView height={4} />
+          <Text style={{ color: secondaryTextColor, fontSize: 13, textAlign: 'center', lineHeight: 19 }}>
+            Please provide a reason for the dispute. An admin will review and resolve it.
+          </Text>
+        </View>
+
+        <View style={{ backgroundColor: selectioncardColor }} className="rounded-2xl px-4 py-4 mb-3">
+          <View className="flex-row items-center mb-2" style={{ gap: 6 }}>
+            <Ionicons name="alert-circle-outline" size={14} color={backgroundColortwo} />
+            <Text style={{ color: backgroundColortwo, fontSize: 13, fontFamily: 'TTFirsNeueMedium' }}>
+              Reason *
+            </Text>
+          </View>
+          <InputComponent
+            color={primaryColor}
+            placeholder="e.g. Incomplete work, Poor quality"
+            placeholdercolor={secondaryTextColor}
+            value={reason}
+            onChange={onReasonChange}
+          />
+        </View>
+
+        <View style={{ backgroundColor: selectioncardColor }} className="rounded-2xl px-4 py-4 mb-4">
+          <View className="flex-row items-center mb-2" style={{ gap: 6 }}>
+            <Ionicons name="document-text-outline" size={14} color={primaryColor} />
+            <Text style={{ color: primaryColor, fontSize: 13, fontFamily: 'TTFirsNeueMedium' }}>
+              Description
+            </Text>
+          </View>
+          <InputComponentTextarea
+            color={primaryColor}
+            placeholder="Provide more details about the issue..."
+            placeholdercolor={secondaryTextColor}
+            value={description}
+            onChange={onDescriptionChange}
+          />
+        </View>
+
+        <ButtonComponent
+          color={backgroundColortwo}
+          text={loading ? 'Submitting…' : 'File Dispute'}
+          textcolor="#fff"
+          disabled={loading || !reason.trim()}
+          isLoading={loading}
+          onPress={onConfirm}
+        />
+        <EmptyView height={10} />
+        <TouchableOpacity onPress={onCancel} className="py-2 items-center mb-4">
+          <Text style={{ color: secondaryTextColor, fontSize: 14 }}>Cancel</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  };
+
+  /* ══════════════════════════════════════════════════════════ */
+  /*  Confirm Cancel Job Modal                                 */
+  /* ══════════════════════════════════════════════════════════ */
+  const ConfirmCancelModal = ({
+    loading,
+    onConfirm,
+    onCancel,
+  }: {
+    loading: boolean;
+    onConfirm: () => void;
+    onCancel: () => void;
+  }) => {
+    const { theme } = useTheme();
+    const { primaryColor, secondaryTextColor, backgroundColortwo } = getColors(theme);
+
+    return (
+      <View className="flex-1 justify-center items-center px-6">
+        <View
+          className="w-16 h-16 rounded-full items-center justify-center mb-4"
+          style={{ backgroundColor: backgroundColortwo + '20' }}
+        >
+          <Ionicons name="close-circle" size={32} color={backgroundColortwo} />
+        </View>
+
+        <ThemeText size={Textstyles.text_medium}>Cancel This Job?</ThemeText>
+        <EmptyView height={8} />
+        <Text style={{ color: secondaryTextColor, fontSize: 13, textAlign: 'center', lineHeight: 19 }}>
+          This will cancel the job request. The professional will be notified. This action cannot be undone.
+        </Text>
+
+        <EmptyView height={24} />
+
+        <ButtonComponent
+          color={backgroundColortwo}
+          text={loading ? 'Cancelling…' : 'Cancel Job'}
+          textcolor="#fff"
+          disabled={loading}
+          isLoading={loading}
+          onPress={onConfirm}
+        />
+
+        <EmptyView height={10} />
+        <TouchableOpacity onPress={onCancel} className="py-2">
+          <Text style={{ color: secondaryTextColor, fontSize: 14 }}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
     );
   };
   

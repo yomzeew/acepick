@@ -1,654 +1,567 @@
-import { AntDesign, FontAwesome5 } from "@expo/vector-icons"
+import { FontAwesome5, Feather } from "@expo/vector-icons"
 import { useMutation } from "@tanstack/react-query"
 import ButtonComponent from "component/buttoncomponent"
 import ContainerTemplate from "component/dashboardComponent/containerTemplate"
 import HeaderComponent from "component/dashboardComponent/headercomponent"
 import WalletCard from "component/dashboardComponent/walletcompoment"
 import EmptyView from "component/emptyview"
-import SliderModalTemplate from "component/slideupModalTemplate"
-import { ThemeText, ThemeTextsecond } from "component/ThemeText"
+import SliderModalTemplate, { SliderModalNoScrollview } from "component/slideupModalTemplate"
 import { useRouter } from "expo-router"
 import { useCurrentLocation } from "hooks/useLocation"
 import { useTheme } from "hooks/useTheme"
-import { ReactNode, useEffect, useState } from "react"
-import { ImageBackground, Text, TouchableOpacity, View, ScrollView, RefreshControl, FlatList,StyleSheet } from "react-native"
+import { useEffect, useState } from "react"
+import { Text, TouchableOpacity, View, ScrollView, RefreshControl, FlatList } from "react-native"
 import { useSelector } from "react-redux"
 import { RootState } from "redux/store"
-import { SaveTokenFunction, updateLocation, walletView } from "services/userService"
+import { SaveTokenFunction, updateLocation } from "services/userService"
+import { useDashboard } from "hooks/useDashboard"
 import { getColors } from "static/color"
-import { Textstyles } from "static/textFontsize"
-import { DeliveryData, JobLatest, Wallet } from "types/type"
-import { formatAmount, formatNaira } from "utilizes/amountFormat"
-import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import { DeliveryData } from "types/type"
+import { formatAmount } from "utilizes/amountFormat"
+import { Ionicons } from "@expo/vector-icons"
+import TransferFund from "component/menuComponent/walletPages/transferfund"
+import React from "react"
 import { acceptDeliveryFn, pendingdeliveryFn } from "services/deliveryServices"
 import SectorSkeletonCard from "component/sectorSkeletonCard"
-import * as Location from "expo-location";
+import * as Location from "expo-location"
 import { Modal } from "react-native"
+import { useToast } from "context/ToastContext"
 
 const HomeDelivery = () => {
-    const router = useRouter()
-    const [showmodal, setshowmodal] = useState<boolean>(false)
-   
-   
-    const { theme } = useTheme(); // Theme state and toggle function
-    const { primaryColor, backgroundColor, primaryTextColor, secondaryTextColor, selectioncardColor } = getColors(theme);
-    const [balanceRefreshTrigger, setBalanceRefreshTrigger] = useState(false); // 👈 Trigger to re-fetch wallet
+    const router = useRouter();
+    const toast = useToast();
+    const [showmodal, setshowmodal] = useState(false);
+    const [showwithdraw, setshowwithdraw] = useState(false);
+
+    const { theme } = useTheme();
+    const { primaryColor, backgroundColor, secondaryTextColor, selectioncardColor, backgroundColortwo, successColor, errorColor, borderColor } = getColors(theme);
+    const isDark = theme === "dark";
+    const cardBg = isDark ? "#1F2937" : "#FFFFFF";
+    const [balanceRefreshTrigger, setBalanceRefreshTrigger] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
-    const [getId,setgetId]=useState<number>()
-    const fcmToken = useSelector((state: RootState) => (state.auth.fcmToken))
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const fcmToken = useSelector((state: RootState) => state.auth.user?.fcmToken);
+    const { data: dashboardData, refresh: refreshDashboard } = useDashboard();
+    const recentTransactions = (dashboardData as any)?.recentTransactions || [];
 
     const saveFcmToken = async () => {
         try {
-            const response = await SaveTokenFunction(fcmToken);
-            console.log('SaveTokenUrl response:', response.data);
+            await SaveTokenFunction(fcmToken);
         } catch (error) {
-            console.error('SaveTokenUrl error:', error);
+            console.error("SaveTokenUrl error:", error);
         }
-    }
-
-   
+    };
 
     const onRefresh = () => {
         setRefreshing(true);
-        // Toggle the trigger for WalletCard
-        setBalanceRefreshTrigger(prev => !prev);
-        // Add delay to simulate loading
-        setTimeout(() => {
-            setRefreshing(false);
-        }, 1000);
+        setBalanceRefreshTrigger((prev) => !prev);
+        refreshDashboard();
+        setTimeout(() => setRefreshing(false), 1000);
     };
 
-    const wallet: Wallet | null = useSelector((state: RootState) => state?.auth.user?.wallet) ?? null;
-    const [hide, setshowhide] = useState<boolean>(false);
-    const [currentBalance, setCurrentBalance] = useState<number>(wallet?.currentBalance || 0);
-
-    const mutationWallet = useMutation({
-        mutationFn: walletView,
-        onSuccess: async (response) => {
-            setCurrentBalance(response.data?.currentBalance || 0);
-        },
-        onError: (error: any) => {
-            console.error("Wallet fetch failed:", error.message);
-        },
-    });
-
-    useEffect(() => {
-        mutationWallet.mutate();
-    }, [balanceRefreshTrigger,]); // 👈 Re-fetch on refreshTrigger change
-
-
-
-    const user = useSelector((state: RootState) => state?.auth?.user) ?? null
-
-    console.log(user)
-
-    const { location, address, state, lga, loading, error } = useCurrentLocation();
+    const user = useSelector((state: RootState) => state?.auth?.user) ?? null;
+    const { location, address, state, lga } = useCurrentLocation();
 
     const mutation = useMutation({
         mutationFn: ({ locationId, data }: { locationId: string; data: any }) => updateLocation(locationId, data),
-        onSuccess: async (response) => {
-            //console.log(response,'okkk');
-        },
+        onSuccess: async () => {},
         onError: (error: any) => {
-            let msg = "An unexpected error occurred";
-
-            if (error?.response?.data) {
-                msg =
-                    error.response.data.message ||
-                    error.response.data.error ||
-                    JSON.stringify(error.response.data);
-            } else if (error?.message) {
-                msg = error.message;
-            }
-
-            setErrorMessage(msg);
-            console.error("failed:", msg);
+            const msg = error?.response?.data?.message || error?.message || "Location update failed";
+            console.error("Location update failed:", msg);
         },
     });
-
 
     const updateLocationFn = () => {
         const locationId = user?.location?.id?.toString();
         if (!locationId) return;
         const { latitude, longitude } = location?.coords ?? {};
-        const data = { latitude, longitude, address, state, lga };
-        console.log(data)
-
-        mutation.mutate({ locationId, data });
+        mutation.mutate({ locationId, data: { latitude, longitude, address, state, lga } });
     };
+
     useEffect(() => {
-        saveFcmToken()
+        saveFcmToken();
         updateLocationFn();
-    }, [])
+    }, []);
 
+    const statsData = [
+        { label: "Completed", value: user?.profile?.totalJobsCompleted || 0, icon: "check-circle", color: primaryColor, bg: primaryColor + '15' },
+        { label: "Active", value: user?.profile?.totalJobsOngoing || 0, icon: "clock", color: primaryColor, bg: primaryColor + '15' },
+        { label: "Cancelled", value: user?.profile?.totalJobsDeclined || 0, icon: "x-circle", color: backgroundColortwo, bg: backgroundColortwo + '15' },
+    ];
 
+    const earningsData = [
+        { label: "Completed", value: formatAmount(user?.profile?.professional?.completedAmount || 0), icon: "trending-up", color: primaryColor },
+        { label: "Pending", value: formatAmount(user?.profile?.professional?.pendingAmount || 0), icon: "clock", color: backgroundColortwo },
+        { label: "Withdrawable", value: formatAmount(user?.profile?.professional?.availableWithdrawalAmount || 0), icon: "download", color: primaryColor },
+        { label: "Rejected", value: formatAmount(user?.profile?.professional?.rejectedAmount || 0), icon: "alert-triangle", color: backgroundColortwo },
+    ];
 
     return (
         <>
-            {showmodal &&
-                <SliderModalTemplate modalHeight={'60%'} showmodal={showmodal} setshowmodal={setshowmodal} >
+            {showmodal && (
+                <SliderModalTemplate modalHeight={"60%"} showmodal={showmodal} setshowmodal={setshowmodal}>
                     <SlideupContent />
                 </SliderModalTemplate>
-            }
-           
+            )}
+
             <ContainerTemplate>
                 <HeaderComponent />
-                <EmptyView height={10} />
-                <TouchableOpacity onPress={() => setshowmodal(!showmodal)}>
-                    <VerificationBadge />
-                </TouchableOpacity>
-              
-                        <View style={{ backgroundColor: backgroundColor }} className="w-full">
-                            <EmptyView height={10} />
-                            
-                                <WalletCard
-                                    setshowmodal={setshowmodal}
-                                    showmodal={showmodal}
-                                    refreshTrigger={balanceRefreshTrigger}
-                                />
-                                <EmptyView height={20} />
-                                <View className="w-full items-center">
-                                    <ScrollView showsHorizontalScrollIndicator={false} horizontal>
-                                    <View className="flex-row items-center justify-evenly w-full gap-x-3">
-                                <View className="bg-green-500  h-16 rounded-2xl justify-center items-center px-3">
-                                  <View className="absolute top-0 right-1 "><AntDesign size={16} name="checkcircle" color={"#ffffff"} /></View>
-                                  <ThemeText size={Textstyles.text_medium}><Text style={{color:"#fff",fontSize:24}}>{user?.profile?.totalJobsCompleted || 0}</Text></ThemeText>
-                                  <ThemeText size={Textstyles.text_xxxsmall}><Text style={{color:"#fff",fontSize:12}}>Completed Order</Text></ThemeText>
-                                </View>
-                                <View className="bg-orange-500  h-16 rounded-2xl justify-center items-center px-3">
-                                  <View className="absolute top-0 right-1 "><AntDesign size={16} name="ellipsis1" color={"#ffffff"} /></View>
-                                  <ThemeText size={Textstyles.text_medium}><Text style={{color:"#fff",fontSize:24}}>{user?.profile?.totalJobsOngoing || 0}</Text></ThemeText>
-                                  <ThemeText size={Textstyles.text_xxxsmall}><Text style={{color:"#fff",fontSize:12}}>Active Order</Text></ThemeText>
-                                </View>
-                                <View className="bg-red-500  h-16 rounded-2xl justify-center items-center px-3">
-                                  <View className="absolute top-0 right-1 "><FontAwesome5 size={16} name="times" color={"#ffffff"} /></View>
-                                  <ThemeText size={Textstyles.text_medium}><Text style={{color:"#fff",fontSize:24}}>{user?.profile?.totalJobsDeclined || 0}</Text></ThemeText>
-                                  <ThemeText size={Textstyles.text_xxxsmall}><Text style={{color:"#fff",fontSize:12}}>Cancel Order</Text></ThemeText>
-                                </View>
-                            </View>
 
-                                    </ScrollView>
-                          
-                               
-                                </View>
-                                </View>
-                            
-                                <EmptyView height={20} />
-                                <View className="flex-1">
-                                <ScrollView
-                        refreshControl={
-                            <RefreshControl
-                                refreshing={refreshing}
-                                onRefresh={onRefresh} />
-                        }
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{ paddingBottom: 100 }}
-                    >
-                        <EmptyView height={20} />
+                <ScrollView
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 100 }}
+                >
+                    <EmptyView height={8} />
+                    <VerificationBadge onPress={() => setshowmodal(true)} />
+                    <EmptyView height={14} />
 
-                            <View className="flex-row px-3 justify-between">
-                                <ThemeTextsecond size={Textstyles.text_medium}>
-                                    Pending Deliveries
-                                </ThemeTextsecond>
-                            </View>
-                            <EmptyView height={10} />
-                            <View className="w-full px-3">
-                               <CurrentDelivery 
-                               balanceRefreshTrigger={balanceRefreshTrigger}
-
-                               />
-                            </View>
-                            <EmptyView height={10} />
-
-                            <View className="px-3">
-                                <ThemeText size={Textstyles.text_medium}>Earning</ThemeText>
-                                <EmptyView height={10} />
-                                <View className="flex-row justify-around">
-                                    <View className="flex-col">
-                                        <View>
-                                            <ThemeText size={Textstyles.text_xsmall}>Complete</ThemeText>
-                                            <ThemeText size={Textstyles.text_cmedium}>{formatAmount(user?.profile?.professional?.completedAmount || 0)}</ThemeText>
-                                        </View>
-                                        <View>
-                                            <ThemeText size={Textstyles.text_xsmall}>Pending</ThemeText>
-                                            <ThemeText size={Textstyles.text_cmedium}>{formatAmount(user?.profile?.professional?.pendingAmount || 0)}</ThemeText>
-                                        </View>
-                                        <EmptyView height={10} />
-                                    </View>
-                                    <View className="flex-col">
-                                        <View >
-                                            <ThemeText size={Textstyles.text_xsmall}>Available for withdraw</ThemeText>
-                                            <ThemeText size={Textstyles.text_cmedium}>{formatAmount(user?.profile?.professional?.availableWithdrawalAmount || 0)}</ThemeText>
-                                        </View>
-                                        <View >
-                                            <ThemeText size={Textstyles.text_xsmall}>Rejected</ThemeText>
-                                            <ThemeText size={Textstyles.text_cmedium}>{formatAmount(user?.profile?.professional?.rejectedAmount || 0)}</ThemeText>
-                                        </View>
-
-                                    </View>
-
-                                </View>
-                            </View>
-                            </ScrollView>
-                            </View>
-                           
-            </ContainerTemplate>
-
-        </>
-    )
-}
-export default HomeDelivery
-
-const VerificationBadge = () => {
-    const { theme } = useTheme(); // Theme state and toggle function
-    const { primaryColor, backgroundColor, primaryTextColor, secondaryTextColor } = getColors(theme);
-    return (
-        <>
-            <View className="border-red-500 py-3 bg-red-200 gap-x-3 flex-row justify-center  px-3 w-full rounded-2xl h-16 ">
-                <View className="w-12 h-12 rounded-full bg-red-500 justify-center items-center">
-                    <AntDesign size={12} name="warning" color={"#ffffff"} />
-                </View>
-                <View className="w-1/2">
-                    <Text style={[Textstyles.text_xsmall]}>
-                        Please go through the verification phase
-                        to be visible to clients for jobs
-                    </Text>
-                </View>
-                <View className="w-1/4 h-full justify-end">
-                    <TouchableOpacity style={{ backgroundColor: primaryColor }} className="justify-center items-center px-3 py-2 w-24">
-                        <Text>Verify now</Text>
-                    </TouchableOpacity>
-
-                </View>
-
-
-
-            </View>
-        </>
-    )
-}
-
-
-const SlideupContent = () => {
-    const { theme } = useTheme(); // Theme state and toggle function
-    const { primaryColor, backgroundColor, primaryTextColor, secondaryTextColor } = getColors(theme);
-    return (
-        <>
-            <View className="h-full w-full px-3 items-center justify-center">
-                <EmptyView height={60} />
-                <View className="w-full flex-1 items-center">
-
-                    <AntDesign name="warning" size={36} color={"red"} />
-
-                </View>
-                <EmptyView height={60} />
-                <View className="w-full items-center">
-                    <ThemeText size={Textstyles.text_small}>
-                        <Text className="text-center">
-                            Please activate your account to be visible to clients for jobs
-                        </Text>
-
-                    </ThemeText>
-
-                </View>
-                <EmptyView height={60} />
-                <View className="w-full items-center px-3">
-                    <ButtonComponent
-                        color={primaryColor}
-                        text={"Activate Now"}
-                        textcolor={"#ffffff"}
-                        // route={"/bvnactivationlayout"} 
-                        onPress={() => null}
+                    <WalletCard
+                        setshowmodal={setshowmodal}
+                        showmodal={showmodal}
+                        refreshTrigger={balanceRefreshTrigger}
+                        setshowwithdraw={setshowwithdraw}
+                        showwithdraw={showwithdraw}
                     />
 
+                    {/* Stats Cards */}
+                    <EmptyView height={18} />
+                    <View style={{ flexDirection: "row", gap: 10 }}>
+                        {statsData.map((stat) => (
+                            <View key={stat.label} style={{ flex: 1, backgroundColor: cardBg, borderRadius: 14, padding: 14, alignItems: "center" }}>
+                                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: stat.bg, alignItems: "center", justifyContent: "center", marginBottom: 6 }}>
+                                    <Feather name={stat.icon as any} size={18} color={stat.color} />
+                                </View>
+                                <Text style={{ fontSize: 22, fontWeight: "700", color: stat.color }}>{stat.value}</Text>
+                                <Text style={{ fontSize: 11, color: secondaryTextColor, marginTop: 2 }}>{stat.label}</Text>
+                            </View>
+                        ))}
+                    </View>
 
-                </View>
+                    {/* Pending Deliveries */}
+                    <EmptyView height={22} />
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                        <Text style={{ fontSize: 15, fontWeight: "700", color: isDark ? "#F9FAFB" : "#111827" }}>Pending Deliveries</Text>
+                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: primaryColor }} />
+                    </View>
+                    <CurrentDelivery balanceRefreshTrigger={balanceRefreshTrigger} />
 
-            </View>
+                    {/* Earnings Section */}
+                    <EmptyView height={22} />
+                    <Text style={{ fontSize: 15, fontWeight: "700", color: isDark ? "#F9FAFB" : "#111827", marginBottom: 10 }}>Earnings Overview</Text>
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+                        {earningsData.map((item) => (
+                            <View key={item.label} style={{ width: "48%", backgroundColor: cardBg, borderRadius: 14, padding: 14 }}>
+                                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                                    <View style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: item.color + "15", alignItems: "center", justifyContent: "center" }}>
+                                        <Feather name={item.icon as any} size={14} color={item.color} />
+                                    </View>
+                                    <Text style={{ fontSize: 11, color: secondaryTextColor }}>{item.label}</Text>
+                                </View>
+                                <Text style={{ fontSize: 16, fontWeight: "700", color: isDark ? "#F9FAFB" : "#111827" }}>{item.value}</Text>
+                            </View>
+                        ))}
+                    </View>
+
+                    {/* Recent Transactions */}
+                    {recentTransactions.length > 0 && (
+                        <View style={{ marginTop: 22 }}>
+                            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                                <Text style={{ fontSize: 15, fontWeight: "700", color: isDark ? "#F9FAFB" : "#111827" }}>Recent Transactions</Text>
+                                <TouchableOpacity
+                                    onPress={() => router.push("/billhistorylayout")}
+                                    style={{ backgroundColor: primaryColor + "15", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}
+                                >
+                                    <Text style={{ color: primaryColor, fontSize: 11, fontWeight: "600" }}>View All</Text>
+                                </TouchableOpacity>
+                            </View>
+                            <View style={{ backgroundColor: cardBg, borderRadius: 14, padding: 14 }}>
+                                {recentTransactions.slice(0, 4).map((txn: any, index: number) => (
+                                    <View key={txn.id}>
+                                        <View style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10 }}>
+                                            <View style={{
+                                                width: 36, height: 36, borderRadius: 10,
+                                                backgroundColor: (txn.type === "credit" ? successColor : errorColor) + '15',
+                                                alignItems: "center", justifyContent: "center", marginRight: 12,
+                                            }}>
+                                                <Feather
+                                                    name={txn.type === "credit" ? "arrow-down-left" : "arrow-up-right"}
+                                                    size={16}
+                                                    color={txn.type === "credit" ? successColor : errorColor}
+                                                />
+                                            </View>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={{ fontSize: 13, fontWeight: "600", color: isDark ? "#F9FAFB" : "#111827" }}>
+                                                    {txn.description || (txn.type === "credit" ? "Credit" : "Debit")}
+                                                </Text>
+                                                <Text style={{ fontSize: 10, color: secondaryTextColor, marginTop: 2 }}>
+                                                    {new Date(txn.createdAt).toLocaleDateString()}
+                                                </Text>
+                                            </View>
+                                            <Text style={{ fontSize: 14, fontWeight: "700", color: txn.type === "credit" ? successColor : errorColor }}>
+                                                {txn.type === "credit" ? "+" : "-"}{Number(txn.amount).toLocaleString()}
+                                            </Text>
+                                        </View>
+                                        {index < Math.min(recentTransactions.length, 4) - 1 && (
+                                            <View style={{ backgroundColor: isDark ? "#374151" : "#F3F4F6", height: 1 }} />
+                                        )}
+                                    </View>
+                                ))}
+                            </View>
+                        </View>
+                    )}
+                </ScrollView>
+            </ContainerTemplate>
+
+            {/* Withdraw Modal */}
+            <SliderModalNoScrollview showmodal={showwithdraw} modalHeight={"85%"} setshowmodal={setshowwithdraw}>
+                <TransferFund setshowmodal={setshowwithdraw} />
+            </SliderModalNoScrollview>
         </>
-    )
-}
-
-
-
-
-// Example Props for ShippingCard
-interface ShippingCardProps {
-    item:DeliveryData
-    onPress?: () => void;
-    showModal?:boolean
-    setShowModal?:(value:boolean)=>void
-}
-
-// Map status to colors
-const statusColors: Record<string, string> = {
-  pending: "#FFA500",
-  awaitingPickup: "#1E90FF",
-  pickup: "#9370DB",
-  onTheWay: "#FFD700",
-  delivered: "#32CD32",
-  rejected: "#FF0000",
+    );
 };
-  const ShippingCard: React.FC<ShippingCardProps> = ({ item }) => {
+export default HomeDelivery;
+
+const VerificationBadge = ({ onPress }: { onPress: () => void }) => {
     const { theme } = useTheme();
-    const { selectioncardColor,backgroundColor } = getColors(theme);
-    const [showModal,setShowModal]=useState<boolean>(false)
-    const [successMessage,setSuccessMessage]=useState<string | null>("")
-    const [errorMessage,setErrorMessage]=useState<string | null>("")
-  
+    const { primaryColor, backgroundColortwo } = getColors(theme);
+    const isDark = theme === "dark";
+
+    return (
+        <TouchableOpacity
+            onPress={onPress}
+            activeOpacity={0.8}
+            style={{
+                backgroundColor: backgroundColortwo + '10',
+                borderRadius: 14,
+                padding: 14,
+                flexDirection: "row",
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: backgroundColortwo + '30',
+            }}
+        >
+            <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: backgroundColortwo + '20', alignItems: "center", justifyContent: "center" }}>
+                <Feather name="alert-triangle" size={18} color={backgroundColortwo} />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={{ fontSize: 13, fontWeight: "600", color: backgroundColortwo }}>Verification Required</Text>
+                <Text style={{ fontSize: 11, color: backgroundColortwo + '99', marginTop: 2 }}>Complete verification to start accepting orders</Text>
+            </View>
+            <View style={{ backgroundColor: primaryColor, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}>
+                <Text style={{ fontSize: 11, fontWeight: "600", color: "#fff" }}>Verify</Text>
+            </View>
+        </TouchableOpacity>
+    );
+};
+
+const SlideupContent = () => {
+    const { theme } = useTheme();
+    const { primaryColor, backgroundColortwo } = getColors(theme);
+    const isDark = theme === "dark";
+
+    return (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 }}>
+            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: backgroundColortwo + '15', alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
+                <Feather name="shield-off" size={32} color={backgroundColortwo} />
+            </View>
+            <Text style={{ fontSize: 18, fontWeight: "700", color: isDark ? "#F9FAFB" : "#111827", textAlign: "center", marginBottom: 8 }}>
+                Account Not Activated
+            </Text>
+            <Text style={{ fontSize: 13, color: isDark ? "#9CA3AF" : "#6B7280", textAlign: "center", lineHeight: 20, marginBottom: 32 }}>
+                Please activate your account to become visible to clients and start receiving delivery orders.
+            </Text>
+            <View style={{ width: "100%" }}>
+                <ButtonComponent
+                    color={primaryColor}
+                    text="Activate Now"
+                    textcolor="#ffffff"
+                    onPress={() => null}
+                />
+            </View>
+        </View>
+    );
+};
+
+
+
+
+// Status config
+const getStatusConfig = (primaryColor: string, backgroundColortwo: string): Record<string, { color: string; label: string; progress: number }> => ({
+    pending: { color: backgroundColortwo, label: "Pending", progress: 10 },
+    awaitingPickup: { color: primaryColor, label: "Awaiting Pickup", progress: 30 },
+    pickup: { color: primaryColor, label: "Picked Up", progress: 50 },
+    onTheWay: { color: primaryColor, label: "On The Way", progress: 75 },
+    delivered: { color: primaryColor, label: "Delivered", progress: 100 },
+    rejected: { color: backgroundColortwo, label: "Rejected", progress: 0 },
+});
+
+interface ShippingCardProps {
+    item: DeliveryData;
+}
+
+const ShippingCard: React.FC<ShippingCardProps> = ({ item }) => {
+    const { theme } = useTheme();
+    const { selectioncardColor, backgroundColor, primaryColor, secondaryTextColor, backgroundColortwo, successColor, errorColor } = getColors(theme);
+    const isDark = theme === "dark";
+    const cardBg = isDark ? "#1F2937" : "#FFFFFF";
+    const toast = useToast();
+    const [showModal, setShowModal] = useState(false);
     const [pickupAddress, setPickupAddress] = useState("");
     const [destinationAddress, setDestinationAddress] = useState("");
-  
+
     const latPickup = item.productTransaction.product.pickupLocation.latitude || 0;
     const lngPickup = item.productTransaction.product.pickupLocation.longitude || 0;
-  
-    // Replace with real destination lat/lng from your API
-    const latDest =  item.dropoffLocation.latitude || 0;
-    const lngDest =  item.dropoffLocation.longitude || 0;
+    const latDest = item.dropoffLocation.latitude || 0;
+    const lngDest = item.dropoffLocation.longitude || 0;
+    const STATUS_CONFIG = getStatusConfig(primaryColor, backgroundColortwo);
+    const statusInfo = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
 
     useEffect(() => {
-        if (successMessage) {
-          const timer = setTimeout(() => {
-            setSuccessMessage(null);
-          }, 4000);
-          return () => clearTimeout(timer); // Cleanup on unmount or on new error
-        }
-      }, [successMessage])
+        (async () => {
+            try {
+                const { status } = await Location.requestForegroundPermissionsAsync();
+                if (status !== "granted") return;
 
-      useEffect(() => {
-        if (errorMessage) {
-          const timer = setTimeout(() => {
-            setErrorMessage(null);
-          }, 4000);
-          return () => clearTimeout(timer); // Cleanup on unmount or on new error
-        }
-      }, [errorMessage])
-  
-    useEffect(() => {
-      (async () => {
-        try {
-          // Ask for permission once
-          const { status } = await Location.requestForegroundPermissionsAsync();
-          if (status !== "granted") {
-            console.warn("Permission to access location was denied");
-            return;
-          }
-  
-          // Reverse geocode pickup
-          const pickup = await Location.reverseGeocodeAsync({
-            latitude: latPickup,
-            longitude: lngPickup,
-          });
-          if (pickup.length > 0) {
-            setPickupAddress(
-              `${pickup[0].name || ""} ${pickup[0].street || ""}, ${pickup[0].city || ""}`
-            );
-          }
-  
-          // Reverse geocode destination if exists
-          if (latDest && lngDest) {
-            const dest = await Location.reverseGeocodeAsync({
-              latitude: latDest,
-              longitude: lngDest,
-            });
-            if (dest.length > 0) {
-              setDestinationAddress(
-                `${dest[0].name || ""} ${dest[0].street || ""}, ${dest[0].city || ""}`
-              );
+                const pickup = await Location.reverseGeocodeAsync({ latitude: latPickup, longitude: lngPickup });
+                if (pickup.length > 0) {
+                    setPickupAddress(`${pickup[0].name || ""} ${pickup[0].street || ""}, ${pickup[0].city || ""}`.trim());
+                }
+                if (latDest && lngDest) {
+                    const dest = await Location.reverseGeocodeAsync({ latitude: latDest, longitude: lngDest });
+                    if (dest.length > 0) {
+                        setDestinationAddress(`${dest[0].name || ""} ${dest[0].street || ""}, ${dest[0].city || ""}`.trim());
+                    }
+                }
+            } catch (err) {
+                console.error("Error getting addresses:", err);
             }
-          }
-        } catch (error) {
-          console.error("Error getting addresses:", error);
-        }
-      })();
+        })();
     }, []);
-    const mutationAccept=
-    useMutation({
+
+    const mutationAccept = useMutation({
         mutationFn: acceptDeliveryFn,
-        onSuccess: async (response) => {
-            console.log(response.data)
-            setSuccessMessage("Order Assigned Successfully")
-            setShowModal(false)
+        onSuccess: () => {
+            toast.success("Order Accepted", "You have been assigned to this delivery");
+            setShowModal(false);
         },
         onError: (error: any) => {
-            console.error("failed:", error.message);
-            setErrorMessage(error.message)
+            const msg = error?.response?.data?.message || error?.message || "Failed to accept order";
+            toast.error("Error", msg);
         },
     });
 
+    const handleAcceptFn = () => mutationAccept.mutate(item.id);
 
-    
-    const handleAcceptFn=()=>{
-        console.log(item.id)
-            mutationAccept.mutate(item.id)
-    }
-  
     return (
         <>
-         <TouchableOpacity
-        onPress={()=>setShowModal(true)}
-        style={{
-          backgroundColor: selectioncardColor,
-          padding: 15,
-          marginBottom: 10,
-          borderRadius: 10,
-          shadowColor: "#000",
-          shadowOpacity: 0.1,
-          shadowOffset: { width: 0, height: 2 },
-          shadowRadius: 4,
-          elevation: 3,
-        }}
-        className="w-full"
-      >
-        {/* Order header */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 10 }}>
-          <ThemeText size={Textstyles.text_cmedium}>Order #{item.id}</ThemeText>
-          <View
-            style={{
-              backgroundColor: statusColors["pending"],
-              paddingVertical: 3,
-              paddingHorizontal: 8,
-              borderRadius: 20,
-            }}
-          >
-            <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>pending</Text>
-          </View>
-        </View>
-  
-        {/* Pickup */}
-        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
-          <Ionicons name="location-outline" size={16} color="#1E90FF" />
-          <ThemeTextsecond>
-            {pickupAddress || "Loading pickup address..."}
-          </ThemeTextsecond>
-        </View>
-  
-        {/* Destination */}
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Ionicons name="flag-outline" size={16} color="#32CD32" />
-          <ThemeTextsecond>
-            {destinationAddress || "Loading destination address..."}
-          </ThemeTextsecond>
-        </View>
-  
-        {/* Fare */}
-        <ThemeTextsecond>Fare: ₦{item.cost}</ThemeTextsecond>
-        <EmptyView height={10}/>
-
-                    {/* Progress Bar for Delivery Status */}
-                    <View style={{ height: 6, backgroundColor: "#E0E0E0", borderRadius: 4 }}>
-                        <View
-                            style={{
-                                width: `${getProgressWidth("pending")}%`,
-                                height: "100%",
-                                backgroundColor: statusColors["pending"],
-                                borderRadius: 4,
-                            }}
-                        />
-                    </View>
-      </TouchableOpacity>
-         <Modal
-        animationType="slide"   // or "fade"
-        transparent={true}      // makes the background transparent
-        visible={showModal}  // show/hide
-        onRequestClose={() => { // Android back button handler
-          setShowModal(false);
-        }}
-      >
-        <View style={styles.overlay}>
-        <View  style={[styles.modalBox,{backgroundColor:backgroundColor}]}>
-           
-            {errorMessage && (
-        <View className="w-full items-center">
-          <ThemeTextsecond size={Textstyles.text_xsmall}>
-            {errorMessage.toString()}
-          </ThemeTextsecond>
-        </View>
-      )}
-      {successMessage && (
-         <View className="w-full items-center">
-         <ThemeTextsecond size={Textstyles.text_xsmall}>
-           {successMessage.toString()}
-         </ThemeTextsecond>
-       </View>
-
-      )}
-<View className="flex-row w-full justify-center gap-x-3">
-      <TouchableOpacity onPress={handleAcceptFn} className="bg-blue-500 py-2 px-3 rounded-lg">
-                <ThemeTextsecond>
-                 <Text className="text-white">Accept</Text>
-               </ThemeTextsecond>
-                </TouchableOpacity>
-          
-                <TouchableOpacity 
-                onPress={() => 
-                {
-          setShowModal(false);
-        }} 
-        className="bg-red-500 py-2 px-3 rounded-lg">
-                <ThemeTextsecond>
-                 <Text className="text-white">Decline</Text>
-               </ThemeTextsecond>
-                </TouchableOpacity>
-
-</View>
-         
-           
             <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setShowModal(false)}
+                onPress={() => setShowModal(true)}
+                activeOpacity={0.7}
+                style={{
+                    backgroundColor: cardBg,
+                    borderRadius: 14,
+                    padding: 16,
+                    marginBottom: 10,
+                    shadowColor: "#000",
+                    shadowOpacity: isDark ? 0.2 : 0.06,
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowRadius: 6,
+                    elevation: 3,
+                }}
             >
-              <FontAwesome5 color="red" size={24} name="times-circle"/>
+                {/* Header */}
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                        <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: primaryColor + "15", alignItems: "center", justifyContent: "center" }}>
+                            <FontAwesome5 name="shipping-fast" size={14} color={primaryColor} />
+                        </View>
+                        <Text style={{ fontSize: 14, fontWeight: "700", color: isDark ? "#F9FAFB" : "#111827" }}>
+                            Order #{String(item.id).slice(-6)}
+                        </Text>
+                    </View>
+                    <View style={{ backgroundColor: statusInfo.color + "20", paddingVertical: 4, paddingHorizontal: 10, borderRadius: 20 }}>
+                        <Text style={{ color: statusInfo.color, fontSize: 11, fontWeight: "600" }}>{statusInfo.label}</Text>
+                    </View>
+                </View>
+
+                {/* Route */}
+                <View style={{ marginBottom: 12 }}>
+                    <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 8 }}>
+                        <View style={{ alignItems: "center", marginRight: 10, paddingTop: 2 }}>
+                            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: primaryColor }} />
+                            <View style={{ width: 1.5, height: 20, backgroundColor: isDark ? "#4B5563" : "#D1D5DB", marginVertical: 2 }} />
+                            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: backgroundColortwo }} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 12, color: secondaryTextColor, marginBottom: 2 }}>Pickup</Text>
+                            <Text style={{ fontSize: 13, fontWeight: "500", color: isDark ? "#E5E7EB" : "#374151", marginBottom: 10 }}>
+                                {pickupAddress || "Loading address..."}
+                            </Text>
+                            <Text style={{ fontSize: 12, color: secondaryTextColor, marginBottom: 2 }}>Dropoff</Text>
+                            <Text style={{ fontSize: 13, fontWeight: "500", color: isDark ? "#E5E7EB" : "#374151" }}>
+                                {destinationAddress || "Loading address..."}
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Footer: Fare + Progress */}
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <Feather name="dollar-sign" size={14} color={primaryColor} />
+                        <Text style={{ fontSize: 15, fontWeight: "700", color: primaryColor }}>₦{Number(item.cost).toLocaleString()}</Text>
+                    </View>
+                    {item.distance > 0 && (
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                            <Feather name="navigation" size={12} color={secondaryTextColor} />
+                            <Text style={{ fontSize: 11, color: secondaryTextColor }}>{item.distance.toFixed(1)} km</Text>
+                        </View>
+                    )}
+                </View>
+
+                {/* Progress Bar */}
+                <View style={{ height: 4, backgroundColor: isDark ? "#374151" : "#E5E7EB", borderRadius: 2 }}>
+                    <View style={{ width: `${statusInfo.progress}%`, height: "100%", backgroundColor: statusInfo.color, borderRadius: 2 }} />
+                </View>
             </TouchableOpacity>
 
-           
-         
-          </View>
-        </View>
-      </Modal>
-        </>
-     
-    );
-  };
+            {/* Accept / Decline Modal */}
+            <Modal animationType="fade" transparent visible={showModal} onRequestClose={() => setShowModal(false)}>
+                <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" }}>
+                    <View style={{ backgroundColor: isDark ? "#1F2937" : "#FFFFFF", width: "85%", borderRadius: 20, padding: 24 }}>
+                        {/* Modal Header */}
+                        <View style={{ alignItems: "center", marginBottom: 20 }}>
+                            <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: primaryColor + "15", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+                                <FontAwesome5 name="shipping-fast" size={22} color={primaryColor} />
+                            </View>
+                            <Text style={{ fontSize: 17, fontWeight: "700", color: isDark ? "#F9FAFB" : "#111827" }}>New Delivery Order</Text>
+                            <Text style={{ fontSize: 12, color: secondaryTextColor, marginTop: 4 }}>Order #{String(item.id).slice(-6)}</Text>
+                        </View>
 
-// Helper: map status to progress %
-const getProgressWidth = (status: any): any => {
-    switch (status) {
-        case "pending":
-            return 10;
-        case "awaitingPickup":
-            return 30;
-        case "pickup":
-            return 50;
-        case "onTheWay":
-            return 75;
-        case "delivered":
-            return 100;
-        default:
-            return 100;
-    }
+                        {/* Order Details */}
+                        <View style={{ backgroundColor: isDark ? "#111827" : "#F9FAFB", borderRadius: 12, padding: 14, marginBottom: 20 }}>
+                            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
+                                <View style={{ width: 28, height: 28, borderRadius: 7, backgroundColor: primaryColor + '15', alignItems: "center", justifyContent: "center", marginRight: 10 }}>
+                                    <Ionicons name="location" size={14} color={primaryColor} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: 10, color: secondaryTextColor }}>PICKUP</Text>
+                                    <Text style={{ fontSize: 12, fontWeight: "500", color: isDark ? "#E5E7EB" : "#374151" }}>{pickupAddress || "Loading..."}</Text>
+                                </View>
+                            </View>
+                            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
+                                <View style={{ width: 28, height: 28, borderRadius: 7, backgroundColor: backgroundColortwo + '15', alignItems: "center", justifyContent: "center", marginRight: 10 }}>
+                                    <Ionicons name="flag" size={14} color={backgroundColortwo} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: 10, color: secondaryTextColor }}>DROPOFF</Text>
+                                    <Text style={{ fontSize: 12, fontWeight: "500", color: isDark ? "#E5E7EB" : "#374151" }}>{destinationAddress || "Loading..."}</Text>
+                                </View>
+                            </View>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <View style={{ width: 28, height: 28, borderRadius: 7, backgroundColor: primaryColor + '15', alignItems: "center", justifyContent: "center", marginRight: 10 }}>
+                                    <Feather name="dollar-sign" size={14} color={primaryColor} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: 10, color: secondaryTextColor }}>DELIVERY FEE</Text>
+                                    <Text style={{ fontSize: 14, fontWeight: "700", color: primaryColor }}>₦{Number(item.cost).toLocaleString()}</Text>
+                                </View>
+                            </View>
+                        </View>
+
+                        {/* Actions */}
+                        <View style={{ flexDirection: "row", gap: 10 }}>
+                            <TouchableOpacity
+                                onPress={() => setShowModal(false)}
+                                style={{ flex: 1, backgroundColor: isDark ? "#374151" : "#F3F4F6", borderRadius: 12, paddingVertical: 14, alignItems: "center" }}
+                            >
+                                <Text style={{ fontSize: 14, fontWeight: "600", color: isDark ? "#F9FAFB" : "#374151" }}>Decline</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={handleAcceptFn}
+                                disabled={mutationAccept.isPending}
+                                style={{ flex: 1, backgroundColor: primaryColor, borderRadius: 12, paddingVertical: 14, alignItems: "center", opacity: mutationAccept.isPending ? 0.7 : 1 }}
+                            >
+                                <Text style={{ fontSize: 14, fontWeight: "600", color: "#FFFFFF" }}>
+                                    {mutationAccept.isPending ? "Accepting..." : "Accept"}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Close */}
+                        <TouchableOpacity
+                            onPress={() => setShowModal(false)}
+                            style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 16, backgroundColor: isDark ? "#374151" : "#F3F4F6", alignItems: "center", justifyContent: "center" }}
+                        >
+                            <Feather name="x" size={16} color={secondaryTextColor} />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+        </>
+    );
 };
 
-interface CurrentDeliveryProps{
-    balanceRefreshTrigger:boolean
-
-    
+interface CurrentDeliveryProps {
+    balanceRefreshTrigger: boolean;
 }
+
 const CurrentDelivery = ({ balanceRefreshTrigger }: CurrentDeliveryProps) => {
     const [data, setData] = useState<DeliveryData[]>([]);
     const [refreshing, setRefreshing] = useState(false);
-   
+    const { theme } = useTheme();
+    const { secondaryTextColor, selectioncardColor } = getColors(theme);
+    const isDark = theme === "dark";
 
     const mutation = useMutation({
         mutationFn: pendingdeliveryFn,
         onSuccess: async (response) => {
-            setData(response.data || []);
-            
-            setRefreshing(false); // stop refresh loader
+            if (response.status) {
+                setData(response.data || []);
+            } else {
+                console.error("Pending deliveries fetch failed:", response.message || 'Unknown error');
+            }
+            setRefreshing(false);
         },
         onError: (error: any) => {
             console.error("Pending deliveries fetch failed:", error.message);
             setRefreshing(false);
         },
     });
-   
-    // First load + trigger from parent
+
     useEffect(() => {
         mutation.mutate();
-       
     }, [balanceRefreshTrigger]);
 
     const onRefresh = () => {
         setRefreshing(true);
-        mutation.mutate()
+        mutation.mutate();
     };
 
-    // Show skeleton while loading and no data
     if (mutation.isPending && data.length === 0) {
         return <SectorSkeletonCard />;
     }
 
-
-
     return (
-        <>
         <FlatList
             data={data}
             keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => <ShippingCard  item={item} />}
-            refreshControl={
-                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
+            renderItem={({ item }) => <ShippingCard item={item} />}
             scrollEnabled={false}
             ListEmptyComponent={
-                    <ThemeTextsecond>No deliveries found.</ThemeTextsecond> 
+                <View style={{
+                    backgroundColor: isDark ? "#1F2937" : "#FFFFFF",
+                    borderRadius: 14,
+                    padding: 24,
+                    alignItems: "center",
+                }}>
+                    <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: selectioncardColor, alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+                        <FontAwesome5 name="shipping-fast" size={18} color={secondaryTextColor} />
+                    </View>
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: isDark ? "#9CA3AF" : "#6B7280" }}>No pending deliveries</Text>
+                    <Text style={{ fontSize: 11, color: secondaryTextColor, marginTop: 4, textAlign: "center" }}>New delivery orders will appear here</Text>
+                </View>
             }
         />
-        
-      
-        </>
     );
 };
-
-
-const styles = StyleSheet.create({
-    container: { flex: 1, justifyContent: "center", alignItems: "center" },
-    overlay: {
-      flex: 1,
-      backgroundColor: "rgba(0,0,0,0.5)", // dim background
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    modalBox: {
-      width: "80%",
-      padding: 20,
-      borderRadius: 10,
-    
-    },
-    closeButton: {
-      right:0,
-      position:"absolute"
-    },
-  });

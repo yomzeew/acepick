@@ -4,7 +4,7 @@ import { AntDesign, FontAwesome5, FontAwesome6 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "redux/store";
-import { setPreviousChats} from "redux/chatSlice";
+import { setPreviousChats } from "redux/slices/chatSlice";
 import { useSocket } from "hooks/useSocket";
 import { PreviousChatData } from "types/type";
 import { useTheme } from "hooks/useTheme";
@@ -32,17 +32,44 @@ const ContactListScreen = () => {
   const [receiverIds, setReceiverIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('all');
   const debouncedSearch = useDebounce(searchQuery, 300);
 
+  // Role-based filter tabs
+  // Client → can chat with professionals + delivery
+  // Professional → can chat with clients only
+  // Delivery → can chat with clients only
+  const filterTabs = useMemo(() => {
+    if (role === 'client') return ['all', 'professional', 'delivery'];
+    // Professional and delivery only chat with clients — no filter tabs needed
+    return [];
+  }, [role]);
+
+  const filterLabel = (f: string) => {
+    if (f === 'all') return 'All';
+    if (f === 'client') return 'Clients';
+    if (f === 'professional') return 'Professionals';
+    if (f === 'delivery') return 'Delivery';
+    return f;
+  };
+
   const filteredChats = useMemo(() => {
-    if (!debouncedSearch.trim()) return previousChats;
-    const q = debouncedSearch.toLowerCase();
-    return previousChats.filter((chat: any) => {
-      const first = (chat.profile?.firstName || '').toLowerCase();
-      const last = (chat.profile?.lastName || '').toLowerCase();
-      return first.includes(q) || last.includes(q) || `${first} ${last}`.includes(q);
-    });
-  }, [previousChats, debouncedSearch]);
+    let chats = previousChats;
+    // Apply role filter
+    if (activeFilter !== 'all') {
+      chats = chats.filter((chat: any) => chat.role === activeFilter);
+    }
+    // Apply search filter
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase();
+      chats = chats.filter((chat: any) => {
+        const first = (chat.profile?.firstName || '').toLowerCase();
+        const last = (chat.profile?.lastName || '').toLowerCase();
+        return first.includes(q) || last.includes(q) || `${first} ${last}`.includes(q);
+      });
+    }
+    return chats;
+  }, [previousChats, debouncedSearch, activeFilter]);
 
   // Extract all receiver IDs from previous chats
   useEffect(() => {
@@ -52,39 +79,29 @@ const ContactListScreen = () => {
     }
   }, [previousChats]);
 
-  // Emit join_room for each contact
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('connected', () => {
-      socket.emit("previous_chats");
-  })
-  
-  socket.on("reconnect", () => {
-      console.log("reconnect")
-  })
-
-  
-    // Emit when socket reconnects
-    socket.on("connect", () => {
-      socket.emit("previous_chats");
-    });
-  
-    // Update Redux with latest chat data
-    socket.on("got_previous_chats", (data: PreviousChatData[]) => {
-      console.log(data,'okk')
+    const handleConnected = () => socket.emit("previous_chats");
+    const handleReconnect = () => socket.emit("previous_chats");
+    const handlePrevChats = (data: PreviousChatData[]) => {
       dispatch(setPreviousChats(data as any));
-    });
-  
-    // Set interval to re-fetch online status every 10 seconds
+    };
+
+    socket.on('connected', handleConnected);
+    socket.on("connect", handleReconnect);
+    socket.on("got_previous_chats", handlePrevChats);
+
+    // Refresh online status every 30 seconds
     const interval = setInterval(() => {
       socket.emit("previous_chats");
-    }, 10000); // 10 seconds
-  
+    }, 30000);
+
     return () => {
-      clearInterval(interval); // Clean up interval
-      socket.off("connect");
-      socket.off("got_previous_chats");
+      clearInterval(interval);
+      socket.off("connected", handleConnected);
+      socket.off("connect", handleReconnect);
+      socket.off("got_previous_chats", handlePrevChats);
     };
   }, [socket]);
   
@@ -146,7 +163,32 @@ const ContactListScreen = () => {
                 />
               </View>
             )}
-            <EmptyView height={20}/>
+            <EmptyView height={12}/>
+            {/* Role filter tabs — only for clients who can chat with multiple roles */}
+            {filterTabs.length > 0 && (
+              <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 12 }}>
+                {filterTabs.map((tab) => (
+                  <TouchableOpacity
+                    key={tab}
+                    onPress={() => setActiveFilter(tab)}
+                    style={{
+                      paddingHorizontal: 16,
+                      paddingVertical: 8,
+                      borderRadius: 20,
+                      backgroundColor: activeFilter === tab ? primaryColor : selectioncardColor,
+                    }}
+                  >
+                    <Text style={{
+                      fontSize: 13,
+                      fontWeight: '600',
+                      color: activeFilter === tab ? '#fff' : primaryColor,
+                    }}>
+                      {filterLabel(tab)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
 <View className="flex-1">
    {/* Contacts List */}
    <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>

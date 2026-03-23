@@ -1,7 +1,6 @@
-import { FlatList, ActivityIndicator, TouchableOpacity, View, Text,Modal } from "react-native";
+import { FlatList, ActivityIndicator, TouchableOpacity, View, Text, Modal } from "react-native";
 import { useEffect, useState } from "react";
 import InputComponent from "component/controls/textinput";
-import SelectComponent from "component/dashboardComponent/selectComponent";
 import EmptyView from "component/emptyview";
 import { ThemeText, ThemeTextsecond } from "component/ThemeText";
 import { Textstyles } from "static/textFontsize";
@@ -12,269 +11,210 @@ import { useMutation } from "@tanstack/react-query";
 import { addAccountFn, deleteAccountFn, getAccountFn, getBanksFn, resolveAccountFn } from "services/userService";
 import ButtonComponent from "component/buttoncomponent";
 import { BankRecipient } from "types/type";
-import { ScrollView } from "react-native-gesture-handler";
-import { FontAwesome5 } from "@expo/vector-icons";
-import { useDelay } from "hooks/useDelay";
-import { AlertMessageBanner } from "component/AlertMessageBanner";
+import { Feather, FontAwesome5 } from "@expo/vector-icons";
+import { useToast } from "context/ToastContext";
 
 type Bank = {
   name: string;
   code: string;
 };
-interface BankDetailsProps{
-    setshowmodal:(value:boolean)=>void
+
+interface BankDetailsProps {
+  setshowmodal: (value: boolean) => void;
 }
 
-const BankDetails = ({setshowmodal}:BankDetailsProps) => {
+const BankDetails = ({ setshowmodal }: BankDetailsProps) => {
   const [banks, setBanks] = useState<Bank[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-
-  const [bankNames, setBankNames] = useState<string[]>([]); // array of just names for the SelectComponent
+  const [bankNames, setBankNames] = useState<string[]>([]);
   const [selectedBankName, setSelectedBankName] = useState("");
   const [selectedBankCode, setSelectedBankCode] = useState("");
-
-  const {theme}=useTheme()
-const {primaryColor}=getColors(theme)
   const [accountNumber, setAccountNumber] = useState("");
   const [accountName, setAccountName] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-      const [successMessage, setSuccessMessage] = useState<string | null>(null);
-      const [shouldProceed, setShouldProceed] = useState<boolean>(false);
-    
-    
-      useEffect(() => {
-        if (errorMessage) {
-          const timer = setTimeout(() => {
-            setErrorMessage(null);
-          }, 4000);
-          return () => clearTimeout(timer); // Cleanup on unmount or on new error
-        }
-      }, [errorMessage])
-    
-    
-      useEffect(() => {
-        if (successMessage) {
-          const timer = setTimeout(() => {
-            setSuccessMessage(null);
-          }, 4000);
-          return () => clearTimeout(timer); // Cleanup on unmount or on new error
-        }
-      }, [successMessage])
-    
-      useDelay(() => {
-        if (shouldProceed) {
-          setshowmodal(false)
-        }
-      }, 2000, [shouldProceed]);
-    
 
- const mutation = useMutation({
-       mutationFn:getBanksFn,
-       onSuccess: (response) => {
-        const bankData=response.data
-        setBanks(bankData);
-        setBankNames(bankData.map((bank: Bank) => bank.name));
-        setLoading(false)
-       },
-       onError: (error: any) => {
-         const msg =
-           error?.response?.data?.message ||
-           error?.message ||
-           "An unexpected error occurred";
-         console.error("Login failed:", msg);
-       },
-     });
-     useEffect(()=>{
-        mutation.mutate()
-     },[])
+  const { theme } = useTheme();
+  const { primaryColor, secondaryTextColor, selectioncardColor, backgroundColortwo } = getColors(theme);
+  const isDark = theme === "dark";
+  const toast = useToast();
 
-     const mutationResolve = useMutation({
-        mutationFn:resolveAccountFn,
-        onSuccess: (response) => {
-         const res =response.data.data
-         console.log(res)
-         setAccountName(res.account_name);
-        },
-        onError: (error: any) => {
+  const mutation = useMutation({
+    mutationFn: getBanksFn,
+    onSuccess: (response) => {
+      const bankData = response.data;
+      setBanks(bankData);
+      setBankNames(bankData.map((bank: Bank) => bank.name));
+    },
+    onError: (error: any) => {
+      const msg = error?.response?.data?.message || error?.message || "Failed to load banks";
+      toast.error("Error", msg);
+    },
+  });
 
-          const msg =
-            error?.response?.data?.message ||
-            error?.message ||
-            "An unexpected error occurred";
-          console.error(msg);
-          setAccountName("");
-        },
-      });
+  useEffect(() => {
+    mutation.mutate();
+  }, []);
 
-      useEffect(()=>{
-         mutation.mutate()
-      },[])
+  const mutationResolve = useMutation({
+    mutationFn: resolveAccountFn,
+    onSuccess: (response) => {
+      console.log('🏦 resolveAccount full response:', JSON.stringify(response));
+      const res = response.data?.data ?? response.data;
+      console.log('🏦 resolveAccount parsed res:', JSON.stringify(res));
+      setAccountName(res?.account_name || '');
+    },
+    onError: (error: any) => {
+      console.log('🏦 resolveAccount ERROR:', error?.response?.data || error?.message || error);
+      setAccountName("");
+    },
+  });
 
- 
-
-  // Update selected bank code from selected bank name
   useEffect(() => {
     const selected = banks.find((bank) => bank.name === selectedBankName);
     if (selected) setSelectedBankCode(selected.code);
   }, [selectedBankName]);
 
-  // Resolve account to get account name
   useEffect(() => {
-    const resolveAccount = async () => {
-      if (accountNumber.length === 10 && selectedBankCode) {
-        const payload={accountNumber,bankCode:selectedBankCode}
-        mutationResolve.mutate(payload)
-      }
-    };
-    resolveAccount();
+    if (accountNumber.length === 10 && selectedBankCode) {
+      mutationResolve.mutate({ accountNumber, bankCode: selectedBankCode });
+    }
   }, [accountNumber, selectedBankCode]);
 
-  const mutationAddBank=useMutation({
-    mutationFn:addAccountFn,
-    onSuccess: (response) => {
-    setSuccessMessage('Account Details Added Successfull')
-    setShouldProceed(true)
+  const mutationAddBank = useMutation({
+    mutationFn: addAccountFn,
+    onSuccess: () => {
+      toast.success("Bank Added", "Bank account details saved successfully");
+      setAccountNumber("");
+      setAccountName("");
+      setSelectedBankName("");
+      setSelectedBankCode("");
+      setTimeout(() => setshowmodal(false), 1500);
     },
     onError: (error: any) => {
-
-      const msg =
-        error?.response?.data?.message ||
-        error?.message ||
-        "An unexpected error occurred";
-      console.error("Login failed:", msg);
-      setErrorMessage(msg)
+      const msg = error?.response?.data?.message || error?.message || "Failed to add bank";
+      toast.error("Error", msg);
     },
   });
-  const handleSubmit=()=>{
-    const payload={
-        "accountName": accountName,
-        "bank": selectedBankName,
-        "bankCode": selectedBankCode,
-        "accountNumber":accountNumber
+
+  const handleSubmit = () => {
+    if (!selectedBankName || !accountNumber || !accountName) {
+      toast.error("Missing Fields", "Please fill in all bank details");
+      return;
     }
-    mutationAddBank.mutate(payload)
-  }
+    mutationAddBank.mutate({
+      accountName,
+      bank: selectedBankName,
+      bankCode: selectedBankCode,
+      accountNumber,
+    });
+  };
 
   return (
-    <>
-       {successMessage && (
-                    <AlertMessageBanner type="success" message={successMessage} />
-                  )}
-                  {errorMessage && (
-                    <AlertMessageBanner type="error" message={errorMessage} />
-                  )}
-      <View className="w-full h-full px-3 py-5">
-  
-        <ThemeText size={Textstyles.text_xsmall}>Bank Name</ThemeText>
-        <View className="w-full">
-          {mutation.isPending ? (
-            <ActivityIndicator size="small" />
-          ) : (
-            <SearchableSelectComponent
-              title="Select Bank"
-              width={100}
-              data={bankNames} // plain array of names
-              setValue={(val: string) => setSelectedBankName(val)}
-              value={selectedBankName}
-            />
-          )}
+    <View style={{ flex: 1, paddingHorizontal: 16, paddingVertical: 20 }}>
+      <View style={{ alignItems: "center", marginBottom: 20 }}>
+        <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: primaryColor + "15", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
+          <FontAwesome5 name="university" size={20} color={primaryColor} />
         </View>
-
-        <EmptyView height={10} />
-        <ThemeText size={Textstyles.text_xsmall}>Account Number</ThemeText>
-        <View>
-          <InputComponent
-            color=""
-            placeholder="e.g 0123456789"
-            placeholdercolor="#888"
-            value={accountNumber}
-            onChange={(text) => setAccountNumber(text)}
-            keyboardType="numeric"
-            maxLength={10}
-          />
-        </View>
-        <EmptyView height={10} />
-        <ThemeText size={Textstyles.text_xsmall}>Account Name</ThemeText>
-        <View>
-          <InputComponent
-            color={primaryColor}
-            placeholder="e.g Oluwasuyi Babayomi"
-            placeholdercolor="#888"
-            value={accountName}
-            editable={false}
-          />
-        </View>
-        <EmptyView height={10}/>
-        <View>
-            <ButtonComponent 
-            disabled={!accountNumber || !selectedBankName || mutationAddBank.isPending}
-            isLoading={mutationAddBank.isPending}
-            color={primaryColor} 
-            text={"Add Bank Details"} 
-            textcolor={"#ffffff"} 
-            onPress={handleSubmit }/>
-        </View>
-       
+        <Text style={{ fontSize: 16, fontWeight: "700", color: isDark ? "#F9FAFB" : "#111827" }}>Add Bank Account</Text>
+        <Text style={{ fontSize: 12, color: secondaryTextColor, marginTop: 4 }}>Link your bank for withdrawals</Text>
       </View>
-    </>
+
+      <Text style={{ fontSize: 13, fontWeight: "600", color: isDark ? "#E5E7EB" : "#374151", marginBottom: 6 }}>Bank Name</Text>
+      {mutation.isPending ? (
+        <View style={{ height: 48, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="small" color={primaryColor} />
+        </View>
+      ) : (
+        <SearchableSelectComponent
+          title="Select Bank"
+          width={100}
+          data={bankNames}
+          setValue={(val: string) => setSelectedBankName(val)}
+          value={selectedBankName}
+        />
+      )}
+
+      <EmptyView height={14} />
+      <Text style={{ fontSize: 13, fontWeight: "600", color: isDark ? "#E5E7EB" : "#374151", marginBottom: 6 }}>Account Number</Text>
+      <InputComponent
+        color={primaryColor}
+        placeholder="e.g 0123456789"
+        placeholdercolor="#888"
+        value={accountNumber}
+        onChange={(text) => setAccountNumber(text)}
+        keyboardType="numeric"
+        maxLength={10}
+      />
+
+      <EmptyView height={14} />
+      <Text style={{ fontSize: 13, fontWeight: "600", color: isDark ? "#E5E7EB" : "#374151", marginBottom: 6 }}>Account Name</Text>
+      <View style={{ backgroundColor: selectioncardColor, borderRadius: 12, padding: 14, minHeight: 48, justifyContent: "center" }}>
+        {mutationResolve.isPending ? (
+          <ActivityIndicator size="small" color={primaryColor} />
+        ) : accountName ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Feather name="check-circle" size={16} color={primaryColor} />
+            <Text style={{ fontSize: 14, fontWeight: "600", color: primaryColor }}>{accountName}</Text>
+          </View>
+        ) : (
+          <Text style={{ fontSize: 13, color: secondaryTextColor }}>Account name will appear here</Text>
+        )}
+      </View>
+
+      <EmptyView height={24} />
+      <ButtonComponent
+        disabled={!accountNumber || !selectedBankName || !accountName || mutationAddBank.isPending}
+        isLoading={mutationAddBank.isPending}
+        color={primaryColor}
+        text="Add Bank Account"
+        textcolor="#ffffff"
+        onPress={handleSubmit}
+      />
+    </View>
   );
 };
 
 export default BankDetails;
 
-interface BankDetailsCard{
-    showmodal?:boolean
+interface BankDetailsCardProps {
+  showmodal?: boolean;
 }
-export const BankDetailsCard = ({showmodal}:BankDetailsCard) => {
+
+export const BankDetailsCard = ({ showmodal }: BankDetailsCardProps) => {
   const { theme } = useTheme();
-  const { selectioncardColor,primaryColor,backgroundColortwo } = getColors(theme);
+  const { selectioncardColor, primaryColor, secondaryTextColor, backgroundColortwo } = getColors(theme);
+  const isDark = theme === "dark";
+  const toast = useToast();
 
   const [bankDetails, setBankDetails] = useState<BankRecipient[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [selectedRecipientCode, setSelectedRecipientCode] = useState<string | null>(null);
 
-
   const mutation = useMutation({
     mutationFn: getAccountFn,
-    onSuccess: (response) => {
-      setBankDetails(response.data);
-    },
+    onSuccess: (response) => setBankDetails(response.data),
     onError: (error: any) => {
-      console.error(
-        error?.response?.data?.message || error?.message || "An unexpected error occurred"
-      );
+      const msg = error?.response?.data?.message || error?.message || "Failed to load accounts";
+      toast.error("Error", msg);
     },
   });
 
   const mutationDelete = useMutation({
     mutationFn: deleteAccountFn,
-    onSuccess: (response) => {
-      setBankDetails(response.data);
+    onSuccess: () => {
+      toast.success("Deleted", "Bank account removed successfully");
       setConfirmVisible(false);
       setSelectedRecipientCode(null);
-
+      fetchBankDetails();
     },
     onError: (error: any) => {
-      console.error(
-        error?.response?.data?.message || error?.message || "An unexpected error occurred"
-      );
+      const msg = error?.response?.data?.message || error?.message || "Failed to delete account";
+      toast.error("Error", msg);
     },
   });
 
-  const handleDelete = (recipientCode: string) => {
-    mutationDelete.mutate(recipientCode);
-  };
-
-
-
   const fetchBankDetails = () => {
     setRefreshing(true);
-    mutation.mutate(undefined, {
-      onSettled: () => {
-        setRefreshing(false);
-      },
-    });
+    mutation.mutate(undefined, { onSettled: () => setRefreshing(false) });
   };
 
   useEffect(() => {
@@ -282,99 +222,78 @@ export const BankDetailsCard = ({showmodal}:BankDetailsCard) => {
   }, [showmodal]);
 
   const handleDeleteConfirm = () => {
-    if (selectedRecipientCode) {
-      mutationDelete.mutate(selectedRecipientCode);
-    }
+    if (selectedRecipientCode) mutationDelete.mutate(selectedRecipientCode);
   };
 
-  if (mutation.isPending && !refreshing) return <ActivityIndicator size="small" />;
+  if (mutation.isPending && !refreshing) {
+    return (
+      <View style={{ paddingVertical: 20, alignItems: "center" }}>
+        <ActivityIndicator size="small" color={primaryColor} />
+      </View>
+    );
+  }
+
   return (
     <>
-    <FlatList
-      data={bankDetails}
-      keyExtractor={(item) => item.recipientCode}
-      contentContainerStyle={{ paddingVertical: 12 }}
-      showsVerticalScrollIndicator={false}
-      refreshing={refreshing}
-      onRefresh={fetchBankDetails}
-      ListEmptyComponent={
-        <View className="w-full h-32 justify-center items-center">
-          <Text className="text-gray-500">No bank details found.</Text>
-        </View>
-      }
-      renderItem={({ item }) => (
-        <View
-          style={{ backgroundColor: selectioncardColor }}
-          className="w-full h-24 p-3 mb-3 rounded-lg flex-row justify-between"
-        >
-          <View className="h-full justify-center">
-            <ThemeText size={Textstyles.text_xsmall}>{item.name}</ThemeText>
-            <ThemeText size={Textstyles.text_xxmedium}>
-              {item.bank} - {item.number}
-            </ThemeText>
+      <FlatList
+        data={bankDetails}
+        keyExtractor={(item) => item.recipientCode}
+        scrollEnabled={false}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={{ paddingVertical: 24, alignItems: "center" }}>
+            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: selectioncardColor, alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
+              <FontAwesome5 name="university" size={18} color={secondaryTextColor} />
+            </View>
+            <Text style={{ fontSize: 12, color: secondaryTextColor, fontStyle: "italic" }}>No bank accounts added yet</Text>
           </View>
-
-          <View className="h-full justify-center">
+        }
+        renderItem={({ item }) => (
+          <View
+            style={{ backgroundColor: selectioncardColor, borderRadius: 14, padding: 14, marginBottom: 10, flexDirection: "row", alignItems: "center" }}
+          >
+            <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: primaryColor + "15", alignItems: "center", justifyContent: "center" }}>
+              <FontAwesome5 name="university" size={14} color={primaryColor} />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={{ fontSize: 13, fontWeight: "600", color: isDark ? "#F9FAFB" : "#111827" }}>{item.name}</Text>
+              <Text style={{ fontSize: 11, color: secondaryTextColor, marginTop: 2 }}>{item.bank} - {item.number}</Text>
+            </View>
             <TouchableOpacity
               onPress={() => {
                 setSelectedRecipientCode(item.recipientCode);
                 setConfirmVisible(true);
               }}
-              className="rounded-full h-12 w-12 justify-center items-center"
+              style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: backgroundColortwo + '15', alignItems: "center", justifyContent: "center" }}
             >
-              <View className="rounded-full h-12 w-12 bg-red-300 opacity-50 absolute" />
-              <FontAwesome5 name="trash" color="red" size={16} />
+              <FontAwesome5 name="trash" color={backgroundColortwo} size={13} />
             </TouchableOpacity>
           </View>
-        </View>
-      )}
-    />
+        )}
+      />
 
-    {/* Confirm Modal */}
-    <Modal
-      transparent
-      animationType="fade"
-      visible={confirmVisible}
-      onRequestClose={() => setConfirmVisible(false)}
-    >
-      <View className="flex-1 bg-black/40 justify-center items-center">
-        <View style={{backgroundColor:selectioncardColor}} className="bg-white rounded-lg p-6 w-[80%]">
-            <ThemeText size={Textstyles.text_cmedium}>
-            <Text className="font-semibold mb-4 text-center">Confirm Delete</Text>
-            </ThemeText>
-          
-          <ThemeTextsecond size={Textstyles.text_xxxsmall}>
-            <Text className="text-center">
-            Are you sure you want to delete this bank account?
-
-            </Text>
-          </ThemeTextsecond>
-<EmptyView height={10}/>
-          <View className="flex-row justify-between gap-x-3 w-full">
-            <View className="w-[30%]">
-            <ButtonComponent
-              color="#ccc"
-              text="Cancel"
-              textcolor="#333"
-              onPress={() => setConfirmVisible(false)}
-            />
-
+      <Modal transparent animationType="fade" visible={confirmVisible} onRequestClose={() => setConfirmVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center" }}>
+          <View style={{ backgroundColor: selectioncardColor, borderRadius: 16, padding: 24, width: "80%" }}>
+            <View style={{ alignItems: "center", marginBottom: 16 }}>
+              <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: backgroundColortwo + '15', alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+                <FontAwesome5 name="trash" size={18} color={backgroundColortwo} />
+              </View>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: isDark ? "#F9FAFB" : "#111827", textAlign: "center" }}>Delete Bank Account?</Text>
+              <Text style={{ fontSize: 12, color: secondaryTextColor, textAlign: "center", marginTop: 6 }}>This action cannot be undone</Text>
             </View>
-            <View className="w-[30%]">
-           
-            <ButtonComponent
-              color={primaryColor}
-              text="Delete"
-              textcolor="#fff"
-              isLoading={mutationDelete.isPending}
-              onPress={handleDeleteConfirm}
-            />
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <ButtonComponent color="#E5E7EB" text="Cancel" textcolor="#374151" onPress={() => setConfirmVisible(false)} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ButtonComponent color={backgroundColortwo} text="Delete" textcolor="#fff" isLoading={mutationDelete.isPending} onPress={handleDeleteConfirm} />
+              </View>
             </View>
           </View>
         </View>
-      </View>
-    </Modal>
-  </>
+      </Modal>
+    </>
   );
 };
 

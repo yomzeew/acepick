@@ -5,16 +5,19 @@ import { ProductData } from 'types/productdataType';
 import { ProductTransaction } from 'types/productTransType';
 import { Product } from 'types/type';
 import { 
+  addProductUrl,
   getBoughtProductUrl, 
   getCategoriesUrl, 
   getProductmineUrl, 
-  getProductTransUrl, 
+  getProductTransactionByIdUrl, 
+  getProductTransUrl,
+  getProductUrl,
   getSoldProductUrl, 
   productUrl, 
-  selectProdectUrl, 
-  uploadProductUrl 
+  selectProdectUrl
 } from 'utilizes/endpoints';
 import MockDataService from './mockDataService';
+import { uploadProductImages } from './supabaseStorage';
 
 // Type definitions
 
@@ -56,16 +59,8 @@ const createAuthHeaders = () => {
 // API functions with proper typing and error handling
 export const getCategories = async (): Promise<Category[]> => {
   try {
-    const token = getAuthToken();
-    if (!token) {
-      throw new Error('Authentication required');
-    }
-
-    const response: AxiosResponse<ApiResponse<Category[]>> = await axios.get(getCategoriesUrl, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    // Categories are public, no auth needed
+    const response: AxiosResponse<ApiResponse<Category[]>> = await axios.get(getCategoriesUrl);
     return response.data.data || [];
   } catch (error: any) {
     throw new Error(error?.response?.data?.message || 'Failed to fetch categories');
@@ -75,7 +70,7 @@ export const getCategories = async (): Promise<Category[]> => {
 export const addproductFn = async (data: Partial<ProductData>): Promise<ApiResponse> => {
   try {
     const headers = createAuthHeaders();
-    const response: AxiosResponse<ApiResponse> = await axios.post(productUrl, data, { headers });
+    const response: AxiosResponse<ApiResponse> = await axios.post(addProductUrl, data, { headers });
     return response.data;
   } catch (error: any) {
     throw new Error(error?.response?.data?.message || 'Failed to add product');
@@ -84,21 +79,13 @@ export const addproductFn = async (data: Partial<ProductData>): Promise<ApiRespo
 
 export const getproductFn = async (query: string): Promise<Product[]> => {
   try {
-    const token = getAuthToken();
-    if (!token) {
-      throw new Error('Authentication required');
-    }
-
-    const response: AxiosResponse<ApiResponse<Product[]>> = await axios.get(`${productUrl}?${query}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    // For public products endpoint, no auth needed
+    const response: AxiosResponse<ApiResponse<Product[]>> = await axios.get(`${productUrl}?${query}`);
     return response.data.data || [];
   } catch (error: any) {
-    // If server is unavailable, fall back to mock data
-    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-      console.log('Server unavailable, using mock data for products');
+    // If server is unavailable or returns error, fall back to mock data
+    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error' || error.response?.status >= 400) {
+      console.log('Server error, using mock data for products:', error.response?.data?.message || error.message);
       const mockProducts: Product[] = [
         {
           id: 1,
@@ -225,7 +212,8 @@ export const getproductByIdFn = async (id: number): Promise<ProductData> => {
       throw new Error('Authentication required');
     }
 
-    const response: AxiosResponse<ApiResponse<ProductData>> = await axios.get(`${productUrl}/${id}`, {
+    const url = getProductUrl(String(id));
+    const response: AxiosResponse<ApiResponse<ProductData>> = await axios.get(url, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -236,22 +224,17 @@ export const getproductByIdFn = async (id: number): Promise<ProductData> => {
   }
 };
 
-export const uploadProduct = async (data: FormData): Promise<ApiResponse> => {
+/**
+ * Upload product images to Supabase Storage.
+ * @param uris - Array of local image URIs
+ * @returns API-shaped response with { data: { urls: string[] } }
+ */
+export const uploadProduct = async (uris: string[]): Promise<ApiResponse> => {
   try {
-    const token = getAuthToken();
-    if (!token) {
-      throw new Error('Authentication required');
-    }
-
-    const response: AxiosResponse<ApiResponse> = await axios.post(uploadProductUrl, data, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
+    const urls = await uploadProductImages(uris);
+    return { success: true, message: 'success', data: { urls } };
   } catch (error: any) {
-    throw new Error(error?.response?.data?.message || 'Failed to upload product');
+    throw new Error(error?.message || 'Failed to upload product');
   }
 };
 
@@ -327,10 +310,14 @@ export const getBoughtProduct = async (): Promise<ProductTransaction[]> => {
   }
 };
 
-export const selectProduct = async (productId: number): Promise<ApiResponse> => {
+export const selectProduct = async (params: { 
+  productId: number; 
+  quantity?: number; 
+  orderMethod?: 'delivery' | 'self_pickup' 
+}): Promise<ApiResponse> => {
   try {
     const headers = createAuthHeaders();
-    const response: AxiosResponse<ApiResponse> = await axios.post(selectProdectUrl, { productId }, { headers });
+    const response: AxiosResponse<ApiResponse> = await axios.post(selectProdectUrl, params, { headers });
     return response.data;
   } catch (error: any) {
     throw new Error(error?.response?.data?.message || 'Failed to select product');
@@ -347,7 +334,7 @@ export const getProductByTransactionFn = async ({ id }: { id: number }): Promise
       throw new Error('Authentication required');
     }
 
-    const response: AxiosResponse<ApiResponse> = await axios.get(`${getProductTransUrl}/${id}`, {
+    const response: AxiosResponse<ApiResponse> = await axios.get(getProductTransactionByIdUrl(String(id)), {
       headers: {
         Authorization: `Bearer ${token}`,
       },

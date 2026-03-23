@@ -14,7 +14,7 @@ const statusOptions = [
     { value: 'PENDING', label: 'Pending', bg: 'bg-orange-100', text: 'text-orange-800' },
     { value: 'DECLINED', label: 'Declined', bg: 'bg-red-100', text: 'text-red-800' },
     { value: 'REJECTED', label: 'Rejected', bg: 'bg-red-100', text: 'text-red-800' },
-    { value: 'CANCELED', label: 'Canceled', bg: 'bg-red-100', text: 'text-red-800' },
+    { value: 'CANCELLED', label: 'Cancelled', bg: 'bg-red-100', text: 'text-red-800' },
     { value: 'ONGOING', label: 'Ongoing', bg: 'bg-purple-100', text: 'text-purple-800' },
     { value: '', label: 'All Statuses', bg: 'bg-gray-100', text: 'text-gray-800' }
 ];

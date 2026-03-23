@@ -2,22 +2,23 @@ import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 import { ThemeText, ThemeTextsecond } from "component/ThemeText";
 import { useTheme } from "hooks/useTheme";
 import { useEffect, useState } from "react";
-import { TouchableOpacity, View, Text, Modal, StyleSheet, ScrollView, Alert,Image } from "react-native";
+import { TouchableOpacity, View, Text, Modal, StyleSheet, ScrollView, Alert, Image, Dimensions } from "react-native";
 import { getColors } from "static/color";
 import { Textstyles } from "static/textFontsize";
-import { DeliveryData } from "types/type";
+import { DeliveryData, OrderStatusType } from "types/type";
 import * as Location from "expo-location";
 import EmptyView from "component/emptyview";
 import ContainerTemplate from "component/dashboardComponent/containerTemplate";
 import ClientDetails, { ClientDetailsForProf } from "component/dashboardComponent/clientdetail";
-import { acceptDeliveryFn, confirmDeliverdFn, confirmPickupFn, deliveredFn, inTransitFn, PickupFn } from "services/deliveryServices";
+import { acceptDeliveryFn, confirmDeliverdFn, confirmPickupFn, deliveredFn, enRouteToPickupFn, arrivedAtPickupFn, arrivedAtDropoffFn, PickupFn } from "services/deliveryServices";
 import { useMutation } from "@tanstack/react-query";
-import { Delivery } from "types/orderRider";
 import { useRouter } from "expo-router";
 import { getInitials } from "utilizes/initialsName";
 
+const { width: screenWidth } = Dimensions.get('window');
+
 interface ShippingCardProps {
-    item: Delivery
+    item: DeliveryData
     onPress?: () => void;
     showModal?: boolean
     setShowModal?: (value: boolean) => void
@@ -29,20 +30,65 @@ interface ShippingCardProps {
 
   
   
-  const statusColors: Record<string, string> = {
-    pending: "#FFA500",
-    accepted: "#1E90FF",
-    picked_up: "#9370DB",
-    confirm_pickup: "#20B2AA",
-    in_transit: "#FFD700",
-    delivered: "#32CD32",
-    confirm_delivery: "#006400",
-    cancelled: "#FF0000",
+  // Status colors are resolved per-component using theme colors
+  const getStatusColors = (primaryColor: string, backgroundColortwo: string): Record<OrderStatusType, string> => ({
+    pending: backgroundColortwo,
+    paid: backgroundColortwo,
+    accepted: primaryColor,
+    en_route_to_pickup: primaryColor,
+    arrived_at_pickup: primaryColor,
+    picked_up: primaryColor,
+    confirm_pickup: primaryColor,
+    in_transit: primaryColor,
+    arrived_at_dropoff: primaryColor,
+    delivered: primaryColor,
+    confirm_delivery: primaryColor,
+    cancelled: backgroundColortwo,
+    disputed: backgroundColortwo,
+    expired: backgroundColortwo,
+    not_required: backgroundColortwo,
+  });
+
+  const statusLabels: Record<OrderStatusType, string> = {
+    pending: "Pending",
+    paid: "Paid",
+    accepted: "Accepted",
+    en_route_to_pickup: "En Route to Pickup",
+    arrived_at_pickup: "At Pickup",
+    picked_up: "Picked Up",
+    confirm_pickup: "Pickup Confirmed",
+    in_transit: "In Transit",
+    arrived_at_dropoff: "At Dropoff",
+    delivered: "Delivered",
+    confirm_delivery: "Completed",
+    cancelled: "Cancelled",
+    disputed: "Disputed",
+    expired: "Expired",
+    not_required: "Not Required",
+  };
+
+  const statusIcons: Record<OrderStatusType, keyof typeof Ionicons.glyphMap> = {
+    pending: "time-outline",
+    paid: "time-outline",
+    accepted: "checkmark-circle-outline",
+    en_route_to_pickup: "car-outline",
+    arrived_at_pickup: "location-outline",
+    picked_up: "cube-outline",
+    confirm_pickup: "checkmark-done-outline",
+    in_transit: "navigate-outline",
+    arrived_at_dropoff: "flag-outline",
+    delivered: "home-outline",
+    confirm_delivery: "checkmark-done",
+    cancelled: "close-circle-outline",
+    disputed: "alert-circle-outline",
+    expired: "hourglass-outline",
+    not_required: "information-circle-outline",
   };
 const OrderCard: React.FC<ShippingCardProps> = ({ item,onRefresh }) => {
 
     const { theme } = useTheme();
-    const { selectioncardColor,backgroundColor } = getColors(theme);
+    const { selectioncardColor, backgroundColor, primaryColor, backgroundColortwo, secondaryTextColor, borderColor } = getColors(theme);
+    const statusColors = getStatusColors(primaryColor, backgroundColortwo);
     const [showModal, setShowModal] = useState<boolean>(false)
     const [successMessage, setSuccessMessage] = useState<string | null>("")
     const [errorMessage, setErrorMessage] = useState<string | null>("")
@@ -127,62 +173,147 @@ const OrderCard: React.FC<ShippingCardProps> = ({ item,onRefresh }) => {
                 onPress={() => setShowModal(true)}
                 style={{
                     backgroundColor: selectioncardColor,
-                    padding: 15,
-                    marginBottom: 10,
-                    borderRadius: 10,
+                    padding: 16,
+                    marginBottom: 12,
+                    borderRadius: 16,
                     shadowColor: "#000",
-                    shadowOpacity: 0.1,
+                    shadowOpacity: 0.08,
                     shadowOffset: { width: 0, height: 2 },
-                    shadowRadius: 4,
+                    shadowRadius: 8,
                     elevation: 3,
+                    borderLeftWidth: 4,
+                    borderLeftColor: statusColors[item.status],
                 }}
                 className="w-full"
             >
-                {/* Order header */}
-                <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 10 }}>
-                    <ThemeText size={Textstyles.text_cmedium}>Order #{item.id}</ThemeText>
+                {/* Order header with status */}
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                    <View style={{ flex: 1 }}>
+                        <ThemeText size={Textstyles.text_cmedium} className="font-semibold">Order #{item.id}</ThemeText>
+                        <ThemeTextsecond>
+                            {item.productTransaction.product.name}
+                        </ThemeTextsecond>
+                    </View>
                     <View
                         style={{
-                            backgroundColor: statusColors[item.status],
-                            paddingVertical: 3,
-                            paddingHorizontal: 8,
+                            backgroundColor: statusColors[item.status] + '20',
+                            borderWidth: 1,
+                            borderColor: statusColors[item.status],
+                            paddingVertical: 4,
+                            paddingHorizontal: 10,
                             borderRadius: 20,
+                            flexDirection: 'row',
+                            alignItems: 'center',
                         }}
                     >
-                        <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>{item.status}</Text>
+                        <Ionicons name={statusIcons[item.status]} size={12} color={statusColors[item.status]} />
+                        <Text style={{ color: statusColors[item.status], fontSize: 11, fontWeight: "600", marginLeft: 4 }}>
+                            {statusLabels[item.status]}
+                        </Text>
                     </View>
                 </View>
 
-                {/* Pickup */}
-                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
-                    <Ionicons name="location-outline" size={16} color="#1E90FF" />
-                    <ThemeTextsecond>
-                        {pickupAddress || "Loading pickup address..."}
-                    </ThemeTextsecond>
+                {/* Product info */}
+                <View style={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb', borderRadius: 8, padding: 12, marginBottom: 12 }}>
+                    <View className="flex-row items-center justify-between">
+                        <View className="flex-1">
+                            <Text style={{ fontSize: 12, color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: 4 }}>Product</Text>
+                            <Text style={{ fontSize: 14, fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#111827' }}>
+                                {item.productTransaction.product.name}
+                            </Text>
+                            <Text style={{ fontSize: 12, color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: 4 }}>
+                                Qty: {item.productTransaction.quantity} • ₦{item.productTransaction.price}
+                            </Text>
+                        </View>
+                        <View style={{ backgroundColor: primaryColor + '15', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 }}>
+                            <Text style={{ color: primaryColor, fontWeight: '600' }}>₦{item.cost}</Text>
+                        </View>
+                    </View>
                 </View>
 
-                {/* Destination */}
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Ionicons name="flag-outline" size={16} color="#32CD32" />
-                    <ThemeTextsecond>
-                        {destinationAddress || "Loading destination address..."}
-                    </ThemeTextsecond>
+                {/* Route info */}
+                <View style={{ marginBottom: 12 }}>
+                    <View className="flex-row items-start" style={{ marginBottom: 8 }}>
+                        <View style={{ 
+                            width: 24, 
+                            height: 24, 
+                            borderRadius: 12, 
+                            backgroundColor: primaryColor + '15', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            marginRight: 12, 
+                            marginTop: 2 
+                        }}>
+                            <Ionicons name="location" size={14} color={primaryColor} />
+                        </View>
+                        <View className="flex-1">
+                            <Text style={{ fontSize: 12, color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: 4 }}>Pickup</Text>
+                            <Text style={{ fontSize: 14, color: theme === 'dark' ? '#f3f4f6' : '#111827' }}>
+                                {pickupAddress || "Loading pickup address..."}
+                            </Text>
+                        </View>
+                    </View>
+                    
+                    <View className="flex-row items-start">
+                        <View style={{ 
+                            width: 24, 
+                            height: 24, 
+                            borderRadius: 12, 
+                            backgroundColor: backgroundColortwo + '15', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            marginRight: 12, 
+                            marginTop: 2 
+                        }}>
+                            <Ionicons name="flag" size={14} color={backgroundColortwo} />
+                        </View>
+                        <View className="flex-1">
+                            <Text style={{ fontSize: 12, color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: 4 }}>Dropoff</Text>
+                            <Text style={{ fontSize: 14, color: theme === 'dark' ? '#f3f4f6' : '#111827' }}>
+                                {destinationAddress || "Loading destination address..."}
+                            </Text>
+                        </View>
+                    </View>
                 </View>
 
-                {/* Fare */}
-                <ThemeTextsecond>Fare: ₦{item.cost}</ThemeTextsecond>
-                <EmptyView height={10} />
+                {/* Distance and time info */}
+                {(item.distance || item.expiresAt) && (
+                    <View className="flex-row items-center justify-between" style={{ marginBottom: 12 }}>
+                        {item.distance && (
+                            <View className="flex-row items-center">
+                                <Ionicons name="navigate" size={14} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
+                                <Text style={{ fontSize: 12, color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginLeft: 4 }}>
+                                    {item.distance ? `${item.distance.toFixed(1)} km` : 'N/A'}
+                                </Text>
+                            </View>
+                        )}
+                        {item?.expiresAt && (
+                            <View className="flex-row items-center">
+                                <Ionicons name="time" size={14} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
+                                <Text style={{ fontSize: 12, color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginLeft: 4 }}>
+                                    Expires: {new Date(item?.expiresAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                )}
 
-                {/* Progress Bar for Delivery Status */}
-                <View style={{ height: 6, backgroundColor: "#E0E0E0", borderRadius: 4 }}>
-                    <View
-                        style={{
-                            width: `${getProgressWidth(item.status)}%`,
-                            height: "100%",
-                            backgroundColor: statusColors[item.status],
-                            borderRadius: 4,
-                        }}
-                    />
+                {/* Progress Bar */}
+                <View>
+                    <View className="flex-row items-center justify-between" style={{ marginBottom: 4 }}>
+                        <Text style={{ fontSize: 12, color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>Progress</Text>
+                        <Text style={{ fontSize: 12, color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>{getProgressWidth(item.status)}%</Text>
+                    </View>
+                    <View style={{ height: 8, backgroundColor: borderColor, borderRadius: 4 }}>
+                        <View
+                            style={{
+                                width: `${getProgressWidth(item.status)}%`,
+                                height: "100%",
+                                backgroundColor: statusColors[item.status],
+                                borderRadius: 4,
+                            }}
+                        />
+                    </View>
                 </View>
             </TouchableOpacity>
             <Modal
@@ -202,7 +333,7 @@ const OrderCard: React.FC<ShippingCardProps> = ({ item,onRefresh }) => {
                                 style={styles.closeButton}
                                 onPress={() => setShowModal(false)}
                             >
-                                <FontAwesome5 color="red" size={24} name="times-circle" />
+                                <FontAwesome5 color={backgroundColortwo} size={24} name="times-circle" />
                             </TouchableOpacity>
                             </View>
                         
@@ -218,22 +349,30 @@ const OrderCard: React.FC<ShippingCardProps> = ({ item,onRefresh }) => {
 // Helper: map status to progress %
 const getProgressWidth = (status: string): number => {
     switch (status) {
-      case "pending":
+      case "paid":
         return 10;
       case "accepted":
-        return 25;
-      case "picked_up":
+        return 20;
+      case "en_route_to_pickup":
+        return 30;
+      case "arrived_at_pickup":
         return 40;
+      case "picked_up":
+        return 50;
       case "confirm_pickup":
-        return 55;
+        return 60;
       case "in_transit":
-        return 70;
+        return 75;
+      case "arrived_at_dropoff":
+        return 90;
       case "delivered":
-        return 85;
+        return 95;
       case "confirm_delivery":
         return 100;
       case "cancelled":
         return 100; // stays at full bar but maybe show red
+      case "expired":
+        return 0;
       default:
         return 0;
     }
@@ -242,13 +381,18 @@ export default OrderCard
 
 // Status Flow
 const statusFlow = [
+    { value: "paid", label: "Awaiting Rider" },              // order paid, waiting for rider
     { value: "accepted", label: "Rider Accepted" },          // rider accepts
-    { value: "picked_up", label: "Picked Up" },          // rider accepts
-    { value: "confirm_pickup", label: "Seller Confirmed Pickup" },// seller hands item
-    { value: "in_transit", label: "Rider In Transit" },      // rider moving
-    { value: "delivered", label: "Rider Delivered" },        // rider drops item
-    { value: "confirm_delivery", label: "Buyer Confirmed Delivery" }, // buyer confirms
-    { value: "missed", label: "Missed" }                     // fallback
+    { value: "en_route_to_pickup", label: "En Route to Pickup" }, // rider heading to pickup
+    { value: "arrived_at_pickup", label: "At Pickup Location" }, // rider at pickup
+    { value: "picked_up", label: "Picked Up" },              // rider picks up item
+    { value: "confirm_pickup", label: "Pickup Confirmed" },  // seller confirms pickup
+    { value: "in_transit", label: "In Transit" },            // rider moving to dropoff
+    { value: "arrived_at_dropoff", label: "At Dropoff" },    // rider at dropoff
+    { value: "delivered", label: "Delivered" },              // rider drops item
+    { value: "confirm_delivery", label: "Completed" },        // buyer confirms
+    { value: "cancelled", label: "Cancelled" },
+    { value: "expired", label: "Expired" }
   ];
   
   // Status Actions
@@ -256,20 +400,24 @@ const statusFlow = [
     string,
     { label: string; fn: (id: number) => Promise<any> }
   > = {
-    accepted: { label: "Accept Order", fn: acceptDeliveryFn },             // seller confirms handover
-    picked_up: { label: "Mark Pickup", fn: PickupFn },          // rider starts transit
-    confirm_pickup: { label: "Confirm Pickup", fn: confirmPickupFn },          
-    in_transit: { label: "Start Transit", fn: inTransitFn },        // rider delivers
-    delivered: { label: "Mark Delivery", fn: deliveredFn}, // buyer confirms
-    confirm_delivery: { label: "Mark Delivery", fn: confirmDeliverdFn },   // end
-    missed: { label: "Missed", fn: async () => {} },                 // no-op
+    accepted: { label: "En Route to Pickup", fn: enRouteToPickupFn },
+    en_route_to_pickup: { label: "Arrived at Pickup", fn: arrivedAtPickupFn },
+    arrived_at_pickup: { label: "Mark Pickup", fn: PickupFn },
+    picked_up: { label: "Confirm Pickup", fn: confirmPickupFn },
+    confirm_pickup: { label: "Arrived at Dropoff", fn: arrivedAtDropoffFn },
+    in_transit: { label: "Arrived at Dropoff", fn: arrivedAtDropoffFn },
+    arrived_at_dropoff: { label: "Mark Delivered", fn: deliveredFn },
+    delivered: { label: "Confirm Delivery", fn: confirmDeliverdFn },
+    confirm_delivery: { label: "Completed", fn: async () => {} },
+    missed: { label: "Missed", fn: async () => {} },
     cancelled: { label: "Cancelled", fn: async () => {} },           // no-op
   };
 
 
  const DeliveryDetails = ({ item,onRefresh }: ShippingCardProps) => {
     const { theme } = useTheme();
-    const { primaryColor } = getColors(theme);
+    const { primaryColor, backgroundColortwo } = getColors(theme);
+    const statusColors = getStatusColors(primaryColor, backgroundColortwo);
   
     const mutation = useMutation({
         mutationFn: ({ id, status }: { id: number; status: string }) =>
@@ -365,14 +513,29 @@ const statusFlow = [
   
         {/* Buyer & Seller */}
         <View className="mb-4">
-      
           <ThemeText size={Textstyles.text_small}>From</ThemeText>
-          <UserDetailsComp firstName={item.productTransaction.seller.profile.firstName} lastName={item.productTransaction.seller.profile.lastName} userId={item.productTransaction.sellerId} avatar={item.productTransaction.seller.profile.avatar} />
+          {item.productTransaction.seller?.profile ? (
+            <UserDetailsComp 
+              firstName={item.productTransaction.seller.profile.firstName} 
+              lastName={item.productTransaction.seller.profile.lastName} 
+              userId={item.productTransaction.sellerId} 
+              avatar={item.productTransaction.seller.profile.avatar ?? ''} 
+            />
+          ) : (
+            <ThemeTextsecond>Seller information unavailable</ThemeTextsecond>
+          )}
           <EmptyView height={10} />
           <ThemeText size={Textstyles.text_small}>To</ThemeText>
-          <UserDetailsComp firstName={item.productTransaction.buyer.profile.firstName} lastName={item.productTransaction.buyer.profile.lastName} userId={item.productTransaction.buyerId} avatar={item.productTransaction.buyer.profile.avatar} />
-  
-        
+          {item.productTransaction.buyer?.profile ? (
+            <UserDetailsComp 
+              firstName={item.productTransaction.buyer.profile.firstName} 
+              lastName={item.productTransaction.buyer.profile.lastName} 
+              userId={item.productTransaction.buyerId} 
+              avatar={item.productTransaction.buyer.profile.avatar ?? ''} 
+            />
+          ) : (
+            <ThemeTextsecond>Buyer information unavailable</ThemeTextsecond>
+          )}
         </View>
   
         {/* Action Button */}

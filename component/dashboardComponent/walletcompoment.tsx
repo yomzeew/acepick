@@ -1,82 +1,95 @@
 import { ImageBackground, Text, TouchableOpacity, View, Pressable } from "react-native"
 import { Textstyles } from "../../static/textFontsize"
 import { FontAwesome5 } from "@expo/vector-icons"
-import { useEffect, useState } from "react"
-import { useSelector } from "react-redux"
-import { RootState } from "redux/store"
-import { Wallet } from "types/type"
-import { useMutation } from "@tanstack/react-query"
-import { walletView } from "services/userService"
-import { formatAmount, formatNaira } from "utilizes/amountFormat"
+import { useState } from "react"
+import { useSelector, useDispatch } from "react-redux"
+import { RootState } from "../../redux/store"
+import { Wallet } from "../../types/type"
+import { formatAmount, formatNaira } from "../../utilizes/amountFormat"
+import { useRouter } from "expo-router"
+import { fetchTransactionsAsync } from "../../redux/slices/walletSlice"
 
 interface WalletCardProps {
     setshowmodal: (value: boolean) => void;
     showmodal: boolean;
     refreshTrigger?: boolean;
-    setshowwithdraw?: (value: boolean) => void; // Add withdraw modal handler
+    setshowwithdraw?: (value: boolean) => void;
     showwithdraw?: boolean;
   }
   
   const WalletCard = ({ setshowmodal, showmodal, refreshTrigger, setshowwithdraw, showwithdraw }: WalletCardProps) => {
-    const role=useSelector((state:RootState)=>state?.auth.user?.role)
+    const role = useSelector((state: RootState) => state?.auth.user?.role)
     const wallet: Wallet | null = useSelector((state: RootState) => state?.auth.user?.wallet) ?? null;
     const [hide, setshowhide] = useState<boolean>(false);
-    const [currentBalance, setCurrentBalance] = useState<number>(wallet?.currentBalance || 0);
-    const [isPressed, setIsPressed] = useState<boolean>(false);
-  
-    const mutation = useMutation({
-      mutationFn: walletView,
-      onSuccess: async (response) => {
-        setCurrentBalance(response.data?.currentBalance || 0);
-      },
-      onError: (error: any) => {
-        console.error("Wallet fetch failed:", error.message);
-      },
-    });
-  
-    useEffect(() => {
-      mutation.mutate();
-    }, [refreshTrigger]); // 👈 Re-fetch on refreshTrigger change
+    const currentBalance = wallet?.currentBalance || 0;
+    const router = useRouter();
+    const dispatch = useDispatch();
   
     const handleshow = () => setshowhide(!hide);
+    
     const handleshowfundWallet = () => {
         if (role === 'client') {
-            setshowmodal(!showmodal); // Fund wallet for clients
+            setshowmodal(!showmodal);
         } else if (role === 'delivery' || role === 'professional') {
-            setshowwithdraw?.(!showwithdraw); // Withdraw for delivery/professional
+            setshowwithdraw?.(!showwithdraw);
         }
     };
   
+    const handleHistoryPress = () => {
+        // Pre-fetch transactions when navigating to history
+        dispatch(fetchTransactionsAsync() as any);
+        router.push('/billhistorylayout');
+    };
+  
     return (
-      <ImageBackground
-        resizeMode="cover"
-        source={require('../../assets/walletcard.png')}
-        className="w-full h-24 justify-between items-center px-3 flex-row"
-      >
-        <View>
-          <Text style={[Textstyles.text_medium, { color: '#ffffff' }]}>
-            {hide ? `${formatAmount(currentBalance)}` : '******'}
-          </Text>
-          <Pressable
-            onPress={handleshowfundWallet}
-            onPressIn={() => setIsPressed(true)}
-            onPressOut={() => setIsPressed(false)}
-            className={`bg-white rounded-2xl py-2  w-24 items-center justify-center ${isPressed ? 'opacity-80' : 'opacity-100'}`}
-            style={{ transform: [{ scale: isPressed ? 0.95 : 1 }] }}
-          >
-            <Text style={[Textstyles.text_xsma, { color: '#33658A' }]}>
-              {role==='client'?'Fund Wallet':'Withdraw'}
+      <View>
+        <ImageBackground
+          resizeMode="cover"
+          source={require('../../assets/walletcard.png')}
+          className="w-full overflow-hidden rounded-2xl"
+          imageStyle={{ borderRadius: 16 }}
+        >
+          <View className="px-5 py-5">
+            <View className="flex-row justify-between items-center mb-1">
+              <Text style={{ fontFamily: 'TTFirsNeue', fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
+                Available Balance
+              </Text>
+              <TouchableOpacity onPress={handleshow} className="p-1">
+                <FontAwesome5 color="rgba(255,255,255,0.7)" size={16} name={hide ? "eye" : "eye-slash"} />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={[Textstyles.text_medium, { color: '#ffffff', fontSize: 28, lineHeight: 36, marginBottom: 16 }]}>
+              {hide ? `${formatAmount(currentBalance)}` : '••••••'}
             </Text>
-          </Pressable>
-        </View>
-        <TouchableOpacity onPress={handleshow}>
-          {hide?<FontAwesome5 color="#ffffff" size={20} name="eye" />:<FontAwesome5 color="#ffffff" size={20} name="eye-slash" />}
-        </TouchableOpacity>
-      </ImageBackground>
+
+            <View className="flex-row" style={{ gap: 10 }}>
+              <Pressable
+                onPress={handleshowfundWallet}
+                className="flex-row items-center justify-center rounded-xl py-2.5 px-4"
+                style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+              >
+                <FontAwesome5 name={role === 'client' ? "plus" : "arrow-down"} size={12} color="#fff" />
+                <Text style={{ fontFamily: 'TTFirsNeue', fontSize: 13, color: '#ffffff', marginLeft: 6 }}>
+                  {role === 'client' ? 'Fund Wallet' : 'Withdraw'}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={handleHistoryPress}
+                className="flex-row items-center justify-center rounded-xl py-2.5 px-4"
+                style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+              >
+                <FontAwesome5 name="history" size={12} color="#fff" />
+                <Text style={{ fontFamily: 'TTFirsNeue', fontSize: 13, color: '#ffffff', marginLeft: 6 }}>
+                  History
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </ImageBackground>
+      </View>
     );
   };
   
   export default WalletCard;
-
-  
-  

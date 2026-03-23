@@ -7,8 +7,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RoleProvider } from "context/roleContext";
 import { SocketProvider } from "hooks/useSocket";
 import { PersistGate } from "redux-persist/integration/react";
-import NotificationWrapper from "./NotificationWrapper";
 import { CallProvider } from "context/WebRtcContext";
+import { VideoCallProvider } from "context/VideoCallContext";
+import { NotificationWrapper } from "./NotificationWrapper";
 
 
 
@@ -18,20 +19,20 @@ const AppProvider = ({ children }: { children: ReactNode }) => {
     <RoleProvider>
       <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
-        <NotificationWrapper>
         <QueryClientProvider client={queryClient}>
          <SocketProvider>
        
          <CallProvider>
+          <VideoCallProvider>
           <GestureHandlerRootView>
-            {children}
+            <NotificationWrapper>
+              {children}
+            </NotificationWrapper>
           </GestureHandlerRootView>
+          </VideoCallProvider>
           </CallProvider>
-         
-        
           </SocketProvider>
         </QueryClientProvider>
-        </NotificationWrapper>
         
         </PersistGate>
       </Provider>

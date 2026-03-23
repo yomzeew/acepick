@@ -8,7 +8,7 @@ interface EnvironmentConfig {
 
 const environments: Record<string, EnvironmentConfig> = {
   development: {
-    baseUrl: 'https://www.acepickdev.com',
+    baseUrl: 'http://localhost:3000',
     enableLogging: true,
     enableAnalytics: false,
     socketPath: '/chat',

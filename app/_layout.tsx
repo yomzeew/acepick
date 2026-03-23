@@ -11,6 +11,8 @@ import { RootState } from "../redux/store";
 import { StatusBar } from "expo-status-bar";
 import IncomingCallModal from "component/incomingcallModal";
 import ErrorBoundary from "../component/ErrorBoundary";
+import WithNetworkStatus from "../component/withNetworkStatus";
+import { ToastProvider } from "../context/ToastContext";
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -51,17 +53,21 @@ const RootContent = ({ onLayoutRootView }: { onLayoutRootView: () => void }) => 
 
   return (
     <ThemeProvider>
-      <View style={styles.container} onLayout={onLayoutRootView}>
-        <StatusBar style="auto" />
-        <Stack screenOptions={{ headerShown: false }}>
-          {auth ? (
-            <Stack.Screen name="(Authenticated)" />
-          ) : (
-            <Stack.Screen name="(NotAuthenticated)" />
-          )}
-        </Stack>
-        <IncomingCallModal/>
-      </View>
+      <ToastProvider>
+        <WithNetworkStatus>
+          <View style={styles.container} onLayout={onLayoutRootView}>
+            <StatusBar style="auto" />
+            <Stack screenOptions={{ headerShown: false }}>
+              {auth ? (
+                <Stack.Screen name="(Authenticated)" />
+              ) : (
+                <Stack.Screen name="(NotAuthenticated)" />
+              )}
+            </Stack>
+            <IncomingCallModal/>
+          </View>
+        </WithNetworkStatus>
+      </ToastProvider>
     </ThemeProvider>
   );
 };

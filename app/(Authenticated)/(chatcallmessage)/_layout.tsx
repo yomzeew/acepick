@@ -8,8 +8,8 @@ export default function ChatCallLayout() {
       <Stack.Screen name="mainchat/[id]" />
       <Stack.Screen name="callchat/[id]" />
       <Stack.Screen name="callAnswer/[id]" />
-
-    
+      <Stack.Screen name="videocall/[id]" />
+      <Stack.Screen name="videoCallAnswer/[id]" />
     </Stack>
 
  

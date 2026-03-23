@@ -77,7 +77,7 @@ interface AddNewProfessionalProps{
 }
 const AddNewProfessional = ({setShowSlideUp}:AddNewProfessionalProps) => {
     const { theme } = useTheme()
-    const { primaryColor, secondaryTextColor, selectioncardColor, } = getColors(theme)
+    const { primaryColor, secondaryTextColor, selectioncardColor, backgroundColortwo } = getColors(theme)
     const [sector, setSector] = useState("")
     const [profess, setProfess] = useState("")
     const [professionData, setProfessionData] = useState<any[]>([])
@@ -158,7 +158,7 @@ const AddNewProfessional = ({setShowSlideUp}:AddNewProfessionalProps) => {
                         value={sector}
                     />
                     {errors.sector && (
-                        <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                        <Text style={[Textstyles.text_xxxsmall, { color: backgroundColortwo }]} className="mt-1">
                             {errors.sector}
                         </Text>
                     )}
@@ -176,7 +176,7 @@ const AddNewProfessional = ({setShowSlideUp}:AddNewProfessionalProps) => {
                         value={profess}
                     />
                     {errors.profess && (
-                        <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                        <Text style={[Textstyles.text_xxxsmall, { color: backgroundColortwo }]} className="mt-1">
                             {errors.profess}
                         </Text>
                     )}
@@ -195,7 +195,7 @@ const AddNewProfessional = ({setShowSlideUp}:AddNewProfessionalProps) => {
                         }}
                     />
                     {errors.yearsOfExperience && (
-                        <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                        <Text style={[Textstyles.text_xxxsmall, { color: backgroundColortwo }]} className="mt-1">
                             {errors.yearsOfExperience}
                         </Text>
                     )}
@@ -213,7 +213,7 @@ const AddNewProfessional = ({setShowSlideUp}:AddNewProfessionalProps) => {
                         onChange={handleChargeAmountChange}
                     />
                     {errors.chargeAmount && (
-                        <Text style={[Textstyles.text_xxxsmall, { color: '#ef4444' }]} className="mt-1">
+                        <Text style={[Textstyles.text_xxxsmall, { color: backgroundColortwo }]} className="mt-1">
                             {errors.chargeAmount}
                         </Text>
                     )}

@@ -13,7 +13,7 @@ const HeaderComponent=({title}:{title:string | any})=>{
             <BackComponent bordercolor={primaryColor} textcolor={primaryColor} />
         </View>
         <View className="px-3 mt-12">
-            <ThemeText type="primary" size={Textstyles.text_medium}>
+            <ThemeText type="primary" size={Textstyles.text_small}>
                {title}
             </ThemeText>
         </View>

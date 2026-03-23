@@ -38,6 +38,8 @@ const FilterComponent = ({ showmodal, setshowmodal,setfilterData,sector='' }: Fi
     const [professionValue, setProfessionValue] = useState<string>('')
     const [serviceCharge, setServiceCharge] = useState(0);
     const [radiusDistance, setRadiusDistance] = useState(0);
+    const [rating, setRating] = useState(0);
+    const [allowUnverified, setAllowUnverified] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
       const {theme}=useTheme()
@@ -116,8 +118,10 @@ const token:string=useSelector((state:RootState)=>(state.auth?.token)) || ''
         if (lga) queryParts.push(`lga=${encodeURIComponent(lga)}`);
         if (sectorValue) queryParts.push(`sector=${encodeURIComponent(sectorValue)}`);
         if (professionValue) queryParts.push(`profession=${encodeURIComponent(professionValue)}`);
-        if (serviceCharge) queryParts.push(`service_charge=${serviceCharge}`);
-        if (radiusDistance) queryParts.push(`radius=${radiusDistance}`);
+        if (serviceCharge > 0) queryParts.push(`chargeFrom=${serviceCharge}`);
+        if (radiusDistance > 0) queryParts.push(`span=${radiusDistance}`);
+        if (rating > 0) queryParts.push(`rating=${rating}`);
+        if (allowUnverified) queryParts.push(`allowUnverified=true`);
     
         const queryString = queryParts.join('&');
     
@@ -233,6 +237,54 @@ const token:string=useSelector((state:RootState)=>(state.auth?.token)) || ''
                             onValueChange={setRadiusDistance}
                         />
                     </View>
+
+                    <EmptyView height={10} />
+
+                    <View className="w-full">
+                        <ThemeText size={Textstyles.text_small}>
+                            Filter by Rating ({rating} stars)
+                        </ThemeText>
+                        <Slider
+                            style={{ width: '100%', height: 40 }}
+                            minimumValue={0}
+                            maximumValue={5}
+                            step={1}
+                            minimumTrackTintColor={primaryColor}
+                            maximumTrackTintColor={secondaryTextColor}
+                            thumbTintColor={primaryColor}
+                            value={rating}
+                            onValueChange={setRating}
+                        />
+                    </View>
+
+                    <EmptyView height={10} />
+
+                    <View className="w-full flex-row items-center justify-between">
+                        <ThemeText size={Textstyles.text_small}>
+                            Include Unverified Professionals
+                        </ThemeText>
+                        <TouchableOpacity 
+                            onPress={() => setAllowUnverified(!allowUnverified)}
+                            style={{
+                                width: 50,
+                                height: 30,
+                                backgroundColor: allowUnverified ? primaryColor : secondaryTextColor,
+                                borderRadius: 15,
+                                justifyContent: 'center',
+                                alignItems: 'center'
+                            }}
+                        >
+                            <View style={{
+                                width: 26,
+                                height: 26,
+                                backgroundColor: '#ffffff',
+                                borderRadius: 13,
+                                position: 'absolute',
+                                left: allowUnverified ? 22 : 2,
+                            }} />
+                        </TouchableOpacity>
+                    </View>
+
                     <EmptyView height={10} />
                     <ButtonComponent color={primaryColor} text={"Apply"} textcolor={secondaryTextColor} onPress={handleApply}/>
 

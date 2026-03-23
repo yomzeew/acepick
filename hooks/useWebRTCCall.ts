@@ -7,9 +7,10 @@ import {
   MediaStream,
 } from 'react-native-webrtc';
 import { Audio } from "expo-av";
+import { getTurnCredentialsFn } from "services/userService";
 
-const ICE_SERVERS = {
-  iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+const FALLBACK_ICE_SERVERS = {
+  iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }],
 };
 
 export const useWebRtc = (socket: any | null) => {
@@ -19,10 +20,13 @@ export const useWebRtc = (socket: any | null) => {
   const [partnerId, setPartnerId] = useState('');
   const [soundsLoaded, setSoundsLoaded] = useState(false);
 
+  const partnerIdRef = useRef('');
+
   const peerConnection = useRef<RTCPeerConnection | null>(null);
   const localStream = useRef<MediaStream | null>(null);
   const remoteStream = useRef<MediaStream | null>(null);
   const iceCandidatesQueue = useRef<RTCIceCandidate[]>([]);
+  const iceConfig = useRef(FALLBACK_ICE_SERVERS);
 
   const ringtoneSound = useRef<Audio.Sound | null>(null);
   const callToneSound = useRef<Audio.Sound | null>(null);
@@ -107,9 +111,40 @@ export const useWebRtc = (socket: any | null) => {
     }
   };
 
+  /** 🔊 Configure audio session for voice calls */
+  const configureAudioSession = async (speakerOn = false) => {
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: false,
+        playThroughEarpieceAndroid: !speakerOn,
+      });
+    } catch (err) {
+      console.error("🔴 Failed to configure audio session", err);
+    }
+  };
+
+  /** 🔊 Reset audio session after call */
+  const resetAudioSession = async () => {
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: false,
+        staysActiveInBackground: false,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+    } catch (err) {
+      console.warn("⚠️ Failed to reset audio session", err);
+    }
+  };
+
   /** 🎙 Setup local media */
   const initLocalStream = async () => {
     try {
+      await configureAudioSession();
       const stream = await mediaDevices.getUserMedia({ audio: true });
       localStream.current = stream;
     } catch (error) {
@@ -117,9 +152,21 @@ export const useWebRtc = (socket: any | null) => {
     }
   };
 
+  /** Fetch fresh Cloudflare TURN credentials */
+  const fetchIceServers = async () => {
+    try {
+      const creds = await getTurnCredentialsFn();
+      if (creds?.iceServers?.length) {
+        iceConfig.current = creds;
+      }
+    } catch (e) {
+      console.warn('Using fallback ICE servers:', e);
+    }
+  };
+
   /** 🔗 Setup peer connection */
   const initPeerConnection = () => {
-    peerConnection.current = new RTCPeerConnection(ICE_SERVERS);
+    peerConnection.current = new RTCPeerConnection(iceConfig.current);
 
     if (localStream.current) {
       localStream.current.getTracks().forEach((track) => {
@@ -142,17 +189,19 @@ export const useWebRtc = (socket: any | null) => {
     };
 
     (peerConnection.current as any).onicecandidate = (event: any) => {
-      if (event.candidate && partnerId) {
-        socket.emit("ice-candidate", { to: partnerId, candidate: event.candidate });
+      if (event.candidate && partnerIdRef.current) {
+        socket.emit("ice-candidate", { to: partnerIdRef.current, candidate: event.candidate });
       }
     };
   };
 
   /** 📞 Call another user */
   const callUser = async (id: string) => {
+    await fetchIceServers();
     await initLocalStream();
     setIsCalling(true);
     setPartnerId(id);
+    partnerIdRef.current = id;
     initPeerConnection();
 
     const offer = await peerConnection.current!.createOffer({});
@@ -166,6 +215,7 @@ export const useWebRtc = (socket: any | null) => {
   const acceptCall = async () => {
     try {
       if (!incomingCall) throw new Error("No incoming call");
+      await fetchIceServers();
       await initLocalStream();
       initPeerConnection();
 
@@ -202,15 +252,33 @@ export const useWebRtc = (socket: any | null) => {
 
   /** ❌ Hang up or reject */
   const hangUp = async () => {
+    const pid = partnerIdRef.current;
     await cleanWebRtc();
-    if (partnerId) socket.emit("end-call", { to: partnerId });
+    if (pid) socket.emit("end-call", { to: pid });
   };
 
   const rejectCall = async () => {
     await stopRingtone();
     setIncomingCall(null);
     setModalVisible(false);
-    if (partnerId) socket.emit("reject-call", { to: partnerId });
+    if (partnerIdRef.current) socket.emit("reject-call", { to: partnerIdRef.current });
+  };
+
+  /** 🔇 Toggle microphone mute */
+  const toggleMute = () => {
+    if (localStream.current) {
+      const audioTrack = localStream.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        return !audioTrack.enabled; // returns true if now muted
+      }
+    }
+    return false;
+  };
+
+  /** 🔊 Toggle speaker output */
+  const toggleSpeaker = async (speakerOn: boolean) => {
+    await configureAudioSession(speakerOn);
   };
 
   /** 🧼 Clean everything */
@@ -232,9 +300,11 @@ export const useWebRtc = (socket: any | null) => {
     peerConnection.current = null;
 
     iceCandidatesQueue.current = [];
+    await resetAudioSession();
     setIsCalling(false);
     setIncomingCall(null);
     setModalVisible(false);
+    partnerIdRef.current = '';
   };
 
   /** 🔌 Socket listeners */
@@ -243,6 +313,7 @@ export const useWebRtc = (socket: any | null) => {
 
     const handleIncomingCall = async (data: any) => {
       setPartnerId(data.from);
+      partnerIdRef.current = data.from;
       setIncomingCall({ from: data.from, offer: data.offer });
       await playRingtone();
     };
@@ -272,11 +343,17 @@ export const useWebRtc = (socket: any | null) => {
       }
     };
 
+    const handleCallUnavailable = async () => {
+      console.log("Partner is unavailable for call");
+      await cleanWebRtc();
+    };
+
     socket.on("call-made", handleIncomingCall);
     socket.on("answer-made", handleAnswerMade);
     socket.on("ice-candidate", handleIceCandidate);
     socket.on("call-ended", hangUp);
     socket.on("call-rejected", hangUp);
+    socket.on("call-unavailable", handleCallUnavailable);
 
     return () => {
       socket.off("call-made", handleIncomingCall);
@@ -284,8 +361,9 @@ export const useWebRtc = (socket: any | null) => {
       socket.off("ice-candidate", handleIceCandidate);
       socket.off("call-ended", hangUp);
       socket.off("call-rejected", hangUp);
+      socket.off("call-unavailable", handleCallUnavailable);
     };
-  }, [socket, partnerId]);
+  }, [socket]);
 
   /** 📞 Show modal only when not already in a call */
   useEffect(() => {
@@ -306,5 +384,7 @@ export const useWebRtc = (socket: any | null) => {
     partnerId,
     localStream,
     remoteStream,
+    toggleMute,
+    toggleSpeaker,
   };
 };

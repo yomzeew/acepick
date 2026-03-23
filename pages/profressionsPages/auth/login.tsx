@@ -1,12 +1,11 @@
 import LoginComponentP from "component/professionalAuth/logincomponent"
-import { Text, View } from "react-native"
+import { View } from "react-native"
 
 const LoginPage = () => {
     return (
-        <View>
+        <View style={{ flex: 1 }}>
             <LoginComponentP/>
         </View>
     )
-
 }
 export default LoginPage

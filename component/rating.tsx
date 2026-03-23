@@ -1,6 +1,8 @@
     import { View } from "react-native"
 import { AntDesign } from "@expo/vector-icons"
 import { useMemo } from "react"
+import { useTheme } from "hooks/useTheme"
+import { getColors } from "static/color"
 
 interface RatingStarProps {
     numberOfStars: number;
@@ -9,6 +11,8 @@ interface RatingStarProps {
 }
 
 const RatingStar = ({ numberOfStars, size = 16, showValue = false }: RatingStarProps) => {
+    const { theme } = useTheme();
+    const { backgroundColortwo } = getColors(theme);
     const fullStars = Math.floor(numberOfStars);
     const hasHalfStar = numberOfStars % 1 !== 0;
     const emptyStars = 5 - Math.ceil(numberOfStars);
@@ -19,7 +23,7 @@ const RatingStar = ({ numberOfStars, size = 16, showValue = false }: RatingStarP
         // Full stars
         for (let i = 0; i < fullStars; i++) {
             stars.push(
-                <AntDesign key={`full-${i}`} color="#facc15" name="star" size={size} />
+                <AntDesign key={`full-${i}`} color={backgroundColortwo} name="star" size={size} />
             );
         }
         
@@ -29,7 +33,7 @@ const RatingStar = ({ numberOfStars, size = 16, showValue = false }: RatingStarP
                 <View key="half" style={{ position: 'relative' }}>
                     <AntDesign color="#d1d5db" name="staro" size={size} />
                     <AntDesign 
-                        color="#facc15" 
+                        color={backgroundColortwo} 
                         name="star" 
                         size={size} 
                         style={{ position: 'absolute', left: 0, top: 0, width: '50%', overflow: 'hidden' }}

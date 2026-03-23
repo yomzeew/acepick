@@ -1,71 +1,131 @@
-import { FontAwesome5 } from '@expo/vector-icons';
-import { Platform, TextInput, TouchableOpacity, View } from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
-import * as ImagePicker from 'expo-image-picker';
-import { RootState } from 'redux/store';
-import { emitSendMessage, emitUploadFile } from 'services/socketHandler';
-import InputComponent from 'component/controls/textinput';
-import { useTheme } from 'hooks/useTheme';
-import { getColors } from 'static/color';
-import { useSocket } from 'hooks/useSocket';
-import { addMessage, ChatMessage } from 'redux/chatSlice';
-import { selectChatMessages } from 'utilizes/chatselector';
-import ContainerTemplate from 'component/dashboardComponent/containerTemplate';
+import { Ionicons } from "@expo/vector-icons";
+import { ActivityIndicator, Platform, TextInput, TouchableOpacity, View } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
+import * as ImagePicker from "expo-image-picker";
+import { useState } from "react";
+import { RootState } from "redux/store";
+import { useTheme } from "hooks/useTheme";
+import { getColors } from "static/color";
+import { useSocket } from "hooks/useSocket";
+import { addMessage, ChatMessage } from "redux/slices/chatSlice";
+import { uploadGenericFile } from "services/supabaseStorage";
 
-const MessageInput = ({ receiverId,message, setMessage,onSend }: {receiverId:string; message: string; setMessage: (val: string) => void; onSend:()=>void}) => {
-    const {theme}=useTheme()
-  const {secondaryTextColor,primaryColor,backgroundColor}=getColors(theme)
+interface MessageInputProps {
+  receiverId: string;
+  message: string;
+  setMessage: (val: string) => void;
+  onSend: () => void;
+}
+
+const MessageInput = ({ receiverId, message, setMessage, onSend }: MessageInputProps) => {
+  const { theme } = useTheme();
+  const { secondaryTextColor, primaryColor, selectioncardColor, subText, backgroundColor } =
+    getColors(theme);
   const user = useSelector((state: RootState) => state.auth.user);
-    const roomId = useSelector((state: RootState) => state.chat.roomId);
-    const { socket } = useSocket();
-    const dispatch = useDispatch();
+  const roomId = useSelector((state: RootState) => state.chat.roomId);
+  const { socket } = useSocket();
+  const dispatch = useDispatch();
+  const [isUploading, setIsUploading] = useState(false);
 
   const sendImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       quality: 0.7,
-      base64: true,
     });
-  
+
     if (!result.canceled && result.assets.length > 0) {
       const asset = result.assets[0];
-      const image=asset.base64
-      if (!user?.id || !receiverId || !roomId || !image ) return;
-      const payload:ChatMessage = {
-        image: asset.base64,
-        fileName: asset.fileName ?? "image.jpg",
-        from: user?.id ?? "",
-        to: receiverId,
-        room: roomId,
-        timestamp: new Date().toISOString(),
-      };
-  
-      socket?.emit("upload_file", payload);
-      dispatch(addMessage({ roomId, message: payload }));
-    } else {
-      alert("No image selected.");
+      if (!user?.id || !receiverId || !roomId) return;
+
+      setIsUploading(true);
+      try {
+        const imageUrl = await uploadGenericFile(asset.uri, 'chat');
+        const payload: ChatMessage = {
+          from: user.id,
+          to: receiverId,
+          text: `<img>${imageUrl}`,
+          room: roomId,
+          timestamp: new Date().toISOString(),
+        };
+        socket?.emit("send_message", payload);
+        dispatch(addMessage(payload));
+      } catch (error) {
+        console.error('Chat image upload failed:', error);
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
-  return (
-    <View style={{backgroundColor:backgroundColor,position:Platform.OS==='ios'?'absolute':'relative',top:0, bottom:0}} className="px-4 py-2 flex-row items-center gap-x-1">
-      <TouchableOpacity className='px-3 py-3 rounded-2xl' style={{backgroundColor:primaryColor}} onPress={onSend}>
-        <FontAwesome5 name="paperclip" size={20} color="#fff" onPress={sendImage} />
-      </TouchableOpacity>
-      <View className='w-3/4'>
-      <InputComponent
-              value={message}
-              onChange={setMessage}
-              placeholder="Type a message..." 
-              color={primaryColor} 
-              placeholdercolor={secondaryTextColor}     
-               />
+  const hasText = message.trim().length > 0;
 
+  return (
+    <View
+      className="px-4 py-2 flex-row items-end gap-x-2"
+      style={{
+        backgroundColor: backgroundColor,
+        borderTopWidth: 1,
+        borderTopColor: selectioncardColor,
+        paddingBottom: Platform.OS === "ios" ? 28 : 10,
+      }}
+    >
+      {/* Attach */}
+      <TouchableOpacity
+        onPress={sendImage}
+        disabled={isUploading}
+        className="w-10 h-10 rounded-full items-center justify-center mb-0.5"
+        style={{ backgroundColor: selectioncardColor }}
+      >
+        {isUploading ? (
+          <ActivityIndicator size="small" color={primaryColor} />
+        ) : (
+          <Ionicons name="attach" size={20} color={primaryColor} />
+        )}
+      </TouchableOpacity>
+
+      {/* Text input */}
+      <View
+        className="flex-1 flex-row items-end rounded-2xl px-4 py-2"
+        style={{
+          backgroundColor: selectioncardColor,
+          minHeight: 42,
+          maxHeight: 120,
+        }}
+      >
+        <TextInput
+          value={message}
+          onChangeText={setMessage}
+          placeholder="Type a message..."
+          placeholderTextColor={subText}
+          multiline
+          style={{
+            flex: 1,
+            color: secondaryTextColor,
+            fontSize: 14,
+            fontFamily: "TTFirsNeue",
+            maxHeight: 100,
+            paddingTop: Platform.OS === "ios" ? 4 : 0,
+            paddingBottom: Platform.OS === "ios" ? 4 : 0,
+          }}
+        />
       </View>
 
-      <TouchableOpacity className='px-3 py-3 rounded-2xl' style={{backgroundColor:primaryColor}} onPress={onSend}>
-        <FontAwesome5 name="paper-plane" size={20} color="#fff" />
+      {/* Send */}
+      <TouchableOpacity
+        onPress={onSend}
+        disabled={!hasText}
+        className="w-10 h-10 rounded-full items-center justify-center mb-0.5"
+        style={{
+          backgroundColor: hasText ? primaryColor : primaryColor + "40",
+        }}
+      >
+        <Ionicons
+          name="send"
+          size={18}
+          color="#fff"
+          style={{ marginLeft: 2 }}
+        />
       </TouchableOpacity>
     </View>
   );

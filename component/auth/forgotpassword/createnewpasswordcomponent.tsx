@@ -17,7 +17,7 @@ function CreateNewPasswordcomponent() {
   const { theme } = useTheme();
   const { primaryColor, backgroundColor, primaryTextColor, secondaryTextColor } = getColors(theme);
 
-  const registerData = useSelector((state: RootState) => state.register.userData);
+  const registerData = useSelector((state: RootState) => state.auth.registrationData);
 
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');

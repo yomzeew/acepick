@@ -16,9 +16,8 @@ import { AntDesign, FontAwesome5, FontAwesome6 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "redux/store";
-import { addMessage, setMessages, setRoom } from "redux/chatSlice";
+import { addMessage, setMessages, setRoom, clearRoom, ChatMessage } from "redux/slices/chatSlice";
 import { useSocket } from "hooks/useSocket";
-import { selectChatMessages } from "utilizes/chatselector";
 import ContainerTemplate from "component/dashboardComponent/containerTemplate";
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -55,8 +54,8 @@ const MainChatScreen = ({ userDetails }: MainProps) => {
     const role=user?.role
   const ids = JSON.parse(userDetails);
 
-  const receiverId = user?.id || '';
-  const payload=ids?.userId;
+  const partnerId = ids?.userId;
+  const userId = user?.id || '';
   const scrollRef = useRef<ScrollView>(null);
   const [message, setMessage] = useState<string>("");
   const [data, setData] = useState<Profile | null>(null);
@@ -65,9 +64,8 @@ const MainChatScreen = ({ userDetails }: MainProps) => {
   const dispatch = useDispatch();
   const router = useRouter();
   
-  const userId = user?.id!;
   const roomId = useSelector((state: RootState) => state.chat.roomId);
-  const messages = useSelector(selectChatMessages(roomId));
+  const messages = useSelector((state: RootState) => state.chat.messages);
 
   const { theme } = useTheme();
   const { selectioncardColor, primaryColor } = getColors(theme);
@@ -91,7 +89,7 @@ const MainChatScreen = ({ userDetails }: MainProps) => {
   });
 
   useEffect(() => {
-    mutation.mutate(payload);
+    mutation.mutate(partnerId);
   }, []);
 
 
@@ -101,91 +99,78 @@ const roomRef = useRef<string>("");
 
 
 
-// ✅ Define this BEFORE you use it
-const cleanupListeners = () => {
-  socket?.off("joined_room");
-  socket?.off("got_previous_chats");
-  socket?.off("receive_message");
-  socket?.off("receive_messages");
-  socket?.off("receive_file");
-};
-
 useEffect(() => {
-  if (!socket || !receiverId || !userId) return;
+  if (!socket || !partnerId || !userId) return;
 
-  socket.io.on("error", (error) => {
-    console.log(error);
-});
+  const handleError = (error: any) => console.log(error);
+  const handleConnected = () => socket.emit("previous_chats");
+  const handleReconnect = () => console.log("reconnect");
 
-socket.on('connected', () => {
-    socket.emit("previous_chats");
-})
-
-socket.on("reconnect", () => {
-    console.log("reconnect")
-})
-
-
-  socket.emit("join_room", { contactId: receiverId });
-
-  cleanupListeners(); // ✅ safe to call now
+  socket.io.on("error", handleError);
+  socket.on('connected', handleConnected);
+  socket.on("reconnect", handleReconnect);
 
   const handleJoinedRoom = (backendRoomId: string) => {
     roomRef.current = backendRoomId;
     dispatch(setRoom(backendRoomId));
     socket.emit("get_messages", { room: backendRoomId });
   };
- 
-  socket.on("receive_messages", (messages) => {
-    dispatch(setMessages({ roomId: roomRef.current, messages }));
-  });
 
+  const handleReceiveMessages = (msgs: ChatMessage[]) => {
+    dispatch(setMessages(msgs));
+  };
 
-
-  const handleReceiveMessage = (msg: Message) => {
-    if (msg.from !== userId && roomRef.current) {
-      dispatch(addMessage({ roomId: roomRef.current, message: msg }));
+  const handleReceiveMessage = (msg: ChatMessage) => {
+    if (msg.from !== userId && msg.room === roomRef.current) {
+      dispatch(addMessage(msg));
     }
   };
 
-  const handleUploadFile = (msg: Message) => {
-    if (msg.from !== userId && roomRef.current) {
-      dispatch(addMessage({ roomId: roomRef.current, message: msg }));
+  const handleUploadFile = (msg: ChatMessage) => {
+    if (msg.from !== userId && msg.room === roomRef.current) {
+      dispatch(addMessage(msg));
     }
   };
 
-
+  // Register ALL listeners BEFORE emitting join_room to avoid race condition
   socket.once("joined_room", handleJoinedRoom);
+  socket.on("receive_messages", handleReceiveMessages);
   socket.on("receive_message", handleReceiveMessage);
   socket.on("receive_file", handleUploadFile);
+
+  socket.emit("join_room", { contactId: partnerId });
 
   return () => {
     if (roomRef.current) {
       socket.emit("leave_room", { room: roomRef.current });
     }
-    cleanupListeners();
+    dispatch(clearRoom());
+    socket.io.off("error", handleError);
+    socket.off("connected", handleConnected);
+    socket.off("reconnect", handleReconnect);
+    socket.off("joined_room", handleJoinedRoom);
+    socket.off("receive_messages", handleReceiveMessages);
+    socket.off("receive_message", handleReceiveMessage);
+    socket.off("receive_file", handleUploadFile);
   };
-}, [socket, receiverId, userId,message,messages]);
+}, [socket, partnerId, userId]);
 
   
   
 
   const handleSend = () => {
-    console.log(userId,receiverId)
-    if (!message.trim() || !userId || !receiverId || !roomId) return;
+    if (!message.trim() || !userId || !partnerId || !roomId) return;
 
-    const msgPayload: Message = {
+    const msgPayload: ChatMessage = {
       from: userId,
-      to: receiverId,
+      to: partnerId,
       text: message,
       room: roomId,
-      time: new Date().toISOString(),
-      timestamp:new Date().toISOString(),
+      timestamp: new Date().toISOString(),
     };
 
     socket?.emit("send_message", msgPayload);
-    dispatch(addMessage({ roomId, message: { ...msgPayload, fromSelf: true } }));
-    console.log(messages[messages.length-1])
+    dispatch(addMessage(msgPayload));
     setMessage("");
   };
 
@@ -239,10 +224,10 @@ socket.on("reconnect", () => {
                 </ThemeText>
               </View>
               <View className="flex-row gap-x-4 items-center">
-                <TouchableOpacity onPress={() => router.push(`/callchat/${JSON.stringify({userId: payload})}`)}>     
+                <TouchableOpacity onPress={() => router.push(`/callchat/${JSON.stringify({userId: partnerId})}`)}>     
                   <FontAwesome5 name="video" size={20} color={primaryColor} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => router.push(`/callchat/${JSON.stringify({userId: payload})}`)}>     
+                <TouchableOpacity onPress={() => router.push(`/callchat/${JSON.stringify({userId: partnerId})}`)}>     
                   <FontAwesome5 name="phone" size={20} color={primaryColor} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => {}}>
@@ -253,15 +238,25 @@ socket.on("reconnect", () => {
 
             {/* Info */}
             <View className="flex-row items-center justify-center gap-x-2 mb-4 mt-2">
-              <FontAwesome5 name="toolbox" size={12} color="red" />
-              {role==='client'&&<ThemeText size={Textstyles.text_xsmall}>{data.professional.profession.title}</ThemeText>}
-              <ThemeText size={Textstyles.text_xsmall}>{data?.professional.yearsOfExp} years</ThemeText>
-              <FontAwesome6 name="location-dot" size={12} color="red" />         
-                <ThemeText size={Textstyles.text_xsmall}>
-                 {data?.user.location.lga || ''} {data?.user.location.state|| ''}
-              </ThemeText>
-
-
+              {data?.professional && (
+                <>
+                  <FontAwesome5 name="toolbox" size={12} color="red" />
+                  {role === 'client' && data.professional?.profession?.title && (
+                    <ThemeText size={Textstyles.text_xsmall}>{data.professional.profession.title}</ThemeText>
+                  )}
+                  {data.professional?.yearsOfExp != null && (
+                    <ThemeText size={Textstyles.text_xsmall}>{data.professional.yearsOfExp} years</ThemeText>
+                  )}
+                </>
+              )}
+              {(data?.user?.location?.lga || data?.user?.location?.state) && (
+                <>
+                  <FontAwesome6 name="location-dot" size={12} color="red" />
+                  <ThemeText size={Textstyles.text_xsmall}>
+                    {data?.user?.location?.lga || ''} {data?.user?.location?.state || ''}
+                  </ThemeText>
+                </>
+              )}
             </View>
 
             {/* Messages */}
@@ -290,7 +285,7 @@ socket.on("reconnect", () => {
                         <Text className="text-xs text-gray-500 mt-1">{msg.fileName}</Text>
                       )}
                       <Text className="text-xs text-gray-400 mt-1">
-                      { findTime(msg.timestamp)}
+                      { findTime(msg.timestamp || '')}
                       </Text>
                     </TouchableOpacity>
                   ) : (
@@ -321,7 +316,7 @@ socket.on("reconnect", () => {
                             msg.from === userId ? "text-white" : "text-black"
                           }`}
                         >
-                            {findTime(msg.timestamp)}
+                            {findTime(msg.timestamp || '')}
                         </Text>
                       </View>
                     </View>
@@ -332,7 +327,7 @@ socket.on("reconnect", () => {
 
             {/* Input */}
             <MessageInput
-              receiverId={receiverId}
+              receiverId={partnerId}
               message={message}
               setMessage={setMessage}
               onSend={handleSend}

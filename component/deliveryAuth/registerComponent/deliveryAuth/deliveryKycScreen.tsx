@@ -11,10 +11,10 @@ import { getAllStates, getLgasByState } from "utilizes/fetchlistofstateandlga";
 import { Textstyles } from "static/textFontsize";
 import { useRouter } from "expo-router";
 import { AlertMessageBanner } from "component/AlertMessageBanner";
-import { setRegistrationData } from "redux/registerSlice";
+import { setRegistrationData } from "redux/slices/authSlice";
 import { useDispatch } from "react-redux";
 import * as ImagePicker from 'expo-image-picker';
-import { uploadPhotoUser } from "services/uploadServices";
+import { uploadAvatar } from "services/supabaseStorage";
 import { getAllSector, getProfessionsBySector } from "utilizes/fetchlistofjobs";
 import AuthComponent from "component/auth/Authcontainer";
 
@@ -156,47 +156,18 @@ useEffect(()=>{
     }
 
     const selectedImage = result.assets[0];
-    console.log('Selected image:', selectedImage.uri);
-
-    // Android-specific URI handling
     let uri = selectedImage.uri;
-    if (Platform.OS === 'android' && !uri.startsWith('file://')) {
-      uri = `file://${uri}`;
-    }
-
-    // Extract file extension
-    const fileExt = uri.split('.').pop()?.toLowerCase() || 'jpg';
-    const mimeType = `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`;
-
-    const formData = new FormData();
-    formData.append('avatar', {
-      uri: uri,
-      name: selectedImage.fileName || `photo_${Date.now()}.${fileExt}`,
-      type: mimeType,
-    } as any);
 
     try {
-      const response = await uploadPhotoUser(formData);
-      console.log('Upload Success:', response);
-      setphotoUrl(response.data?.url || ''); 
+      const url = await uploadAvatar(uri);
+      setphotoUrl(url);
       setSuccessMessage('Profile photo uploaded successfully.');
     } catch (error: any) {
       let msg = "An unexpected error occurred";
-      if (error?.response?.data) {
-        msg = error.response.data.message || 
-              error.response.data.error || 
-              JSON.stringify(error.response.data);
-      } else if (error?.message) {
+      if (error?.message) {
         msg = error.message;
       }
-      
-      // Specific Android network error handling
-      if (msg.includes('Network Error') && Platform.OS === 'android') {
-        msg = "File upload failed. Please check your connection or try a different image.";
-      }
-      
       setErrorMessage(msg);
-      console.error("Upload failed:", msg);
     }
 };
 

@@ -17,30 +17,7 @@ export default function NotAuthenticatedLayout() {
         name="loginscreen" 
         options={{ title: "login Screen" }}
       />
-       <Stack.Screen 
-        name="registerscreen" 
-        options={{ title: "register Screen" }}
-      />
-        <Stack.Screen 
-        name="emailverificationscreen" 
-        options={{ title: "email verification Screen" }}
-      />
-       <Stack.Screen 
-        name="verificationsuccess" 
-        options={{ title: "verification success Screen" }}
-      />
-       <Stack.Screen 
-        name="clientregistrationscreen" 
-        options={{ title: "client registration Screen" }}
-      />
-      <Stack.Screen 
-        name="passwordconfirmscreen" 
-        options={{ title: "password confirm screen" }}
-      />
-      <Stack.Screen 
-        name="accountsuccessscreen" 
-        options={{ title: "account success screen" }}
-      />
+      
       <Stack.Screen 
         name="recoverpasswordscreen" 
         options={{ title: "recover password screen" }}
@@ -64,6 +41,18 @@ export default function NotAuthenticatedLayout() {
          <Stack.Screen
       name="(professionAuth)"
       options={{title:"profession Auth screen"}}
+      />
+      <Stack.Screen
+        name="onboarding-client"
+        options={{ title: "Client Registration" }}
+      />
+      <Stack.Screen
+        name="onboarding-professional"
+        options={{ title: "Professional Registration" }}
+      />
+      <Stack.Screen
+        name="onboarding-delivery"
+        options={{ title: "Delivery Registration" }}
       />
     </Stack>
   );

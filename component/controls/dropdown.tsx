@@ -36,7 +36,7 @@ const Dropdown = ({
   return (
     <View className="w-full">
       {label && (
-        <Text style={[Textstyles.text_small, { color: secondaryTextColor }]} className="mb-1">
+        <Text style={[Textstyles.text_xsmall, { color: secondaryTextColor }]} className="mb-1">
           {label}
         </Text>
       )}
@@ -55,7 +55,7 @@ const Dropdown = ({
             flex: 1, 
             color: value ? secondaryTextColor : placeholdercolor || secondaryTextColor 
           }} 
-          className="text-base"
+          className="text-sm"
         >
           {displayValue}
         </Text>
@@ -78,7 +78,7 @@ const Dropdown = ({
             style={{ backgroundColor }}
           >
             <View className="flex-row justify-between items-center mb-4">
-              <Text style={[Textstyles.text_medium, { color: secondaryTextColor }]}>
+              <Text style={[Textstyles.text_cmedium, { color: secondaryTextColor }]}>
                 Select {label || 'Option'}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -102,7 +102,7 @@ const Dropdown = ({
                 >
                   <Text 
                     style={[
-                      Textstyles.text_small, 
+                      Textstyles.text_xsmall, 
                       { 
                         color: secondaryTextColor,
                         fontWeight: option.value === value ? 'bold' : 'normal'
