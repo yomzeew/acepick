@@ -144,7 +144,6 @@ export const useWebRtc = (socket: any | null) => {
   /** 🎙 Setup local media */
   const initLocalStream = async () => {
     try {
-      await configureAudioSession();
       const stream = await mediaDevices.getUserMedia({ audio: true });
       localStream.current = stream;
     } catch (error) {

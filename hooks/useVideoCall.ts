@@ -130,7 +130,6 @@ export const useVideoCall = (socket: any | null) => {
   /** 🎙📹 Setup local media (audio + video) */
   const initLocalStream = async () => {
     try {
-      await configureAudioSession();
       const stream = await mediaDevices.getUserMedia({
         audio: true,
         video: {
