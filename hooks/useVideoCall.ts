@@ -84,10 +84,8 @@ export const useVideoCall = (socket: any | null) => {
   const stopRingtone = async () => {
     try {
       const status = await ringtoneSound.current?.getStatusAsync();
-      if (status?.isLoaded) {
-        if (status?.isPlaying) await ringtoneSound.current?.stopAsync();
-        await ringtoneSound.current?.unloadAsync();
-        ringtoneSound.current = null;
+      if (status?.isLoaded && status?.isPlaying) {
+        await ringtoneSound.current?.stopAsync();
       }
     } catch (e) {
       console.warn("⚠️ Error stopping ringtone", e);
@@ -106,10 +104,8 @@ export const useVideoCall = (socket: any | null) => {
   const stopCallTone = async () => {
     try {
       const status = await callToneSound.current?.getStatusAsync();
-      if (status?.isLoaded) {
-        if (status?.isPlaying) await callToneSound.current?.stopAsync();
-        await callToneSound.current?.unloadAsync();
-        callToneSound.current = null;
+      if (status?.isLoaded && status?.isPlaying) {
+        await callToneSound.current?.stopAsync();
       }
     } catch (e) {
       console.warn("⚠️ Error stopping call tone", e);
