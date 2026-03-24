@@ -84,8 +84,10 @@ export const useVideoCall = (socket: any | null) => {
   const stopRingtone = async () => {
     try {
       const status = await ringtoneSound.current?.getStatusAsync();
-      if (status?.isLoaded && status?.isPlaying) {
-        await ringtoneSound.current?.stopAsync();
+      if (status?.isLoaded) {
+        if (status?.isPlaying) await ringtoneSound.current?.stopAsync();
+        await ringtoneSound.current?.unloadAsync();
+        ringtoneSound.current = null;
       }
     } catch (e) {
       console.warn("⚠️ Error stopping ringtone", e);
@@ -104,17 +106,35 @@ export const useVideoCall = (socket: any | null) => {
   const stopCallTone = async () => {
     try {
       const status = await callToneSound.current?.getStatusAsync();
-      if (status?.isLoaded && status?.isPlaying) {
-        await callToneSound.current?.stopAsync();
+      if (status?.isLoaded) {
+        if (status?.isPlaying) await callToneSound.current?.stopAsync();
+        await callToneSound.current?.unloadAsync();
+        callToneSound.current = null;
       }
     } catch (e) {
       console.warn("⚠️ Error stopping call tone", e);
     }
   };
 
+  /** 🔊 Configure audio session for calls */
+  const configureAudioSession = async () => {
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: false,
+        playThroughEarpieceAndroid: false,
+      });
+    } catch (err) {
+      console.error("🔴 Failed to configure audio session", err);
+    }
+  };
+
   /** 🎙📹 Setup local media (audio + video) */
   const initLocalStream = async () => {
     try {
+      await configureAudioSession();
       const stream = await mediaDevices.getUserMedia({
         audio: true,
         video: {
@@ -221,6 +241,11 @@ export const useVideoCall = (socket: any | null) => {
       setIsCalling(true);
       setModalVisible(false);
       await stopRingtone();
+      // Reconfigure audio session for WebRTC after expo-av releases it
+      await configureAudioSession();
+      // Re-enable audio track in case expo-av disabled it
+      const audioTrack = localStream.current?.getAudioTracks()[0];
+      if (audioTrack) audioTrack.enabled = true;
       setIncomingCall(null);
     } catch (err) {
       console.error("Error accepting video call:", err);
@@ -323,6 +348,11 @@ export const useVideoCall = (socket: any | null) => {
       );
       iceCandidatesQueue.current = [];
       await stopCallTone();
+      // Reconfigure audio session for WebRTC after expo-av releases it
+      await configureAudioSession();
+      // Re-enable audio track in case expo-av disabled it
+      const audioTrack = localStream.current?.getAudioTracks()[0];
+      if (audioTrack) audioTrack.enabled = true;
     };
 
     const handleVideoIceCandidate = async (data: any) => {
