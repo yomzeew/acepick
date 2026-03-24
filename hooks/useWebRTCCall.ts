@@ -198,8 +198,6 @@ export const useWebRtc = (socket: any | null) => {
   /** 📞 Call another user */
   const callUser = async (id: string) => {
     await fetchIceServers();
-    // Play call tone BEFORE capturing mic so expo-av doesn't fight WebRTC
-    await playCallTone();
     await initLocalStream();
     setIsCalling(true);
     setPartnerId(id);
@@ -208,6 +206,7 @@ export const useWebRtc = (socket: any | null) => {
 
     const offer = await peerConnection.current!.createOffer({});
     await peerConnection.current!.setLocalDescription(offer);
+    await playCallTone();
 
     socket.emit("call-user", { offer, to: id });
   };
