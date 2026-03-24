@@ -202,6 +202,8 @@ export const useWebRtc = (socket: any | null) => {
   /** 📞 Call another user */
   const callUser = async (id: string) => {
     await fetchIceServers();
+    // Play call tone BEFORE capturing mic so expo-av doesn't fight WebRTC
+    await playCallTone();
     await initLocalStream();
     setIsCalling(true);
     setPartnerId(id);
@@ -210,7 +212,6 @@ export const useWebRtc = (socket: any | null) => {
 
     const offer = await peerConnection.current!.createOffer({});
     await peerConnection.current!.setLocalDescription(offer);
-    await playCallTone();
 
     socket.emit("call-user", { offer, to: id });
   };
@@ -219,6 +220,10 @@ export const useWebRtc = (socket: any | null) => {
   const acceptCall = async () => {
     try {
       if (!incomingCall) throw new Error("No incoming call");
+      // Stop ringtone FIRST so expo-av releases audio hardware
+      await stopRingtone();
+      setModalVisible(false);
+
       await fetchIceServers();
       await initLocalStream();
       initPeerConnection();
@@ -245,13 +250,6 @@ export const useWebRtc = (socket: any | null) => {
       });
 
       setIsCalling(true);
-      setModalVisible(false);
-      await stopRingtone();
-      // Reconfigure audio session for WebRTC after expo-av releases it
-      await configureAudioSession();
-      // Re-enable audio track in case expo-av disabled it
-      const audioTrack = localStream.current?.getAudioTracks()[0];
-      if (audioTrack) audioTrack.enabled = true;
       setIncomingCall(null);
     } catch (err) {
       console.error("Error accepting call:", err);
@@ -341,11 +339,6 @@ export const useWebRtc = (socket: any | null) => {
       );
       iceCandidatesQueue.current = [];
       await stopCallTone();
-      // Reconfigure audio session for WebRTC after expo-av releases it
-      await configureAudioSession();
-      // Re-enable audio track in case expo-av disabled it
-      const audioTrack = localStream.current?.getAudioTracks()[0];
-      if (audioTrack) audioTrack.enabled = true;
     };
 
     const handleIceCandidate = async (data: any) => {
