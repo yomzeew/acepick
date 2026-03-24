@@ -144,8 +144,30 @@ export const useWebRtc = (socket: any | null) => {
   /** 🎙 Setup local media */
   const initLocalStream = async () => {
     try {
-      const stream = await mediaDevices.getUserMedia({ audio: true });
+      // Reset expo-av audio session so it doesn't interfere with WebRTC
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: false,
+          staysActiveInBackground: false,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+      } catch (e) {
+        console.warn('⚠️ Could not reset audio mode:', e);
+      }
+
+      const stream = await mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
       localStream.current = stream;
+
+      const audioTrack = stream.getAudioTracks()[0];
+      console.log('🎙 Voice audio track:', audioTrack?.id, 'enabled:', audioTrack?.enabled, 'readyState:', audioTrack?.readyState);
     } catch (error) {
       console.error("Error getting user media:", error);
     }
@@ -333,6 +355,15 @@ export const useWebRtc = (socket: any | null) => {
       );
       iceCandidatesQueue.current = [];
       await stopCallTone();
+
+      // Verify audio is still flowing after call tone stops
+      const audioTrack = localStream.current?.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = true;
+        console.log('🎙 After answer - audio track enabled:', audioTrack.enabled, 'readyState:', audioTrack.readyState);
+      } else {
+        console.warn('⚠️ No audio track found after answer!');
+      }
     };
 
     const handleIceCandidate = async (data: any) => {
