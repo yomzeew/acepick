@@ -1,9 +1,10 @@
 import { useMutation } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import FallbackImage from "component/FallbackImage";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "hooks/useTheme";
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import {
   ActivityIndicator,
   TouchableOpacity,
@@ -13,11 +14,12 @@ import {
   RefreshControl,
   Dimensions,
 } from "react-native";
-import { getBoughtProductFn, getMineProduct, getSoldProductFn } from "services/marketplaceServices";
+import { getBoughtProductFn, getMineProduct, getSoldProductFn, approveProductFn, getAdminProductsFn } from "services/marketplaceServices";
 import { getColors } from "static/color";
 import { ProductTransaction } from "types/productTransType";
 import { Product } from "types/type";
 import { formatAmount } from "utilizes/amountFormat";
+import { useToast } from "context/ToastContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -27,28 +29,43 @@ const getTransactionStatusStyle = (status: string, primary: string, secondary: s
   const normalized = status?.toLowerCase().replace(/^pt_/, '');
   switch (normalized) {
     case "pending":
-      return { bg: secondary + '15', text: secondary, icon: "time-outline" as const, label: "Pending" };
+      return { bg: '#FEF3C730', text: '#D97706', icon: "time-outline" as const, label: "Pending" };
     case "ordered":
-      return { bg: primary + '15', text: primary, icon: "cart-outline" as const, label: "Ordered" };
+      return { bg: primary + '18', text: primary, icon: "cart-outline" as const, label: "Ordered" };
+    case "accepted_by_seller":
+      return { bg: '#DBEAFE', text: '#1D4ED8', icon: "checkmark-circle-outline" as const, label: "Accepted" };
+    case "rejected_by_seller":
+      return { bg: '#FEE2E2', text: '#DC2626', icon: "close-circle-outline" as const, label: "Rejected" };
+    case "ready_for_delivery":
+      return { bg: '#EDE9FE', text: '#7C3AED', icon: "cube-outline" as const, label: "Ready for Delivery" };
+    case "awaiting_confirmation":
+      return { bg: '#FEF9C3', text: '#A16207', icon: "hourglass-outline" as const, label: "Awaiting Completion" };
+    case "completed":
+      return { bg: '#D1FAE5', text: '#065F46', icon: "checkmark-done-circle-outline" as const, label: "Completed" };
     case "delivered":
-      return { bg: primary + '15', text: primary, icon: "checkmark-circle-outline" as const, label: "Delivered" };
+      return { bg: '#DCFCE7', text: '#16A34A', icon: "home-outline" as const, label: "Delivered" };
+    case "return_requested":
+      return { bg: '#FFF7ED', text: '#C2410C', icon: "return-down-back-outline" as const, label: "Return Requested" };
+    case "returned":
+      return { bg: '#F3F4F6', text: '#374151', icon: "refresh-outline" as const, label: "Returned" };
     case "disputed":
-      return { bg: secondary + '15', text: secondary, icon: "warning-outline" as const, label: "Disputed" };
+      return { bg: '#FEF3C7', text: '#B45309', icon: "warning-outline" as const, label: "Disputed" };
     case "cancelled":
-      return { bg: secondary + '15', text: secondary, icon: "close-circle-outline" as const, label: "Cancelled" };
+      return { bg: '#FEE2E2', text: '#DC2626', icon: "close-circle-outline" as const, label: "Cancelled" };
     default:
-      return { bg: secondary + '15', text: secondary, icon: "help-circle-outline" as const, label: normalized || "Unknown" };
+      return { bg: '#F3F4F615', text: '#6B7280', icon: "ellipse-outline" as const, label: normalized?.replace(/_/g, ' ') || "Unknown" };
   }
 };
 
-const getApprovalStatusStyle = (approved: boolean | null | undefined, primary: string, secondary: string) => {
-  if (approved === true) {
-    return { bg: primary + '15', text: primary, icon: "checkmark-circle" as const, label: "Approved" };
+const getApprovalStatusStyle = (status: string | undefined, primary: string, secondary: string) => {
+  if (status === 'approved') {
+    return { bg: '#D1FAE5', text: '#065F46', icon: "checkmark-circle" as const, label: "Approved" };
   }
-  if (approved === false) {
+  if (status === 'rejected') {
     return { bg: secondary + '15', text: secondary, icon: "close-circle" as const, label: "Rejected" };
   }
-  return { bg: secondary + '15', text: secondary, icon: "time" as const, label: "Awaiting Approval" };
+  // pending or anything else
+  return { bg: '#FEF3C7', text: '#D97706', icon: "time" as const, label: "Awaiting Approval" };
 };
 
 const formatDate = (dateStr?: string) => {
@@ -70,9 +87,12 @@ const MyItems = () => {
   const textSecondary = isDark ? "#9CA3AF" : "#6B7280";
   const dividerColor = isDark ? "#374151" : "#E5E7EB";
 
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
+
   const tabs = ["Listings", "Sold", "Bought"] as const;
   type TabType = (typeof tabs)[number];
-  const [activeTab, setActiveTab] = useState<TabType>("Listings");
+  const validTab = tabs.includes(tab as TabType) ? (tab as TabType) : "Listings";
+  const [activeTab, setActiveTab] = useState<TabType>(validTab);
 
   return (
     <View style={{ flex: 1, backgroundColor: bgColor }}>
@@ -88,11 +108,35 @@ const MyItems = () => {
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
+          <TouchableOpacity
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/(Authenticated)/(dashboard)/marketlayout" as any);
+              }
+            }}
+            style={{ padding: 4 }}
+          >
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={{ color: "#fff", fontSize: 20, fontWeight: "700" }}>My Items</Text>
-          <View style={{ width: 32 }} />
+          {/* Go to Marketplace shortcut */}
+          <TouchableOpacity
+            onPress={() => router.push("/(Authenticated)/(dashboard)/marketlayout" as any)}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 4,
+              backgroundColor: "rgba(255,255,255,0.2)",
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              borderRadius: 20,
+            }}
+          >
+            <Ionicons name="storefront-outline" size={16} color="#fff" />
+            <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>Shop</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -148,6 +192,7 @@ const MyListingsComponent = () => {
   const router = useRouter();
   const { theme } = useTheme();
   const { primaryColor, backgroundColortwo } = getColors(theme);
+  const toast = useToast();
 
   const isDark = theme === "dark";
   const cardBg = isDark ? "#1F2937" : "#FFFFFF";
@@ -155,31 +200,50 @@ const MyListingsComponent = () => {
   const textSecondary = isDark ? "#9CA3AF" : "#6B7280";
   const dividerColor = isDark ? "#374151" : "#E5E7EB";
 
+  const userRole = useSelector((state: any) => state.auth.user?.role);
+  const isAdmin = userRole === "admin";
+
   const [products, setProducts] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<"all" | "approved" | "pending" | "rejected">("all");
 
+  // Admin fetches all products; regular sellers fetch only their own
   const mutation = useMutation({
-    mutationFn: getMineProduct,
-    onSuccess: (response) => setProducts(response || []),
+    mutationFn: isAdmin ? getAdminProductsFn : getMineProduct,
+    onSuccess: (response) => setProducts((response as Product[]) || []),
     onError: () => setProducts([]),
   });
 
+  const approveMutation = useMutation({
+    mutationFn: approveProductFn,
+    onSuccess: () => {
+      toast.success("Product Approved", "The product has been approved successfully");
+      mutation.mutate(undefined as any);
+    },
+    onError: (error: any) => {
+      toast.error("Approval Failed", error.message || "Failed to approve product");
+    },
+  });
+
   useEffect(() => {
-    mutation.mutate();
-  }, []);
+    mutation.mutate(undefined as any);
+  }, [isAdmin]);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    mutation.mutate();
+    mutation.mutate(undefined as any);
     setRefreshing(false);
+  };
+
+  const handleApprove = (productId: number) => {
+    approveMutation.mutate(productId);
   };
 
   const filteredProducts = products.filter((p) => {
     if (filter === "all") return true;
-    if (filter === "approved") return p.approved === true;
-    if (filter === "pending") return p.approved === null || p.approved === undefined;
-    if (filter === "rejected") return p.approved === false;
+    if (filter === "approved") return p.status === 'approved';
+    if (filter === "pending") return p.status === 'pending';
+    if (filter === "rejected") return p.status === 'rejected';
     return true;
   });
 
@@ -193,8 +257,9 @@ const MyListingsComponent = () => {
   };
 
   const renderProductCard = ({ item }: { item: Product }) => {
-    const statusStyle = getApprovalStatusStyle(item.approved, primaryColor, backgroundColortwo);
+    const statusStyle = getApprovalStatusStyle(item.status, primaryColor, backgroundColortwo);
     const price = Number(item.price);
+    const isPending = item.status === 'pending';
 
     return (
       <TouchableOpacity
@@ -245,7 +310,7 @@ const MyListingsComponent = () => {
           </View>
         </View>
 
-        {/* Status Badge */}
+        {/* Status Badge & Approve Button */}
         <View
           style={{
             flexDirection: "row",
@@ -273,11 +338,42 @@ const MyListingsComponent = () => {
               {statusStyle.label}
             </Text>
           </View>
-          {item.createdAt && (
-            <Text style={{ color: textSecondary, fontSize: 11 }}>
-              {formatDate(item.createdAt)}
-            </Text>
-          )}
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            {isAdmin && isPending && (
+              <TouchableOpacity
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleApprove(item.id);
+                }}
+                disabled={approveMutation.isPending}
+                style={{
+                  backgroundColor: primaryColor,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 8,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
+                  opacity: approveMutation.isPending ? 0.6 : 1,
+                }}
+              >
+                {approveMutation.isPending ? (
+                  <ActivityIndicator size={12} color="#fff" />
+                ) : (
+                  <Ionicons name="checkmark" size={14} color="#fff" />
+                )}
+                <Text style={{ color: "#fff", fontSize: 11, fontWeight: "600" }}>
+                  Approve
+                </Text>
+              </TouchableOpacity>
+            )}
+            {item.createdAt && (
+              <Text style={{ color: textSecondary, fontSize: 11 }}>
+                {formatDate(item.createdAt)}
+              </Text>
+            )}
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -292,11 +388,7 @@ const MyListingsComponent = () => {
           const count =
             f === "all"
               ? products.length
-              : f === "approved"
-              ? products.filter((p) => p.approved === true).length
-              : f === "pending"
-              ? products.filter((p) => p.approved === null || p.approved === undefined).length
-              : products.filter((p) => p.approved === false).length;
+              : products.filter((p) => p.status === f).length;
           return (
             <TouchableOpacity
               key={f}
@@ -346,12 +438,28 @@ const MyListingsComponent = () => {
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={primaryColor} colors={[primaryColor]} />}
           ListEmptyComponent={
-            <View style={{ alignItems: "center", paddingTop: 60 }}>
+            <View style={{ alignItems: "center", paddingTop: 60, paddingHorizontal: 24 }}>
               <Ionicons name="storefront-outline" size={56} color={dividerColor} />
               <Text style={{ color: textSecondary, fontSize: 16, fontWeight: "600", marginTop: 12 }}>No products found</Text>
-              <Text style={{ color: textSecondary, fontSize: 13, marginTop: 4 }}>
+              <Text style={{ color: textSecondary, fontSize: 13, marginTop: 4, textAlign: "center" }}>
                 {filter !== "all" ? "Try changing the filter" : "Add your first product to the marketplace"}
               </Text>
+              <TouchableOpacity
+                onPress={() => router.push("/(Authenticated)/(dashboard)/marketlayout" as any)}
+                style={{
+                  marginTop: 20,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  backgroundColor: primaryColor,
+                  paddingHorizontal: 24,
+                  paddingVertical: 12,
+                  borderRadius: 24,
+                }}
+              >
+                <Ionicons name="storefront-outline" size={18} color="#fff" />
+                <Text style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>Go to Marketplace</Text>
+              </TouchableOpacity>
             </View>
           }
         />
@@ -397,7 +505,10 @@ const SoldComponent = () => {
   };
 
   const getImageSource = (images: any) => {
-    if (Array.isArray(images) && images.length > 0 && images[0]) return { uri: images[0] };
+    // Backend returns images as a string, not an array
+    if (typeof images === 'string' && images.trim() !== '') return { uri: images };
+    // Fallback for array format (in case backend changes)
+    if (Array.isArray(images) && images.length > 0 && images[0] && typeof images[0] === 'string' && images[0].trim() !== '') return { uri: images[0] };
     return require("../../assets/homebg.png");
   };
 
@@ -549,12 +660,28 @@ const SoldComponent = () => {
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={primaryColor} colors={[primaryColor]} />}
           ListEmptyComponent={
-            <View style={{ alignItems: "center", paddingTop: 60 }}>
+            <View style={{ alignItems: "center", paddingTop: 60, paddingHorizontal: 24 }}>
               <Ionicons name="receipt-outline" size={56} color={dividerColor} />
               <Text style={{ color: textSecondary, fontSize: 16, fontWeight: "600", marginTop: 12 }}>No sold items</Text>
-              <Text style={{ color: textSecondary, fontSize: 13, marginTop: 4 }}>
+              <Text style={{ color: textSecondary, fontSize: 13, marginTop: 4, textAlign: "center" }}>
                 Items you sell will appear here
               </Text>
+              <TouchableOpacity
+                onPress={() => router.push("/(Authenticated)/(dashboard)/marketlayout" as any)}
+                style={{
+                  marginTop: 20,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  backgroundColor: primaryColor,
+                  paddingHorizontal: 24,
+                  paddingVertical: 12,
+                  borderRadius: 24,
+                }}
+              >
+                <Ionicons name="storefront-outline" size={18} color="#fff" />
+                <Text style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>Go to Marketplace</Text>
+              </TouchableOpacity>
             </View>
           }
         />
@@ -600,7 +727,10 @@ const BoughtComponent = () => {
   };
 
   const getImageSource = (images: any) => {
-    if (Array.isArray(images) && images.length > 0 && images[0]) return { uri: images[0] };
+    // Backend returns images as a string, not an array
+    if (typeof images === 'string' && images.trim() !== '') return { uri: images };
+    // Fallback for array format (in case backend changes)
+    if (Array.isArray(images) && images.length > 0 && images[0] && typeof images[0] === 'string' && images[0].trim() !== '') return { uri: images[0] };
     return require("../../assets/homebg.png");
   };
 
@@ -760,12 +890,28 @@ const BoughtComponent = () => {
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={primaryColor} colors={[primaryColor]} />}
           ListEmptyComponent={
-            <View style={{ alignItems: "center", paddingTop: 60 }}>
+            <View style={{ alignItems: "center", paddingTop: 60, paddingHorizontal: 24 }}>
               <Ionicons name="bag-outline" size={56} color={dividerColor} />
               <Text style={{ color: textSecondary, fontSize: 16, fontWeight: "600", marginTop: 12 }}>No bought items</Text>
-              <Text style={{ color: textSecondary, fontSize: 13, marginTop: 4 }}>
+              <Text style={{ color: textSecondary, fontSize: 13, marginTop: 4, textAlign: "center" }}>
                 Items you purchase will appear here
               </Text>
+              <TouchableOpacity
+                onPress={() => router.push("/(Authenticated)/(dashboard)/marketlayout" as any)}
+                style={{
+                  marginTop: 20,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  backgroundColor: primaryColor,
+                  paddingHorizontal: 24,
+                  paddingVertical: 12,
+                  borderRadius: 24,
+                }}
+              >
+                <Ionicons name="storefront-outline" size={18} color="#fff" />
+                <Text style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>Go to Marketplace</Text>
+              </TouchableOpacity>
             </View>
           }
         />

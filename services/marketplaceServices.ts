@@ -16,8 +16,9 @@ import {
   productUrl, 
   selectProdectUrl
 } from 'utilizes/endpoints';
+import { ADMIN } from 'utilizes/endpoints';
 import MockDataService from './mockDataService';
-import { uploadProductImages } from './supabaseStorage';
+import { uploadProductImagesToLocal } from './localUploadService';
 
 // Type definitions
 
@@ -225,13 +226,13 @@ export const getproductByIdFn = async (id: number): Promise<ProductData> => {
 };
 
 /**
- * Upload product images to Supabase Storage.
+ * Upload product images to local backend storage.
  * @param uris - Array of local image URIs
  * @returns API-shaped response with { data: { urls: string[] } }
  */
 export const uploadProduct = async (uris: string[]): Promise<ApiResponse> => {
   try {
-    const urls = await uploadProductImages(uris);
+    const urls = await uploadProductImagesToLocal(uris);
     return { success: true, message: 'success', data: { urls } };
   } catch (error: any) {
     throw new Error(error?.message || 'Failed to upload product');
@@ -383,4 +384,42 @@ export const getBoughtProductFn = async (params?: { status?: string }): Promise<
     throw new Error(error?.response?.data?.message || 'Failed to fetch bought products');
   }
   };
+
+// ─── Admin: fetch ALL products (pending / approved / rejected) ───
+export const getAdminProductsFn = async (status?: 'pending' | 'approved' | 'rejected'): Promise<Product[]> => {
+  try {
+    const token = getAuthToken();
+    if (!token) throw new Error('Authentication required');
+    const params: any = {};
+    // The admin endpoint supports `approved` boolean param for approved/rejected,
+    // but not for pending — we fetch all and filter pending client-side.
+    if (status === 'approved') params.approved = true;
+    if (status === 'rejected') params.approved = false;
+    const response: AxiosResponse<ApiResponse<{ products: Product[]; total: number }>> = await axios.get(
+      ADMIN.PRODUCTS,
+      { headers: { Authorization: `Bearer ${token}` }, params }
+    );
+    return response.data.data?.products || [];
+  } catch (error: any) {
+    throw new Error(error?.response?.data?.message || 'Failed to fetch products');
+  }
+};
+
+export const approveProductFn = async (productId: number): Promise<any> => {
+  try {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
+    const response: AxiosResponse<ApiResponse<any>> = await axios.post(ADMIN.APPROVE_PRODUCT(String(productId)), {}, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error?.response?.data?.message || 'Failed to approve product');
+  }
+};
   

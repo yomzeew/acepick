@@ -97,7 +97,29 @@ interface Professional {
     email: string;
     phone: string;
     fcmToken: string | null;
-    profile: ProfessionalProfile;
+    profile: {
+        id: number;
+        firstName: string;
+        lastName: string;
+        avatar: string;
+        userId: string;
+        professional: {
+            id: number;
+            intro?: string;
+            language?: string;
+            yearsOfExp?: number;
+            chargeFrom?: number;
+            available?: boolean;
+            avgRating?: number; // Calculated from Rating model
+            numRating?: number; // Calculated from Rating model
+        };
+        user?: {
+            location?: {
+                state: string;
+                lga: string;
+            };
+        };
+    };
 }
 
 export interface JobProps{
@@ -137,6 +159,7 @@ export interface JobProps{
     paidFor: PaidFor | string;
     status: JobStatus | string;
     professional: Professional;
+    client?: Client; // Client data included for professionals
     material: Array<any>; // Replace 'any' with a more specific type if you know the structure
     
 }
@@ -250,7 +273,7 @@ export interface JobMaterial {
     avatar: string;
   }
   
-  interface Client {
+  export interface Client {
     id: string;
     email: string;
     phone: string;
@@ -509,6 +532,7 @@ export interface JobMaterial {
     discount: number;
     userId: string;
     locationId: number;
+    status?: 'pending' | 'approved' | 'rejected' | string;
     approved?: boolean | null;
     createdAt?: string;
     updatedAt?: string;
@@ -534,6 +558,7 @@ export interface JobMaterial {
     discount: number;
     userId: string;
     locationId: number;
+    status?: 'pending' | 'approved' | 'rejected' | string;
     approved?: boolean | null;
     createdAt?: string;
     updatedAt?: string;
