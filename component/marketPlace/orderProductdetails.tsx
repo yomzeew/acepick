@@ -7,7 +7,7 @@ import RatingStar from "component/rating"
 import { ThemeText, ThemeTextsecond } from "component/ThemeText"
 import { useRouter } from "expo-router"
 import { useTheme } from "hooks/useTheme"
-import { useEffect, useState, type FC, useCallback, useMemo, memo } from "react"
+import React, { useEffect, useState, type FC, useCallback, useMemo, memo } from "react"
 import { View, Image, ActivityIndicator, TouchableOpacity, Text, StyleSheet, TextInput } from "react-native"
 import { ScrollView } from "react-native-gesture-handler"
 import { useSelector } from "react-redux"
@@ -18,7 +18,7 @@ import { Textstyles } from "static/textFontsize"
 
 import { Modal, FlatList, Dimensions } from "react-native";
 import { Order, ProductTransactionDetail } from "types/getProductByTrans"
-import { confirmDeliverdFn, disputeOrderFn, enRouteToPickupFn, arrivedAtPickupFn, arrivedAtDropoffFn, PickupFn, confirmPickupFn, deliveredFn } from "services/deliveryServices"
+import { confirmDeliverdFn, disputeOrderFn, sellerAcceptOrderFn, sellerRejectOrderFn, sellerMarkReadyFn, sellerHandOverFn, buyerCancelOrderFn, giveRatingForOrderFn, requestReturnFn, retryRiderSearchFn } from "services/deliveryServices"
 import { UserDetailsComp } from "component/delivery/orderCard"
 import { useToast } from "context/ToastContext"
 import { formatNaira } from "utilizes/amountFormat"
@@ -33,12 +33,32 @@ const normalizeStatus = (status?: string) => status?.toLowerCase().replace(/^pt_
 const getStatusConfig = (status: string, primaryColor: string, backgroundColortwo: string) => {
     const s = normalizeStatus(status);
     switch (s) {
-        case 'pending': return { bg: backgroundColortwo + '15', text: backgroundColortwo, icon: 'time-outline' as const, label: 'Pending' };
-        case 'ordered': return { bg: primaryColor + '15', text: primaryColor, icon: 'cart-outline' as const, label: 'Ordered' };
-        case 'delivered': return { bg: primaryColor + '15', text: primaryColor, icon: 'checkmark-circle-outline' as const, label: 'Delivered' };
-        case 'disputed': return { bg: backgroundColortwo + '15', text: backgroundColortwo, icon: 'warning-outline' as const, label: 'Disputed' };
-        case 'cancelled': return { bg: backgroundColortwo + '15', text: backgroundColortwo, icon: 'close-circle-outline' as const, label: 'Cancelled' };
-        default: return { bg: backgroundColortwo + '15', text: backgroundColortwo, icon: 'help-circle-outline' as const, label: s || 'Unknown' };
+        case 'pending':
+            return { bg: '#FEF3C715', text: '#D97706', icon: 'time-outline' as const, label: 'Pending' };
+        case 'ordered':
+            return { bg: primaryColor + '18', text: primaryColor, icon: 'cart-outline' as const, label: 'Ordered' };
+        case 'accepted_by_seller':
+            return { bg: '#DBEAFE', text: '#1D4ED8', icon: 'checkmark-circle-outline' as const, label: 'Accepted' };
+        case 'rejected_by_seller':
+            return { bg: '#FEE2E2', text: '#DC2626', icon: 'close-circle-outline' as const, label: 'Rejected' };
+        case 'ready_for_delivery':
+            return { bg: '#EDE9FE', text: '#7C3AED', icon: 'cube-outline' as const, label: 'Ready for Delivery' };
+        case 'awaiting_confirmation':
+            return { bg: '#FEF9C3', text: '#A16207', icon: 'hourglass-outline' as const, label: 'Awaiting Completion' };
+        case 'completed':
+            return { bg: '#D1FAE5', text: '#065F46', icon: 'checkmark-done-circle-outline' as const, label: 'Completed' };
+        case 'delivered':
+            return { bg: '#DCFCE7', text: '#16A34A', icon: 'home-outline' as const, label: 'Delivered' };
+        case 'return_requested':
+            return { bg: '#FFF7ED', text: '#C2410C', icon: 'return-down-back-outline' as const, label: 'Return Requested' };
+        case 'returned':
+            return { bg: '#F3F4F6', text: '#374151', icon: 'refresh-outline' as const, label: 'Returned' };
+        case 'disputed':
+            return { bg: '#FEF3C7', text: '#B45309', icon: 'warning-outline' as const, label: 'Disputed' };
+        case 'cancelled':
+            return { bg: '#FEE2E2', text: '#DC2626', icon: 'close-circle-outline' as const, label: 'Cancelled' };
+        default:
+            return { bg: '#F3F4F6', text: '#6B7280', icon: 'ellipse-outline' as const, label: s.replace(/_/g, ' ') || 'Unknown' };
     }
 };
 
@@ -71,6 +91,15 @@ const OrderProductDetails: FC<OrderProductDetailsProps> = memo(({ id, onProductL
     const [showDisputeModal, setShowDisputeModal] = useState(false);
     const [disputeReason, setDisputeReason] = useState('');
     const [disputeDescription, setDisputeDescription] = useState('');
+    const [showRejectModal, setShowRejectModal] = useState(false);
+    const [rejectReason, setRejectReason] = useState('');
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [showRatingModal, setShowRatingModal] = useState(false);
+    const [selectedRating, setSelectedRating] = useState(0);
+    const [hasRated, setHasRated] = useState(false);
+    const [showReturnModal, setShowReturnModal] = useState(false);
+    const [returnReason, setReturnReason] = useState('');
+    const [returnDescription, setReturnDescription] = useState('');
 
     const openPreview = useCallback((index: number) => {
         setCurrentIndex(index);
@@ -82,6 +111,7 @@ const OrderProductDetails: FC<OrderProductDetailsProps> = memo(({ id, onProductL
     const mutation = useMutation({
         mutationFn: getProductByTransactionFn,
         onSuccess: (response) => {
+            console.log('Order Product Details Data:', response.data);
             setProductData(response.data || null);
         },
         onError: (error: any) => {
@@ -131,16 +161,98 @@ const OrderProductDetails: FC<OrderProductDetailsProps> = memo(({ id, onProductL
         })();
     }, [productData?.product?.pickupLocation]);
 
-    // Confirm delivery mutation
+    const refresh = () => mutation.mutate({ id: getId });
+
+    // ── Seller mutations ──
+    const sellerAcceptMutation = useMutation({
+        mutationFn: () => sellerAcceptOrderFn(productData!.id),
+        onSuccess: () => { toast.success('Order Accepted', 'Buyer has been notified.'); refresh(); },
+        onError: (e: any) => toast.error('Failed', e?.message || 'Could not accept order'),
+    });
+    const sellerRejectMutation = useMutation({
+        mutationFn: (reason: string) => sellerRejectOrderFn({ id: productData!.id, reason }),
+        onSuccess: () => {
+            toast.success('Order Rejected', 'Buyer has been refunded.');
+            setShowRejectModal(false);
+            setRejectReason('');
+            refresh();
+        },
+        onError: (e: any) => toast.error('Failed', e?.message || 'Could not reject order'),
+    });
+    const sellerMarkReadyMutation = useMutation({
+        mutationFn: () => sellerMarkReadyFn(productData!.id),
+        onSuccess: () => { toast.success('Marked Ready', 'Buyer notified that item is ready.'); refresh(); },
+        onError: (e: any) => toast.error('Failed', e?.message || 'Could not mark ready'),
+    });
+    const sellerHandOverMutation = useMutation({
+        mutationFn: () => sellerHandOverFn(productData!.id),
+        onSuccess: () => { toast.success('Handover Recorded', 'Buyer has been asked to confirm receipt.'); refresh(); },
+        onError: (e: any) => toast.error('Failed', e?.message || 'Could not record handover'),
+    });
+
+    // ── Buyer mutations ──
     const confirmMutation = useMutation({
         mutationFn: () => confirmDeliverdFn(productData!.id),
         onSuccess: () => {
-            toast.success('Delivery Confirmed', 'Payment has been released to the seller');
-            mutation.mutate({ id: getId });
+            toast.success('Confirmed!', 'Payment has been released to the seller.');
+            refresh();
         },
         onError: (error: any) => {
-            toast.error('Error', error?.message || 'Failed to confirm delivery');
+            toast.error('Error', error?.message || 'Failed to confirm');
         },
+    });
+
+    // ── Cancel mutation ──
+    const cancelMutation = useMutation({
+        mutationFn: () => buyerCancelOrderFn(productData!.id),
+        onSuccess: () => {
+            toast.success('Cancelled', 'Your order has been cancelled and payment refunded to your wallet.');
+            setShowCancelModal(false);
+            refresh();
+        },
+        onError: (e: any) => toast.error('Failed', e?.message || 'Could not cancel order'),
+    });
+
+    // ── Rating mutation ──
+    const ratingMutation = useMutation({
+        mutationFn: () => giveRatingForOrderFn(
+            productData?.order
+                ? { rating: selectedRating, orderId: productData.order.id }
+                : { rating: selectedRating, sellerId: productData!.sellerId }
+        ),
+        onSuccess: () => {
+            toast.success('Thanks!', 'Your rating has been submitted.');
+            setShowRatingModal(false);
+            setHasRated(true);
+        },
+        onError: (e: any) => toast.error('Failed', e?.message || 'Could not submit rating'),
+    });
+
+    // ── Return request mutation ──
+    const returnMutation = useMutation({
+        mutationFn: () => requestReturnFn({
+            reason: returnReason.trim(),
+            description: returnDescription.trim(),
+            productTransactionId: productData!.id,
+        }),
+        onSuccess: () => {
+            toast.success('Return Requested', 'Your return request has been submitted.');
+            setShowReturnModal(false);
+            setReturnReason('');
+            setReturnDescription('');
+            refresh();
+        },
+        onError: (e: any) => toast.error('Failed', e?.message || 'Could not submit return request'),
+    });
+
+    // ── Retry rider mutation (expired delivery orders) ──
+    const retryRiderMutation = useMutation({
+        mutationFn: () => retryRiderSearchFn(productData!.order!.id),
+        onSuccess: () => {
+            toast.success('Searching…', 'Looking for a nearby rider for your order.');
+            refresh();
+        },
+        onError: (e: any) => toast.error('Failed', e?.message || 'Could not retry rider search'),
     });
 
     // Dispute mutation
@@ -157,11 +269,6 @@ const OrderProductDetails: FC<OrderProductDetailsProps> = memo(({ id, onProductL
             toast.error('Dispute Failed', error?.message || 'Failed to raise dispute');
         },
     });
-
-    const handleConfirmDelivery = () => {
-        if (!productData) return;
-        confirmMutation.mutate();
-    };
 
     const handleRaiseDispute = () => {
         if (!disputeReason.trim()) {
@@ -183,8 +290,40 @@ const OrderProductDetails: FC<OrderProductDetailsProps> = memo(({ id, onProductL
     const status = normalizeStatus(productData?.status);
     const statusConfig = productData?.status ? getStatusConfig(productData.status, primaryColor, backgroundColortwo) : null;
     const isBuyer = productData?.buyerId === userId;
-    const canConfirm = isBuyer && (status === 'ordered' || status === 'delivered');
-    const canDispute = isBuyer && (status === 'ordered' || status === 'delivered');
+    const isSeller = !isBuyer && productData?.sellerId === userId;
+    const isSelfPickup = productData?.orderMethod === 'self_pickup';
+    const isDeliveryOrder = productData?.orderMethod === 'delivery';
+    const orderStatus = normalizeStatus(productData?.order?.status);
+    const isOrderDelivered = orderStatus === 'delivered';
+
+    // Seller action visibility
+    const sellerCanAccept    = isSeller && status === 'ordered';
+    const sellerCanMarkReady = isSeller && status === 'accepted_by_seller';
+    const sellerCanHandOver  = isSeller && isSelfPickup && status === 'ready_for_delivery';
+
+    // Buyer confirm: self-pickup waits for seller handover; delivery waits for rider delivery
+    const canConfirm = isBuyer && (
+        (isSelfPickup && status === 'awaiting_confirmation') ||
+        (isDeliveryOrder && status === 'ordered' && isOrderDelivered)
+    );
+    const canDispute = canConfirm;
+
+    // Buyer can cancel before seller marks ready (and before rider assigned)
+    const canCancel = isBuyer && ['ordered', 'accepted_by_seller'].includes(status) &&
+        (!productData?.order || ['pending', 'paid'].includes(orderStatus));
+
+    // Buyer can rate after completion (only once)
+    const canRate = isBuyer && status === 'completed' && !hasRated;
+
+    // Buyer can request return within 7 days of completion (use updatedAt as completion timestamp)
+    const completedAt = productData?.updatedAt ? new Date(productData.updatedAt) : null;
+    const returnWindowOpen = completedAt
+        ? (Date.now() - completedAt.getTime()) < 7 * 24 * 60 * 60 * 1000
+        : false;
+    const canReturn = isBuyer && status === 'completed' && returnWindowOpen;
+
+    // Show retry for expired delivery orders
+    const isExpired = isDeliveryOrder && orderStatus === 'expired';
 
     if (mutation.isPending) {
         return (
@@ -199,7 +338,10 @@ const OrderProductDetails: FC<OrderProductDetailsProps> = memo(({ id, onProductL
     return (
         <>
             <ContainerTemplate>
-                <HeaderComponent title={"Order Details"} />
+                <HeaderComponent
+                  title={"Order Details"}
+                  fallback="/(Authenticated)/(marketplace)/myItemsLayout?tab=Bought"
+                />
 
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
                     {/* ── Product Images ── */}
@@ -347,18 +489,78 @@ const OrderProductDetails: FC<OrderProductDetailsProps> = memo(({ id, onProductL
                         </TouchableOpacity>
                     )}
 
-                    {/* ── Action Buttons ── */}
+                    {/* ── Seller Actions ── */}
+                    {(sellerCanAccept || sellerCanMarkReady || sellerCanHandOver) && (
+                        <View style={{ marginTop: 16, gap: 10 }}>
+                            {sellerCanAccept && (
+                                <View style={{ gap: 10 }}>
+                                    <TouchableOpacity
+                                        onPress={() => sellerAcceptMutation.mutate()}
+                                        disabled={sellerAcceptMutation.isPending || sellerRejectMutation.isPending}
+                                        style={{ backgroundColor: '#10B981', borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: sellerAcceptMutation.isPending ? 0.6 : 1 }}
+                                    >
+                                        {sellerAcceptMutation.isPending
+                                            ? <ActivityIndicator size="small" color="#fff" />
+                                            : <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />}
+                                        <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>
+                                            {sellerAcceptMutation.isPending ? 'Accepting…' : 'Accept Order'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => setShowRejectModal(true)}
+                                        disabled={sellerAcceptMutation.isPending}
+                                        style={{ backgroundColor: backgroundColortwo, borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                                    >
+                                        <Ionicons name="close-circle-outline" size={20} color="#fff" />
+                                        <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>Reject Order</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                            {sellerCanMarkReady && (
+                                <TouchableOpacity
+                                    onPress={() => sellerMarkReadyMutation.mutate()}
+                                    disabled={sellerMarkReadyMutation.isPending}
+                                    style={{ backgroundColor: primaryColor, borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: sellerMarkReadyMutation.isPending ? 0.6 : 1 }}
+                                >
+                                    {sellerMarkReadyMutation.isPending
+                                        ? <ActivityIndicator size="small" color="#fff" />
+                                        : <Ionicons name="cube-outline" size={20} color="#fff" />}
+                                    <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>
+                                        {sellerMarkReadyMutation.isPending ? 'Updating…' : isSelfPickup ? 'Item is Ready — Set Meetup' : 'Item is Ready for Rider'}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                            {sellerCanHandOver && (
+                                <TouchableOpacity
+                                    onPress={() => sellerHandOverMutation.mutate()}
+                                    disabled={sellerHandOverMutation.isPending}
+                                    style={{ backgroundColor: '#7C3AED', borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: sellerHandOverMutation.isPending ? 0.6 : 1 }}
+                                >
+                                    {sellerHandOverMutation.isPending
+                                        ? <ActivityIndicator size="small" color="#fff" />
+                                        : <Ionicons name="hand-right-outline" size={20} color="#fff" />}
+                                    <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>
+                                        {sellerHandOverMutation.isPending ? 'Recording…' : "I've Handed Over to Buyer"}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    )}
+
+                    {/* ── Buyer Actions ── */}
                     {(canConfirm || canDispute) && (
                         <View style={{ marginTop: 16, gap: 10 }}>
                             {canConfirm && (
                                 <TouchableOpacity
-                                    onPress={handleConfirmDelivery}
+                                    onPress={() => confirmMutation.mutate()}
                                     disabled={confirmMutation.isPending}
-                                    style={{ backgroundColor: primaryColor, borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: confirmMutation.isPending ? 0.6 : 1 }}
+                                    style={{ backgroundColor: '#10B981', borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: confirmMutation.isPending ? 0.6 : 1 }}
                                 >
-                                    <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
-                                    <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>
-                                        {confirmMutation.isPending ? 'Confirming...' : 'Confirm Received & Release Payment'}
+                                    {confirmMutation.isPending
+                                        ? <ActivityIndicator size="small" color="#fff" />
+                                        : <Ionicons name="checkmark-done-circle-outline" size={20} color="#fff" />}
+                                    <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>
+                                        {confirmMutation.isPending ? 'Confirming…' : 'I Received It — Release Payment'}
                                     </Text>
                                 </TouchableOpacity>
                             )}
@@ -368,7 +570,116 @@ const OrderProductDetails: FC<OrderProductDetailsProps> = memo(({ id, onProductL
                                     style={{ backgroundColor: backgroundColortwo, borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                                 >
                                     <Ionicons name="warning-outline" size={20} color="#fff" />
-                                    <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>Raise Dispute</Text>
+                                    <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>Raise a Dispute</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    )}
+
+                    {/* ── Buyer waiting banners (self-pickup only — delivery covered by modal) ── */}
+                    {isBuyer && isSelfPickup && (() => {
+                        const banners: Record<string, { icon: any; color: string; title: string; body: string }> = {
+                            ordered: {
+                                icon: 'time-outline', color: '#D97706',
+                                title: 'Waiting for Seller to Accept',
+                                body: 'The seller will accept or reject your order shortly.',
+                            },
+                            accepted_by_seller: {
+                                icon: 'cube-outline', color: primaryColor,
+                                title: 'Seller is Preparing Your Item',
+                                body: 'They will let you know when it\'s ready for pickup.',
+                            },
+                            ready_for_delivery: {
+                                icon: 'bag-check-outline', color: '#7C3AED',
+                                title: 'Item is Ready — Arrange Pickup',
+                                body: 'Contact the seller to agree on a meetup time and place. They will mark handover once they give you the item.',
+                            },
+                        };
+                        const b = banners[status];
+                        if (!b) return null;
+                        return (
+                            <View style={{ backgroundColor: b.color + '12', borderRadius: 14, padding: 16, marginTop: 16, flexDirection: 'row', alignItems: 'flex-start', gap: 12, borderWidth: 1, borderColor: b.color + '30' }}>
+                                <Ionicons name={b.icon} size={22} color={b.color} style={{ marginTop: 1 }} />
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ color: b.color, fontSize: 14, fontWeight: '700', marginBottom: 3 }}>{b.title}</Text>
+                                    <Text style={{ color: b.color, fontSize: 12, lineHeight: 18, opacity: 0.85 }}>{b.body}</Text>
+                                </View>
+                            </View>
+                        );
+                    })()}
+
+                    {/* ── Buyer waiting banner — delivery ── */}
+                    {isBuyer && isDeliveryOrder && !isOrderDelivered && status === 'ordered' && productData?.order && (
+                        <View style={{ backgroundColor: primaryColor + '10', borderRadius: 14, padding: 16, marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: primaryColor + '25' }}>
+                            <Ionicons name="bicycle-outline" size={22} color={primaryColor} />
+                            <View style={{ flex: 1 }}>
+                                <Text style={{ color: primaryColor, fontSize: 14, fontWeight: '700', marginBottom: 2 }}>Delivery in Progress</Text>
+                                <Text style={{ color: primaryColor, fontSize: 12, opacity: 0.85 }}>Tap "View Delivery Details" above to track your rider in real time.</Text>
+                            </View>
+                        </View>
+                    )}
+
+                    {/* ── Expired order — retry rider ── */}
+                    {isExpired && (
+                        <View style={{ backgroundColor: '#FEF3C7', borderRadius: 14, padding: 16, marginTop: 16, borderWidth: 1, borderColor: '#FCD34D' }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                                <Ionicons name="time-outline" size={22} color="#D97706" />
+                                <Text style={{ color: '#92400E', fontSize: 14, fontWeight: '700', flex: 1 }}>No Rider Found</Text>
+                            </View>
+                            <Text style={{ color: '#92400E', fontSize: 12, lineHeight: 18, marginBottom: 12 }}>
+                                No rider accepted your order in time. You can try again — we'll look for a new rider nearby.
+                            </Text>
+                            <TouchableOpacity
+                                onPress={() => retryRiderMutation.mutate()}
+                                disabled={retryRiderMutation.isPending}
+                                style={{ backgroundColor: '#D97706', borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: retryRiderMutation.isPending ? 0.6 : 1 }}
+                            >
+                                {retryRiderMutation.isPending
+                                    ? <ActivityIndicator size="small" color="#fff" />
+                                    : <Ionicons name="refresh-outline" size={18} color="#fff" />}
+                                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>
+                                    {retryRiderMutation.isPending ? 'Searching…' : 'Find a Rider Again'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
+                    {/* ── Cancel order (buyer, early stage) ── */}
+                    {canCancel && (
+                        <TouchableOpacity
+                            onPress={() => setShowCancelModal(true)}
+                            style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: backgroundColortwo + '50' }}
+                        >
+                            <Ionicons name="close-circle-outline" size={18} color={backgroundColortwo} />
+                            <Text style={{ color: backgroundColortwo, fontSize: 14, fontWeight: '600' }}>Cancel Order</Text>
+                        </TouchableOpacity>
+                    )}
+
+                    {/* ── Post-completion: rate + return ── */}
+                    {status === 'completed' && isBuyer && (
+                        <View style={{ marginTop: 16, gap: 10 }}>
+                            {canRate && (
+                                <TouchableOpacity
+                                    onPress={() => setShowRatingModal(true)}
+                                    style={{ backgroundColor: '#F59E0B', borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                                >
+                                    <Ionicons name="star-outline" size={20} color="#fff" />
+                                    <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>Rate Your Seller</Text>
+                                </TouchableOpacity>
+                            )}
+                            {hasRated && (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                                    <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                                    <Text style={{ color: '#10B981', fontSize: 13, fontWeight: '600' }}>You've rated this order</Text>
+                                </View>
+                            )}
+                            {canReturn && (
+                                <TouchableOpacity
+                                    onPress={() => setShowReturnModal(true)}
+                                    style={{ borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: backgroundColortwo + '50' }}
+                                >
+                                    <Ionicons name="return-down-back-outline" size={18} color={backgroundColortwo} />
+                                    <Text style={{ color: backgroundColortwo, fontSize: 14, fontWeight: '600' }}>Request a Return</Text>
                                 </TouchableOpacity>
                             )}
                         </View>
@@ -415,9 +726,67 @@ const OrderProductDetails: FC<OrderProductDetailsProps> = memo(({ id, onProductL
                 <Modal animationType="slide" transparent visible={showDeliveryModal} onRequestClose={() => setShowDeliveryModal(false)}>
                     <View style={styles.overlay}>
                         <View style={[styles.modalBox, { backgroundColor }]}>
-                            {productData?.order && <DeliveryTracker item={productData.order} />}
+                            {productData?.order && (
+                                <DeliveryTracker
+                                    item={productData.order}
+                                    isBuyer={isBuyer}
+                                    productTransactionId={productData.id}
+                                    productTransactionStatus={productData.status}
+                                    onClose={() => setShowDeliveryModal(false)}
+                                    onRefresh={() => mutation.mutate({ id: getId })}
+                                />
+                            )}
                             <TouchableOpacity style={styles.closeButton} onPress={() => setShowDeliveryModal(false)}>
                                 <FontAwesome5 color={backgroundColortwo} size={24} name="times-circle" />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
+
+                {/* ── Reject Order Modal ── */}
+                <Modal animationType="slide" transparent visible={showRejectModal} onRequestClose={() => setShowRejectModal(false)}>
+                    <View style={styles.overlay}>
+                        <View style={[styles.disputeBox, { backgroundColor }]}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                <Text style={{ color: textPrimary, fontSize: 18, fontWeight: '700' }}>Reject Order</Text>
+                                <TouchableOpacity onPress={() => setShowRejectModal(false)}>
+                                    <Ionicons name="close" size={24} color={textSecondary} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={{ backgroundColor: backgroundColortwo + '15', borderRadius: 12, padding: 12, marginBottom: 16, flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+                                <Ionicons name="information-circle-outline" size={18} color={backgroundColortwo} style={{ marginTop: 1 }} />
+                                <Text style={{ color: backgroundColortwo, fontSize: 13, flex: 1, lineHeight: 18 }}>
+                                    The buyer will be fully refunded and notified with your reason.
+                                </Text>
+                            </View>
+
+                            <Text style={{ color: textPrimary, fontSize: 13, fontWeight: '600', marginBottom: 6 }}>Reason for rejection</Text>
+                            <TextInput
+                                value={rejectReason}
+                                onChangeText={setRejectReason}
+                                placeholder="e.g. Item no longer available, Out of stock…"
+                                placeholderTextColor={textSecondary}
+                                multiline
+                                numberOfLines={3}
+                                textAlignVertical="top"
+                                style={{ backgroundColor: isDark ? '#374151' : '#F3F4F6', borderRadius: 12, padding: 14, color: textPrimary, fontSize: 14, marginBottom: 16, minHeight: 80, borderWidth: 1, borderColor }}
+                            />
+
+                            <TouchableOpacity
+                                onPress={() => {
+                                    if (!rejectReason.trim()) {
+                                        toast.error('Required', 'Please provide a reason for rejection');
+                                        return;
+                                    }
+                                    sellerRejectMutation.mutate(rejectReason.trim());
+                                }}
+                                disabled={sellerRejectMutation.isPending}
+                                style={{ backgroundColor: backgroundColortwo, borderRadius: 12, padding: 16, alignItems: 'center', opacity: sellerRejectMutation.isPending ? 0.6 : 1 }}
+                            >
+                                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>
+                                    {sellerRejectMutation.isPending ? 'Rejecting…' : 'Confirm Rejection'}
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -472,6 +841,172 @@ const OrderProductDetails: FC<OrderProductDetailsProps> = memo(({ id, onProductL
                     </View>
                 </Modal>
 
+                {/* ── Cancel Order Modal ── */}
+                <Modal animationType="slide" transparent visible={showCancelModal} onRequestClose={() => setShowCancelModal(false)}>
+                    <View style={styles.overlay}>
+                        <View style={[styles.disputeBox, { backgroundColor }]}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                <Text style={{ color: textPrimary, fontSize: 18, fontWeight: '700' }}>Cancel Order</Text>
+                                <TouchableOpacity onPress={() => setShowCancelModal(false)}>
+                                    <Ionicons name="close" size={24} color={textSecondary} />
+                                </TouchableOpacity>
+                            </View>
+
+                            {/* Refund notice */}
+                            <View style={{ backgroundColor: '#10B98115', borderRadius: 12, padding: 14, marginBottom: 16, flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+                                <Ionicons name="wallet-outline" size={20} color="#10B981" style={{ marginTop: 1 }} />
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ color: '#065F46', fontSize: 13, fontWeight: '700', marginBottom: 3 }}>Full Refund Guaranteed</Text>
+                                    <Text style={{ color: '#065F46', fontSize: 12, lineHeight: 18 }}>
+                                        Your payment will be refunded to your wallet immediately upon cancellation.
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <Text style={{ color: textSecondary, fontSize: 13, lineHeight: 20, marginBottom: 20 }}>
+                                Are you sure you want to cancel this order? The seller will be notified.
+                            </Text>
+
+                            <View style={{ flexDirection: 'row', gap: 10 }}>
+                                <TouchableOpacity
+                                    onPress={() => setShowCancelModal(false)}
+                                    style={{ flex: 1, borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 1, borderColor }}
+                                >
+                                    <Text style={{ color: textSecondary, fontSize: 14, fontWeight: '600' }}>Keep Order</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    onPress={() => cancelMutation.mutate()}
+                                    disabled={cancelMutation.isPending}
+                                    style={{ flex: 1, backgroundColor: backgroundColortwo, borderRadius: 12, padding: 14, alignItems: 'center', opacity: cancelMutation.isPending ? 0.6 : 1 }}
+                                >
+                                    {cancelMutation.isPending
+                                        ? <ActivityIndicator size="small" color="#fff" />
+                                        : <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>Yes, Cancel</Text>}
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
+
+                {/* ── Rating Modal ── */}
+                <Modal animationType="slide" transparent visible={showRatingModal} onRequestClose={() => setShowRatingModal(false)}>
+                    <View style={styles.overlay}>
+                        <View style={[styles.disputeBox, { backgroundColor }]}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                <Text style={{ color: textPrimary, fontSize: 18, fontWeight: '700' }}>Rate Your Seller</Text>
+                                <TouchableOpacity onPress={() => setShowRatingModal(false)}>
+                                    <Ionicons name="close" size={24} color={textSecondary} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <Text style={{ color: textSecondary, fontSize: 13, marginBottom: 20 }}>
+                                How was your experience with {productData?.seller?.profile?.firstName || 'this seller'}?
+                            </Text>
+
+                            {/* Star selector */}
+                            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12, marginBottom: 10 }}>
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                    <TouchableOpacity key={star} onPress={() => setSelectedRating(star)}>
+                                        <Ionicons
+                                            name={star <= selectedRating ? 'star' : 'star-outline'}
+                                            size={40}
+                                            color={star <= selectedRating ? '#F59E0B' : (isDark ? '#4B5563' : '#D1D5DB')}
+                                        />
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            {/* Rating label */}
+                            <Text style={{ color: textSecondary, fontSize: 13, textAlign: 'center', marginBottom: 24, minHeight: 18 }}>
+                                {selectedRating === 1 ? '😞 Poor'
+                                    : selectedRating === 2 ? '😐 Fair'
+                                    : selectedRating === 3 ? '🙂 Good'
+                                    : selectedRating === 4 ? '😊 Very Good'
+                                    : selectedRating === 5 ? '🤩 Excellent!'
+                                    : 'Tap a star to rate'}
+                            </Text>
+
+                            <TouchableOpacity
+                                onPress={() => {
+                                    if (selectedRating === 0) {
+                                        toast.error('Required', 'Please select a star rating');
+                                        return;
+                                    }
+                                    ratingMutation.mutate();
+                                }}
+                                disabled={ratingMutation.isPending}
+                                style={{ backgroundColor: '#F59E0B', borderRadius: 12, padding: 16, alignItems: 'center', opacity: ratingMutation.isPending ? 0.6 : 1 }}
+                            >
+                                {ratingMutation.isPending
+                                    ? <ActivityIndicator size="small" color="#fff" />
+                                    : <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>Submit Rating</Text>}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
+
+                {/* ── Return Request Modal ── */}
+                <Modal animationType="slide" transparent visible={showReturnModal} onRequestClose={() => setShowReturnModal(false)}>
+                    <View style={styles.overlay}>
+                        <View style={[styles.disputeBox, { backgroundColor }]}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                <Text style={{ color: textPrimary, fontSize: 18, fontWeight: '700' }}>Request a Return</Text>
+                                <TouchableOpacity onPress={() => setShowReturnModal(false)}>
+                                    <Ionicons name="close" size={24} color={textSecondary} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={{ backgroundColor: '#FEF3C7', borderRadius: 12, padding: 12, marginBottom: 16, flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+                                <Ionicons name="information-circle-outline" size={18} color="#D97706" style={{ marginTop: 1 }} />
+                                <Text style={{ color: '#92400E', fontSize: 12, flex: 1, lineHeight: 18 }}>
+                                    Returns are accepted within 7 days of completion. Our team will review your request.
+                                </Text>
+                            </View>
+
+                            <Text style={{ color: textPrimary, fontSize: 13, fontWeight: '600', marginBottom: 6 }}>Reason</Text>
+                            <TextInput
+                                value={returnReason}
+                                onChangeText={setReturnReason}
+                                placeholder="e.g. Wrong item received, Damaged on arrival…"
+                                placeholderTextColor={textSecondary}
+                                style={{ backgroundColor: isDark ? '#374151' : '#F3F4F6', borderRadius: 12, padding: 14, color: textPrimary, fontSize: 14, marginBottom: 12, borderWidth: 1, borderColor }}
+                            />
+
+                            <Text style={{ color: textPrimary, fontSize: 13, fontWeight: '600', marginBottom: 6 }}>Description</Text>
+                            <TextInput
+                                value={returnDescription}
+                                onChangeText={setReturnDescription}
+                                placeholder="Describe the issue in detail…"
+                                placeholderTextColor={textSecondary}
+                                multiline
+                                numberOfLines={4}
+                                textAlignVertical="top"
+                                style={{ backgroundColor: isDark ? '#374151' : '#F3F4F6', borderRadius: 12, padding: 14, color: textPrimary, fontSize: 14, marginBottom: 16, minHeight: 90, borderWidth: 1, borderColor }}
+                            />
+
+                            <TouchableOpacity
+                                onPress={() => {
+                                    if (!returnReason.trim()) {
+                                        toast.error('Required', 'Please provide a reason for the return');
+                                        return;
+                                    }
+                                    if (!returnDescription.trim()) {
+                                        toast.error('Required', 'Please describe the issue in detail');
+                                        return;
+                                    }
+                                    returnMutation.mutate();
+                                }}
+                                disabled={returnMutation.isPending}
+                                style={{ backgroundColor: backgroundColortwo, borderRadius: 12, padding: 16, alignItems: 'center', opacity: returnMutation.isPending ? 0.6 : 1 }}
+                            >
+                                {returnMutation.isPending
+                                    ? <ActivityIndicator size="small" color="#fff" />
+                                    : <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>Submit Return Request</Text>}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
+
             </ContainerTemplate>
         </>
     )
@@ -521,28 +1056,19 @@ const SellerDetails = ({ user }: any) => {
 };
 
 const statusFlow = [
-    { value: "accepted", label: "Rider Accepted" },
-    { value: "picked_up", label: "Rider Picked Up" },
-    { value: "confirm_pickup", label: "Seller Confirmed Pickup" },
-    { value: "in_transit", label: "Rider In Transit" },
-    { value: "delivered", label: "Rider Delivered" },
-    { value: "confirm_delivery", label: "Buyer Confirmed Delivery" },
-    { value: "missed", label: "Missed" },
+    { value: "accepted",          label: "Rider Assigned" },
+    { value: "en_route_to_pickup",label: "Rider Heading to Seller" },
+    { value: "arrived_at_pickup", label: "Rider at Seller" },
+    { value: "in_transit",        label: "Item Collected — In Transit" },
+    { value: "arrived_at_dropoff",label: "Rider Arrived at Your Location" },
+    { value: "delivered",         label: "Item Delivered" },
+    { value: "confirm_delivery",  label: "Delivery Confirmed ✓" },
 ];
 
-const statusActions: Record<string, { label: string; fn: (id: number) => Promise<any> }> = {
-    accepted: { label: "En Route to Pickup", fn: enRouteToPickupFn },
-    en_route_to_pickup: { label: "Arrived at Pickup", fn: arrivedAtPickupFn },
-    arrived_at_pickup: { label: "Mark Pickup", fn: PickupFn },
-    picked_up: { label: "Confirm Pickup", fn: confirmPickupFn },
-    confirm_pickup: { label: "Arrived at Dropoff", fn: arrivedAtDropoffFn },
-    in_transit: { label: "Arrived at Dropoff", fn: arrivedAtDropoffFn },
-    arrived_at_dropoff: { label: "Mark Delivered", fn: deliveredFn },
-    delivered: { label: "Confirm Delivery", fn: confirmDeliverdFn },
-    confirm_delivery: { label: "Completed", fn: async () => {} },
-    missed: { label: "Missed", fn: async () => {} },
-    cancelled: { label: "Cancelled", fn: async () => {} },
-};
+// Delivery tracking: all actions belong to the RIDER role.
+// Seller & buyer have no actions in this modal — seller sees delivery progress,
+// buyer confirms receipt via the green button below.
+const statusActions: Record<string, { label: string; fn: (id: number) => Promise<any> }> = {};
 
 const statusColors: Record<string, { bg: string; text: string }> = {
     pending:          { bg: '#FEF3C7', text: '#92400E' },
@@ -560,24 +1086,48 @@ const statusColors: Record<string, { bg: string; text: string }> = {
 
 interface ShippingCardProps {
     item: Order;
+    isBuyer?: boolean;
+    productTransactionId?: number;
+    productTransactionStatus?: string;
+    onClose?: () => void;
+    onRefresh?: () => void;
 }
 
-const DeliveryTracker = ({ item }: ShippingCardProps) => {
+const DeliveryTracker = ({ item, isBuyer, productTransactionId, productTransactionStatus: rawPtStatus, onClose, onRefresh }: ShippingCardProps) => {
+    const productTransactionStatus = normalizeStatus(rawPtStatus);
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const { primaryColor } = getColors(theme);
     const textPrimary = isDark ? '#F9FAFB' : '#111827';
     const textSecondary = isDark ? '#9CA3AF' : '#6B7280';
     const [dropAddress, setDropAddress] = useState('');
+    const toast = useToast();
 
     const mutation = useMutation({
         mutationFn: ({ id, status }: { id: number; status: string }) =>
             statusActions[status].fn(id),
         onSuccess: (_data, variables) => {
-            console.log("Status updated:", variables.status);
+            const label = statusActions[variables.status]?.label ?? variables.status;
+            toast.success('Updated', `${label} confirmed successfully`);
+            onClose?.();
+            setTimeout(() => onRefresh?.(), 300);
         },
         onError: (err: any) => {
             console.error("Failed to update delivery:", err.message);
+            toast.error('Failed', err?.message || 'Could not update delivery status');
+        },
+    });
+
+    // Buyer-only: confirm delivery uses productTransactionId, not order id
+    const confirmDeliveryMutation = useMutation({
+        mutationFn: () => confirmDeliverdFn(productTransactionId!),
+        onSuccess: () => {
+            toast.success('Delivery Confirmed', 'Payment has been released to the seller.');
+            onClose?.();
+            setTimeout(() => onRefresh?.(), 300);
+        },
+        onError: (err: any) => {
+            toast.error('Failed', err?.message || 'Could not confirm delivery');
         },
     });
 
@@ -590,12 +1140,13 @@ const DeliveryTracker = ({ item }: ShippingCardProps) => {
     };
 
     const handleAction = () => {
-        const next = getNextStatus(item.status);
-        if (next && statusActions[next.value]) {
-            mutation.mutate({ id: item.id, status: next.value });
+        const action = statusActions[item.status];
+        if (action) {
+            mutation.mutate({ id: item.id, status: item.status });
         }
     };
 
+    const currentAction = statusActions[item.status] ?? null;
     const nextStatus = getNextStatus(item.status);
     const currentStatusColor = statusColors[item.status] || { bg: '#F3F4F6', text: '#6B7280' };
 
@@ -699,24 +1250,75 @@ const DeliveryTracker = ({ item }: ShippingCardProps) => {
                 </View>
             )}
 
-            {/* Action Button */}
-            {item.status !== "cancelled" && item.status !== "confirm_delivery" && nextStatus && (
-                <TouchableOpacity
-                    onPress={handleAction}
-                    disabled={mutation.isPending}
-                    style={{
-                        backgroundColor: primaryColor,
-                        padding: 14,
-                        borderRadius: 12,
-                        alignItems: 'center',
-                        marginTop: 8,
-                        opacity: mutation.isPending ? 0.6 : 1,
-                    }}
-                >
-                    <Text style={{ color: '#fff', fontWeight: '600', fontSize: 14 }}>
-                        {mutation.isPending ? 'Updating...' : `Move to ${nextStatus.label}`}
-                    </Text>
-                </TouchableOpacity>
+            {/* Action Button — hide entirely once delivery is confirmed by buyer */}
+            {!['cancelled', 'confirm_delivery', 'expired'].includes(item.status)
+             && !(item.status === 'delivered' && productTransactionStatus !== 'ordered')
+             && (
+                currentAction ? (
+                    <TouchableOpacity
+                        onPress={handleAction}
+                        disabled={mutation.isPending}
+                        style={{
+                            backgroundColor: primaryColor,
+                            padding: 14,
+                            borderRadius: 12,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 8,
+                            marginTop: 8,
+                            opacity: mutation.isPending ? 0.6 : 1,
+                        }}
+                    >
+                        {mutation.isPending
+                            ? <ActivityIndicator size="small" color="#fff" />
+                            : <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />}
+                        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
+                            {mutation.isPending ? 'Updating...' : currentAction.label}
+                        </Text>
+                    </TouchableOpacity>
+                ) : item.status === 'delivered' && isBuyer && productTransactionStatus === 'ordered' ? (
+                    /* Buyer confirms delivery */
+                    <TouchableOpacity
+                        onPress={() => confirmDeliveryMutation.mutate()}
+                        disabled={confirmDeliveryMutation.isPending}
+                        style={{
+                            backgroundColor: '#10B981',
+                            padding: 14,
+                            borderRadius: 12,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 8,
+                            marginTop: 8,
+                            opacity: confirmDeliveryMutation.isPending ? 0.6 : 1,
+                        }}
+                    >
+                        {confirmDeliveryMutation.isPending
+                            ? <ActivityIndicator size="small" color="#fff" />
+                            : <Ionicons name="checkmark-done-circle-outline" size={18} color="#fff" />}
+                        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
+                            {confirmDeliveryMutation.isPending ? 'Confirming…' : 'Confirm Delivery'}
+                        </Text>
+                    </TouchableOpacity>
+                ) : (
+                    /* Waiting — rider or seller is handling this step */
+                    <View style={{
+                        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+                        gap: 8, padding: 14, borderRadius: 12, marginTop: 8,
+                        backgroundColor: isDark ? '#1F2937' : '#F3F4F6',
+                        borderWidth: 1, borderColor: isDark ? '#374151' : '#E5E7EB',
+                    }}>
+                        <ActivityIndicator size="small" color={isDark ? '#6B7280' : '#9CA3AF'} />
+                        <Text style={{ color: isDark ? '#6B7280' : '#9CA3AF', fontSize: 13, fontWeight: '500' }}>
+                            {item.status === 'paid'
+                                ? 'Looking for a nearby rider…'
+                                : nextStatus
+                                    ? `Next: ${nextStatus.label}`
+                                    : 'Awaiting next step…'}
+                        </Text>
+                    </View>
+                )
             )}
         </ScrollView>
     );

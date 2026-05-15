@@ -11,13 +11,14 @@ export interface ProductTransactionResponse {
     sellerId: string;
     quantity: number;
     price: string;
-    status: "pending" | "ordered" | "delivered" | "picked_up" | string;
-    orderMethod: "delivery" | "pickup" | string;
+    status: "pending" | "ordered" | "delivered" | "picked_up" | "accepted_by_seller" | "rejected_by_seller" | "ready_for_delivery" | "awaiting_confirmation" | "completed" | "cancelled" | "disputed" | "return_requested" | "returned" | string;
+    orderMethod: "delivery" | "self_pickup" | string;
     date: string;
+    autoReleaseAt?: string | null;
     createdAt: string;
     updatedAt: string;
     product: Product;
-    order: Order;
+    order?: Order | null;
     transaction: Transaction;
     buyer: User;
     seller: User;
