@@ -47,11 +47,18 @@ const PaymentScreen = () => {
         if (authorization_url && reference) {
           router.push({
             pathname: "/paystackViewLayout",
-            params: { url: authorization_url, reference },
+            params: { url: authorization_url, reference, context: 'job', jobId },
           });
         }
       },
       onError: (error: any) => {
+        // Handle BVN verification required error
+        if (error?.bvnRequired) {
+          toast.error("BVN Verification Required", "You must verify your BVN before performing transactions");
+          router.push("/bvnactivationlayout" as any);
+          return;
+        }
+
         let msg = "An unexpected error occurred";
         if (error?.response?.data) {
           msg =
@@ -77,6 +84,13 @@ const PaymentScreen = () => {
         }
       },
       onError: (error: any) => {
+        // Handle BVN verification required error
+        if (error?.bvnRequired) {
+          toast.error("BVN Verification Required", "You must verify your BVN before performing transactions");
+          router.push("/bvnactivationlayout" as any);
+          return;
+        }
+
         let msg = "An unexpected error occurred";
         if (error?.response?.data) {
           msg =

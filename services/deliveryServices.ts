@@ -18,7 +18,11 @@ import {
   sellerRejectOrderUrl,
   sellerMarkReadyUrl,
   sellerConfirmUrl,
+  sellerHandOverUrl,
+  buyerCancelOrderUrl,
   returnRequestUrl,
+  giveRatingUrl,
+  isRatedUrl,
 } from 'utilizes/endpoints';
 
 // Type definitions
@@ -319,6 +323,66 @@ export const sellerConfirmCompletionFn = async (id: number): Promise<ApiResponse
     return response.data;
   } catch (error: any) {
     throw new Error(error?.response?.data?.message || 'Failed to confirm order completion');
+  }
+};
+
+// ─── Buyer: Cancel order (before seller marks ready) ───
+export const buyerCancelOrderFn = async (id: number): Promise<ApiResponse> => {
+  try {
+    const headers = createAuthHeaders();
+    const response: AxiosResponse<ApiResponse> = await axios.put(
+      buyerCancelOrderUrl(String(id)),
+      {},
+      { headers }
+    );
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error?.response?.data?.message || 'Failed to cancel order');
+  }
+};
+
+// ─── Buyer/Seller: Rate after completion ───
+export const giveRatingForOrderFn = async (data: {
+  rating: number;
+  sellerId?: string;
+  orderId?: number;
+}): Promise<ApiResponse> => {
+  try {
+    const headers = createAuthHeaders();
+    const response: AxiosResponse<ApiResponse> = await axios.post(
+      giveRatingUrl,
+      data,
+      { headers }
+    );
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error?.response?.data?.message || 'Failed to submit rating');
+  }
+};
+
+// ─── Check if already rated ───
+export const isRatedFn = async (params: { sellerId?: string; orderId?: number }): Promise<ApiResponse> => {
+  try {
+    const headers = createAuthHeaders();
+    const response: AxiosResponse<ApiResponse> = await axios.get(isRatedUrl, { headers, params });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error?.response?.data?.message || 'Failed to check rating status');
+  }
+};
+
+// ─── Seller: Hand over item to buyer (self-pickup only) ───
+export const sellerHandOverFn = async (id: number): Promise<ApiResponse> => {
+  try {
+    const headers = createAuthHeaders();
+    const response: AxiosResponse<ApiResponse> = await axios.put(
+      sellerHandOverUrl(String(id)),
+      {},
+      { headers }
+    );
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error?.response?.data?.message || 'Failed to record handover');
   }
 };
 

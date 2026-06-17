@@ -239,49 +239,61 @@ const BillingHistory = () => {
                 {/* Stats Cards */}
                 <View className="px-3 mb-5">
                     <View className="flex-row gap-3">
-                        <View style={{ backgroundColor: primaryColor + '15', borderColor: primaryColor + '30', borderWidth: 1 }} className="flex-1 rounded-2xl p-3">
-                            <View className="flex-row items-center mb-1">
-                                <View style={{ backgroundColor: primaryColor }} className="w-6 h-6 rounded-full items-center justify-center mr-2">
-                                    <FontAwesome5 name="arrow-down" size={10} color="#ffffff" />
+                        <View style={{ 
+                            backgroundColor: primaryColor + '10', 
+                            borderWidth: 0
+                        }} className="flex-1 rounded-2xl p-4">
+                            <View className="flex-row items-center mb-2">
+                                <View style={{ backgroundColor: primaryColor }} className="w-7 h-7 rounded-xl items-center justify-center mr-3">
+                                    <FontAwesome5 name="arrow-down" size={11} color="#ffffff" />
                                 </View>
                                 <ThemeTextsecond size={Textstyles.text_xsmall}>Credits</ThemeTextsecond>
                             </View>
-                            <Text style={{ fontSize: 18, fontWeight: '700', color: primaryColor }}>
+                            <Text style={{ fontSize: 20, fontWeight: '800', color: primaryColor }}>
                                 ₦{(transactionStats?.totalCredits || 0).toLocaleString()}
                             </Text>
                         </View>
-                        <View style={{ backgroundColor: backgroundColortwo + '15', borderColor: backgroundColortwo + '30', borderWidth: 1 }} className="flex-1 rounded-2xl p-3">
-                            <View className="flex-row items-center mb-1">
-                                <View style={{ backgroundColor: backgroundColortwo }} className="w-6 h-6 rounded-full items-center justify-center mr-2">
-                                    <FontAwesome5 name="arrow-up" size={10} color="#ffffff" />
+                        <View style={{ 
+                            backgroundColor: secondaryTextColor + '10', 
+                            borderWidth: 0
+                        }} className="flex-1 rounded-2xl p-4">
+                            <View className="flex-row items-center mb-2">
+                                <View style={{ backgroundColor: secondaryTextColor }} className="w-7 h-7 rounded-xl items-center justify-center mr-3">
+                                    <FontAwesome5 name="arrow-up" size={11} color="#ffffff" />
                                 </View>
                                 <ThemeTextsecond size={Textstyles.text_xsmall}>Debits</ThemeTextsecond>
                             </View>
-                            <Text style={{ fontSize: 18, fontWeight: '700', color: backgroundColortwo }}>
+                            <Text style={{ fontSize: 20, fontWeight: '800', color: secondaryTextColor }}>
                                 ₦{(transactionStats?.totalDebits || 0).toLocaleString()}
                             </Text>
                         </View>
                     </View>
                     <View className="flex-row gap-3 mt-3">
-                        <View style={{ backgroundColor: primaryColor + '15', borderColor: primaryColor + '30', borderWidth: 1 }} className="flex-1 rounded-2xl p-3">
-                            <View className="flex-row items-center mb-1">
-                                <View style={{ backgroundColor: primaryColor }} className="w-6 h-6 rounded-full items-center justify-center mr-2">
-                                    <FontAwesome5 name="exchange" size={10} color="#ffffff" />
+                        <View style={{ 
+                            backgroundColor: primaryColor + '10', 
+                            borderWidth: 0
+                        }} className="flex-1 rounded-2xl p-4">
+                            <View className="flex-row items-center mb-2">
+                                <View style={{ backgroundColor: primaryColor }} className="w-7 h-7 rounded-xl items-center justify-center mr-3">
+                                    <FontAwesome5 name="money-bill" size={11} color="#ffffff" />
                                 </View>
                                 <ThemeTextsecond size={Textstyles.text_xsmall}>Total</ThemeTextsecond>
                             </View>
-                            <Text style={{ fontSize: 18, fontWeight: '700', color: primaryColor }}>
+                            <Text style={{ fontSize: 20, fontWeight: '800', color: primaryColor }}>
                                 {(transactionStats?.totalTransactions || 0)}
                             </Text>
                         </View>
-                        <View style={{ backgroundColor: backgroundColortwo + '15', borderColor: backgroundColortwo + '30', borderWidth: 1 }} className="flex-1 rounded-2xl p-3">
-                            <View className="flex-row items-center mb-1">
-                                <View style={{ backgroundColor: backgroundColortwo }} className="w-6 h-6 rounded-full items-center justify-center mr-2">
-                                    <FontAwesome5 name="clock" size={10} color="#ffffff" />
+                        <View style={{ 
+                            backgroundColor: secondaryTextColor + '10', 
+                            borderWidth: 0
+                        }} className="flex-1 rounded-2xl p-4">
+                            <View className="flex-row items-center mb-2">
+                                <View style={{ backgroundColor: secondaryTextColor }} className="w-7 h-7 rounded-xl items-center justify-center mr-3">
+                                    <FontAwesome5 name="clock" size={11} color="#ffffff" />
                                 </View>
                                 <ThemeTextsecond size={Textstyles.text_xsmall}>Pending</ThemeTextsecond>
                             </View>
-                            <Text style={{ fontSize: 18, fontWeight: '700', color: backgroundColortwo }}>
+                            <Text style={{ fontSize: 20, fontWeight: '800', color: secondaryTextColor }}>
                                 {transactionStats?.pendingTransactions || 0}
                             </Text>
                         </View>
@@ -291,18 +303,38 @@ const BillingHistory = () => {
                 {/* Search and Filter */}
                 <View className="px-3 mb-4">
                     <View className="flex-row gap-3">
-                        <View style={{ backgroundColor: selectioncardColor, borderColor: borderColor, borderWidth: 1 }} className="flex-1 h-12 rounded-xl flex-row items-center px-4">
+                        <View style={{ 
+                            backgroundColor: selectioncardColor, 
+                            borderColor: '#E5E7EB', 
+                            borderWidth: 1,
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 1 },
+                            shadowOpacity: 0.05,
+                            shadowRadius: 2,
+                            elevation: 1
+                        }} className="flex-1 h-12 rounded-xl flex-row items-center px-4">
                             <Feather name="search" size={18} color={secondaryTextColor} />
                             <TextInput
                                 placeholder="Search transactions..."
-                                placeholderTextColor={secondaryTextColor}
-                                style={{ flex: 1, color: secondaryTextColor, marginLeft: 8 }}
+                                placeholderTextColor={secondaryTextColor + '70'}
+                                style={{ flex: 1, color: secondaryTextColor, marginLeft: 8, fontSize: 14 }}
                                 className="text-base"
                                 value={searchQuery}
                                 onChangeText={handleSearch}
                             />
                         </View>
-                        <TouchableOpacity onPress={()=>setshowmodal(true)} style={{ backgroundColor: primaryColor }} className="h-12 w-12 rounded-xl flex-row items-center justify-center">
+                        <TouchableOpacity 
+                            onPress={()=>setshowmodal(true)} 
+                            style={{ 
+                                backgroundColor: primaryColor,
+                                shadowColor: primaryColor,
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.2,
+                                shadowRadius: 4,
+                                elevation: 2
+                            }} 
+                            className="h-12 w-12 rounded-xl flex-row items-center justify-center"
+                        >
                             <Feather name="filter" size={18} color="#ffffff" />
                         </TouchableOpacity>
                     </View>
@@ -328,20 +360,52 @@ const BillingHistory = () => {
                         }}
                         ListEmptyComponent={() => (
                             <View className="flex-1 items-center justify-center py-20">
-                                <View style={{ backgroundColor: primaryColor + '10' }} className="w-20 h-20 rounded-full items-center justify-center mb-4">
+                                <View style={{ 
+                                    backgroundColor: primaryColor + '10',
+                                    borderWidth: 2,
+                                    borderColor: primaryColor + '20'
+                                }} className="w-20 h-20 rounded-full items-center justify-center mb-4">
                                     <MaterialIcons name="receipt-long" size={36} color={primaryColor} />
                                 </View>
-                                <Text style={{ fontSize: 16, fontWeight: '600', color: secondaryTextColor }} className="text-center">
+                                <Text style={{ 
+                                    fontSize: 17, 
+                                    fontWeight: '700', 
+                                    color: secondaryTextColor,
+                                    textAlign: 'center'
+                                }} className="px-8">
                                     No transactions found
                                 </Text>
-                                <Text style={{ fontSize: 13, color: secondaryTextColor, opacity: 0.7 }} className="mt-2 text-center px-8">
+                                <Text style={{ 
+                                    fontSize: 14, 
+                                    color: secondaryTextColor, 
+                                    opacity: 0.8, 
+                                    textAlign: 'center',
+                                    lineHeight: 20
+                                }} className="mt-3 px-12">
                                     {searchQuery || fromDate || toDate || value !== 'All' 
                                         ? 'Try adjusting your filters or search query' 
-                                        : 'Your transaction history will appear here'}
+                                        : 'Your transaction history will appear here once you start using the app'}
                                 </Text>
                                 {(searchQuery || fromDate || toDate || value !== 'All') && (
-                                    <TouchableOpacity onPress={clearFilters} className="mt-4">
-                                        <Text style={{ color: primaryColor, fontSize: 13, fontWeight: '600' }}>Clear Filters</Text>
+                                    <TouchableOpacity 
+                                        onPress={clearFilters} 
+                                        style={{
+                                            backgroundColor: primaryColor + '15',
+                                            borderColor: primaryColor + '30',
+                                            borderWidth: 1,
+                                            paddingHorizontal: 16,
+                                            paddingVertical: 8,
+                                            borderRadius: 20,
+                                            marginTop: 16
+                                        }}
+                                    >
+                                        <Text style={{ 
+                                            color: primaryColor, 
+                                            fontSize: 14, 
+                                            fontWeight: '700' 
+                                        }}>
+                                            Clear Filters
+                                        </Text>
                                     </TouchableOpacity>
                                 )}
                             </View>
@@ -377,14 +441,23 @@ const TransactionCard = ({ transaction, primaryColor, secondaryTextColor, select
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'success': return primaryColor;
-            case 'failed': return backgroundColortwo;
-            case 'pending': return backgroundColortwo;
+            case 'failed': return secondaryTextColor;
+            case 'pending': return secondaryTextColor;
             default: return backgroundColortwo;
         }
     };
 
+    const getStatusBgColor = (status: string) => {
+        switch (status) {
+            case 'success': return primaryColor + '15';
+            case 'failed': return secondaryTextColor + '15';
+            case 'pending': return secondaryTextColor + '15';
+            default: return backgroundColortwo + '15';
+        }
+    };
+
     const getAmountColor = (type: string) => {
-        return type === 'credit' ? primaryColor : backgroundColortwo;
+        return type === 'credit' ? primaryColor : secondaryTextColor;
     };
 
     const getAmountPrefix = (type: string) => {
@@ -392,37 +465,73 @@ const TransactionCard = ({ transaction, primaryColor, secondaryTextColor, select
     };
 
     return (
-        <View style={{ backgroundColor: selectioncardColor, borderColor: selectioncardColor, borderWidth: 1 }} className="w-full rounded-2xl p-4 mb-3">
+        <View 
+            style={{ 
+                backgroundColor: selectioncardColor, 
+                borderColor: '#E5E7EB', 
+                borderWidth: 1,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 2,
+                elevation: 1
+            }} 
+            className="w-full rounded-2xl p-4 mb-3"
+        >
             <View className="flex-row items-start justify-between">
                 {/* Left: Icon + Content */}
                 <View className="flex-row items-start flex-1 mr-3">
-                    <View style={{ backgroundColor: transaction.color + '15' }} className="w-12 h-12 rounded-xl items-center justify-center mr-3">
+                    <View style={{ 
+                        backgroundColor: transaction.color + '20',
+                        borderWidth: 1,
+                        borderColor: transaction.color + '30'
+                    }} className="w-12 h-12 rounded-xl items-center justify-center mr-3">
                         <FontAwesome5 name={transaction.icon as any} size={18} color={transaction.color} />
                     </View>
                     <View className="flex-1">
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: secondaryTextColor }} numberOfLines={1}>
+                        <Text style={{ 
+                            fontSize: 15, 
+                            fontWeight: '700', 
+                            color: secondaryTextColor,
+                            lineHeight: 20
+                        }} numberOfLines={1}>
                             {transaction.title}
                         </Text>
-                        <Text style={{ fontSize: 12, color: secondaryTextColor, opacity: 0.7, marginTop: 2 }} numberOfLines={1}>
+                        <Text style={{ 
+                            fontSize: 12, 
+                            color: secondaryTextColor, 
+                            opacity: 0.8, 
+                            marginTop: 2,
+                            lineHeight: 16
+                        }} numberOfLines={2}>
                             {transaction.subtitle}
                         </Text>
-                        <View className="flex-row items-center mt-2">
+                        <View className="flex-row items-center mt-3">
                             <View style={{ 
-                                backgroundColor: getStatusColor(transaction.status) + '15', 
-                                paddingHorizontal: 6, 
-                                paddingVertical: 2, 
-                                borderRadius: 12 
+                                backgroundColor: getStatusBgColor(transaction.status), 
+                                paddingHorizontal: 8, 
+                                paddingVertical: 3, 
+                                borderRadius: 12,
+                                borderWidth: 1,
+                                borderColor: getStatusColor(transaction.status) + '30'
                             }}>
                                 <Text style={{ 
                                     fontSize: 10, 
-                                    fontWeight: '600', 
+                                    fontWeight: '700', 
                                     color: getStatusColor(transaction.status),
-                                    textTransform: 'uppercase'
+                                    textTransform: 'uppercase',
+                                    letterSpacing: 0.5
                                 }}>
                                     {transaction.status}
                                 </Text>
                             </View>
-                            <Text style={{ fontSize: 11, color: secondaryTextColor, opacity: 0.6, marginLeft: 8 }}>
+                            <Text style={{ 
+                                fontSize: 11, 
+                                color: secondaryTextColor, 
+                                opacity: 0.7, 
+                                marginLeft: 10,
+                                fontWeight: '500'
+                            }}>
                                 {transaction.date}
                             </Text>
                         </View>
@@ -431,13 +540,27 @@ const TransactionCard = ({ transaction, primaryColor, secondaryTextColor, select
 
                 {/* Right: Amount */}
                 <View className="items-end">
-                    <Text style={{ fontSize: 15, fontWeight: '700', color: getAmountColor(transaction.type) }}>
-                        {getAmountPrefix(transaction.type)}₦{Number(transaction.amount).toLocaleString()}
-                    </Text>
-                    <View className="flex-row items-center mt-1">
+                    <View style={{
+                        backgroundColor: getAmountColor(transaction.type) + '10',
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: getAmountColor(transaction.type) + '20'
+                    }}>
+                        <Text style={{ 
+                            fontSize: 16, 
+                            fontWeight: '800', 
+                            color: getAmountColor(transaction.type),
+                            letterSpacing: -0.5
+                        }}>
+                            {getAmountPrefix(transaction.type)}₦{Number(transaction.amount).toLocaleString()}
+                        </Text>
+                    </View>
+                    <View className="flex-row items-center mt-2">
                         <FontAwesome5 
                             name={transaction.type === 'credit' ? 'arrow-down' : 'arrow-up'} 
-                            size={10} 
+                            size={12} 
                             color={getAmountColor(transaction.type)} 
                         />
                     </View>

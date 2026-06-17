@@ -4,13 +4,17 @@ import { useTheme } from "hooks/useTheme";
 import { View, Text, ScrollView, TouchableOpacity, Switch } from "react-native";
 import { getColors } from "static/color";
 import { useDispatch } from "react-redux";
-import { logout } from "redux/slices/authSlice";
+import { logoutAsync } from "redux/slices/authSlice";
+import ChatCacheService from "services/chatCache";
+import { useSecureAuth } from "hooks/useSecureAuth";
+import { useEffect, useState } from "react";
 
 const ProfileSetting = () => {
   const { theme, toggleTheme } = useTheme();
   const { primaryColor, backgroundColortwo } = getColors(theme);
   const router = useRouter();
   const dispatch = useDispatch();
+  const { isBiometricAvailable, isBiometricEnabled, setBiometricEnabled } = useSecureAuth();
 
   const isDark = theme === "dark";
   const bgColor = isDark ? "#111827" : "#F3F4F6";
@@ -19,8 +23,28 @@ const ProfileSetting = () => {
   const textSecondary = isDark ? "#9CA3AF" : "#6B7280";
   const dividerColor = isDark ? "#374151" : "#E5E7EB";
 
-  const handleLogout = () => {
-    dispatch(logout());
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricOn, setBiometricOn] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      const available = await isBiometricAvailable();
+      setBiometricSupported(available);
+      if (available) {
+        const enabled = await isBiometricEnabled();
+        setBiometricOn(enabled);
+      }
+    };
+    load();
+  }, []);
+
+  const handleToggleBiometric = async (value: boolean) => {
+    await setBiometricEnabled(value);
+    setBiometricOn(value);
+  };
+
+  const handleLogout = async () => {
+    await dispatch(logoutAsync() as any);
     router.replace("/loginscreen");
   };
 
@@ -37,13 +61,6 @@ const ProfileSetting = () => {
   };
 
   const sections: { title: string; items: SettingItem[] }[] = [
-    {
-      title: "Personal Information",
-      items: [
-        { label: "Edit Profile", subtitle: "Update your personal information", icon: "person-outline", color: primaryColor, onPress: () => router.push("/profileeditlayout") },
-        { label: "Switch to Professional", subtitle: "Access professional features", icon: "swap-horizontal-outline", color: backgroundColortwo, onPress: () => router.push("/switchtoprofessionallayout") },
-      ],
-    },
     {
       title: "Preferences",
       items: [
@@ -64,6 +81,15 @@ const ProfileSetting = () => {
       items: [
         { label: "Change Password", subtitle: "Update your password", icon: "lock-closed-outline", color: backgroundColortwo, onPress: () => router.push("/passwordchangelayout") },
         { label: "Transaction PIN", subtitle: "Reset your transaction PIN", icon: "key-outline", color: backgroundColortwo, onPress: () => router.push("/resetpinlayout") },
+        ...(biometricSupported ? [{
+          label: "Biometric Login",
+          subtitle: "Use Face ID or fingerprint to sign in",
+          icon: "finger-print-outline",
+          color: primaryColor,
+          type: "toggle" as const,
+          toggleValue: biometricOn,
+          onToggle: () => handleToggleBiometric(!biometricOn),
+        }] : []),
       ],
     },
     {
@@ -74,11 +100,10 @@ const ProfileSetting = () => {
       ],
     },
     {
-      title: "Support",
+      title: "Account",
       items: [
-        { label: "FAQs", subtitle: "Frequently asked questions", icon: "help-circle-outline", color: backgroundColortwo, onPress: () => router.push("/faqlayout") },
-        { label: "Customer Support", subtitle: "Get help from our team", icon: "headset-outline", color: backgroundColortwo, onPress: () => router.push("/supportlayout") },
-        { label: "Terms & Privacy", subtitle: "Legal information", icon: "shield-checkmark-outline", color: primaryColor, onPress: () => router.push("/termsandprivacylayout") },
+        { label: "Switch Role", subtitle: "Switch between client, professional, delivery", icon: "swap-horizontal-outline", color: "#6366F1", onPress: () => router.push("/switch-role") },
+        { label: "Delete Account", subtitle: "Permanently remove your account", icon: "trash-outline", color: "#DC2626", onPress: () => router.push("/deleteaccountlayout") },
       ],
     },
   ];
@@ -157,20 +182,6 @@ const ProfileSetting = () => {
             </View>
           </View>
         ))}
-
-        {/* ── Logout Button ── */}
-        <TouchableOpacity
-          onPress={handleLogout}
-          style={{
-            backgroundColor: '#DC262615', borderRadius: 14,
-            paddingVertical: 14, alignItems: "center",
-            flexDirection: "row", justifyContent: "center", gap: 8,
-            marginTop: 4,
-          }}
-        >
-          <Ionicons name="log-out-outline" size={18} color="#DC2626" />
-          <Text style={{ color: '#DC2626', fontSize: 15, fontWeight: "600" }}>Logout</Text>
-        </TouchableOpacity>
 
         {/* ── Version ── */}
         <View style={{ alignItems: "center", marginTop: 16 }}>

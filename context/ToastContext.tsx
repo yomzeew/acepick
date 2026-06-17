@@ -22,12 +22,43 @@ interface ToastContextType {
   info: (title: string, message?: string) => void;
 }
 
+interface ToastStateContextType {
+  toasts: ToastMessage[];
+  dismiss: (id: number) => void;
+}
+
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
+const ToastStateContext = createContext<ToastStateContextType | undefined>(undefined);
 
 export const useToast = () => {
   const ctx = useContext(ToastContext);
   if (!ctx) throw new Error('useToast must be used within ToastProvider');
   return ctx;
+};
+
+export const InModalToastContainer = () => {
+  const ctx = useContext(ToastStateContext);
+  const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const { primaryColor, backgroundColortwo } = getColors(theme);
+  if (!ctx || ctx.toasts.length === 0) return null;
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        top: insets.top + 8,
+        left: 0,
+        right: 0,
+        zIndex: 9999,
+        elevation: 9999,
+      }}
+      pointerEvents="box-none"
+    >
+      {ctx.toasts.map((t) => (
+        <ToastItem key={t.id} toast={t} onDismiss={ctx.dismiss} successColor={primaryColor} errorColor={backgroundColortwo} />
+      ))}
+    </View>
+  );
 };
 
 const TOAST_ICONS: Record<ToastType, any> = {
@@ -36,13 +67,18 @@ const TOAST_ICONS: Record<ToastType, any> = {
   info: 'information-circle',
 };
 
-const ToastItem = ({ toast, onDismiss }: { toast: ToastMessage; onDismiss: (id: number) => void }) => {
-  const { theme } = useTheme();
-  const { primaryColor, backgroundColortwo } = getColors(theme);
+interface ToastItemProps {
+  toast: ToastMessage;
+  onDismiss: (id: number) => void;
+  successColor: string;
+  errorColor: string;
+}
+
+const ToastItem = ({ toast, onDismiss, successColor, errorColor }: ToastItemProps) => {
   const toastColors: Record<ToastType, string> = {
-    success: primaryColor,
-    error: backgroundColortwo,
-    info: primaryColor,
+    success: successColor,
+    error: errorColor,
+    info: successColor,
   };
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(-30)).current;
@@ -103,6 +139,8 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const idRef = useRef(0);
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const { primaryColor, backgroundColortwo } = getColors(theme);
 
   const dismiss = useCallback((id: number) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -119,21 +157,26 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <ToastContext.Provider value={{ showToast, success, error, info }}>
-      {children}
-      <View
-        style={{
-          position: 'absolute',
-          top: insets.top + 8,
-          left: 0,
-          right: 0,
-          zIndex: 9999,
-        }}
-        pointerEvents="box-none"
-      >
-        {toasts.map((t) => (
-          <ToastItem key={t.id} toast={t} onDismiss={dismiss} />
-        ))}
-      </View>
+      <ToastStateContext.Provider value={{ toasts, dismiss }}>
+        {children}
+        {toasts.length > 0 && (
+          <View
+            style={{
+              position: 'absolute',
+              top: insets.top + 8,
+              left: 0,
+              right: 0,
+              zIndex: 9999,
+              elevation: 9999,
+            }}
+            pointerEvents="box-none"
+          >
+            {toasts.map((t) => (
+              <ToastItem key={t.id} toast={t} onDismiss={dismiss} successColor={primaryColor} errorColor={backgroundColortwo} />
+            ))}
+          </View>
+        )}
+      </ToastStateContext.Provider>
     </ToastContext.Provider>
   );
 };

@@ -1,5 +1,11 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { loginUser, sendOtp, verifyOtp, registerUser, registerArtisan, registerRider, registerCorporate, forgetUser } from '../../services/authServices';
+import { switchRoleFn } from '../../services/roleSwitchService';
+import CleanupService from '../../services/cleanupService';
+import * as SecureStore from 'expo-secure-store';
+
+const TOKEN_KEY = 'userToken';
+const USER_KEY  = 'userData';
 
 // Types
 export interface User {
@@ -27,6 +33,7 @@ export interface AuthState {
   phoneVerified: boolean;
   registrationData: Record<string, any>;
   cooperationData: Record<string, any>;
+  activePage: string;
 }
 
 // Initial state
@@ -42,6 +49,7 @@ const initialState: AuthState = {
   phoneVerified: false,
   registrationData: {},
   cooperationData: {},
+  activePage: "Home",
 };
 
 // Async thunks
@@ -165,12 +173,49 @@ export const forgotPasswordAsync = createAsyncThunk(
   }
 );
 
+export const switchRoleAsync = createAsyncThunk(
+  'auth/switchRole',
+  async (role: string, { rejectWithValue, getState }) => {
+    try {
+      const state = getState() as { auth: AuthState };
+      const token = state.auth.token;
+      if (!token) throw new Error('No auth token found — please log in again');
+
+      const data = await switchRoleFn(role, token); // { user, token }
+
+      // Persist new credentials immediately so the app survives a reload
+      await SecureStore.setItemAsync(USER_KEY,  JSON.stringify(data.user));
+      await SecureStore.setItemAsync(TOKEN_KEY, data.token);
+
+      return data;
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error.message || 'Failed to switch role';
+      return rejectWithValue(msg);
+    }
+  }
+);
+
+export const logoutAsync = createAsyncThunk(
+  'auth/logout',
+  async (_, { rejectWithValue }) => {
+    try {
+      await CleanupService.performLogoutCleanup();
+      return true;
+    } catch (error: any) {
+      console.error('Logout cleanup error:', error);
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 // Slice
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
     logout: (state) => {
+      // Synchronous logout - state clearing only
+      // For full cleanup, use logoutAsync thunk
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
@@ -220,6 +265,9 @@ const authSlice = createSlice({
     clearRegistrationData: (state) => {
       state.registrationData = {};
       state.cooperationData = {};
+    },
+    setActivePage: (state, action: PayloadAction<string>) => {
+      state.activePage = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -353,8 +401,49 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       });
+
+    // Switch Role
+    builder
+      .addCase(switchRoleAsync.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(switchRoleAsync.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.isAuthenticated = true;
+      })
+      .addCase(switchRoleAsync.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
+
+    // Logout
+    builder
+      .addCase(logoutAsync.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(logoutAsync.fulfilled, (state) => {
+        state.isLoading = false;
+        state.user = null;
+        state.token = null;
+        state.isAuthenticated = false;
+        state.error = null;
+        state.otpSent = false;
+        state.otpVerified = false;
+        state.emailVerified = false;
+        state.phoneVerified = false;
+      })
+      .addCase(logoutAsync.rejected, (state, action) => {
+        state.isLoading = false;
+        // Still clear state even if cleanup fails
+        state.user = null;
+        state.token = null;
+        state.isAuthenticated = false;
+      });
   },
 });
 
-export const { logout, clearError, setToken, setUser, resetOtpState, setFcmToken, updateUserFromDashboard, setRegistrationData, setCooperationData, clearRegistrationData } = authSlice.actions;
+export const { logout, clearError, setToken, setUser, resetOtpState, setFcmToken, updateUserFromDashboard, setRegistrationData, setCooperationData, clearRegistrationData, setActivePage } = authSlice.actions;
 export default authSlice.reducer;

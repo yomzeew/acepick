@@ -8,6 +8,8 @@ import { Wallet } from "../../types/type"
 import { formatAmount, formatNaira } from "../../utilizes/amountFormat"
 import { useRouter } from "expo-router"
 import { fetchTransactionsAsync } from "../../redux/slices/walletSlice"
+import { useTheme } from "hooks/useTheme"
+import { getColors } from "static/color"
 
 interface WalletCardProps {
     setshowmodal: (value: boolean) => void;
@@ -24,6 +26,9 @@ interface WalletCardProps {
     const currentBalance = wallet?.currentBalance || 0;
     const router = useRouter();
     const dispatch = useDispatch();
+    const { theme } = useTheme();
+    const { primaryColor } = getColors(theme);
+    const isDark = theme === "dark";
   
     const handleshow = () => setshowhide(!hide);
     
@@ -58,7 +63,7 @@ interface WalletCardProps {
                 <FontAwesome5 color="rgba(255,255,255,0.7)" size={16} name={hide ? "eye" : "eye-slash"} />
               </TouchableOpacity>
             </View>
-            
+
             <Text style={[Textstyles.text_medium, { color: '#ffffff', fontSize: 28, lineHeight: 36, marginBottom: 16 }]}>
               {hide ? `${formatAmount(currentBalance)}` : '••••••'}
             </Text>
@@ -67,7 +72,7 @@ interface WalletCardProps {
               <Pressable
                 onPress={handleshowfundWallet}
                 className="flex-row items-center justify-center rounded-xl py-2.5 px-4"
-                style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+                style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.2)' }}
               >
                 <FontAwesome5 name={role === 'client' ? "plus" : "arrow-down"} size={12} color="#fff" />
                 <Text style={{ fontFamily: 'TTFirsNeue', fontSize: 13, color: '#ffffff', marginLeft: 6 }}>
@@ -78,7 +83,7 @@ interface WalletCardProps {
               <Pressable
                 onPress={handleHistoryPress}
                 className="flex-row items-center justify-center rounded-xl py-2.5 px-4"
-                style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+                style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.2)' }}
               >
                 <FontAwesome5 name="history" size={12} color="#fff" />
                 <Text style={{ fontFamily: 'TTFirsNeue', fontSize: 13, color: '#ffffff', marginLeft: 6 }}>

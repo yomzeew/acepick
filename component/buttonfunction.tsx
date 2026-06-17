@@ -1,14 +1,15 @@
 import { View, Text, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 
-const ButtonFunction = ({ color, text, textcolor, onPress,style }: { color: string; text: any; textcolor: string; onPress:()=>void ,style?:string}) => {
+const ButtonFunction = ({ color, text, textcolor, onPress, style, disabled }: { color: string; text: any; textcolor: string; onPress:()=>void, style?:string, disabled?:boolean }) => {
   const router = useRouter()
   return (
     <View className="w-full justify-center items-center">
       <TouchableOpacity
-        style={{ backgroundColor: color }}
+        style={{ backgroundColor: disabled ? '#ccc' : color }}
         className="w-full h-14 rounded-lg justify-center items-center"
         onPress={onPress}
+        disabled={disabled}
       >
         <Text
           style={{ color: textcolor }}

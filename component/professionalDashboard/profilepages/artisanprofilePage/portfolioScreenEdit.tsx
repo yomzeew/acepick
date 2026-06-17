@@ -16,7 +16,7 @@ import { portfoliosCreateFn, portfoliosDeleteFn, portfoliosGetFn, portfoliosUpda
 import { getColors } from "static/color";
 import { Textstyles } from "static/textFontsize";
 import * as ImagePicker from "expo-image-picker";
-import { uploadPortfolioImages } from "services/supabaseStorage";
+import { uploadPortfolioImagesToLocal } from "services/localUploadService";
 import { useSelector } from "react-redux";
 import { RootState } from "redux/store";
 
@@ -154,7 +154,7 @@ const AddPortfolio = ({ setShowSlideUp, existingData, setEditData, refreshList }
       if (!result.canceled && result.assets[0]) {
         setIsUploading(true);
         try {
-          const urls = await uploadPortfolioImages([result.assets[0].uri], userId || "unknown");
+          const urls = await uploadPortfolioImagesToLocal([result.assets[0].uri], userId || "unknown");
           if (urls && urls.length > 0) {
             setImageUri(urls[0]);
           }

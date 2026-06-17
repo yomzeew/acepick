@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Acepick",
+    "name": "AcePick",
     "slug": "acepicknewversion",
     "scheme": "acepick",
     "version": "1.0.0",
@@ -13,27 +13,14 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.acepicknewversion"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "package": "com.anonymous.acepicknewversion",
-      "googleServicesFile": "./google-services.json"
-    },
-    "web": {
-      "favicon": "./assets/favicon.png",
-      "bundler": "metro"
-    },
     "plugins": [
+      "./plugins/withFmtFix",
       "@config-plugins/react-native-webrtc",
+      "./plugins/withRemoveMediaProjectionService",
       "expo-router",
       "expo-secure-store",
       "expo-font",
+      "expo-local-authentication",
       [
         "expo-notifications",
         {
@@ -52,13 +39,115 @@
         "expo-maps",
         {
           "requestLocationPermission": true,
-          "locationPermission": "Allow $(PRODUCT_NAME) to use your location"
+          "locationPermission": "AcePick uses your location to find nearby professionals and service providers. For example, when you search for a plumber or electrician, we show available professionals within your area."
         }
       ],
       "@react-native-community/datetimepicker",
       "expo-localization",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "AcePick uses your location to find nearby professionals, delivery riders, and service providers in your area. For example, when booking a service, we show you available professionals within your vicinity.",
+          "locationAlwaysPermission": "AcePick uses your background location to track active delivery orders and ongoing service jobs. For example, when a rider is delivering your order, your location helps calculate accurate routes and estimated arrival times."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Acepick needs access to your camera to take a profile picture.",
+          "photosPermission": "Acepick needs access to your photos to let you set your profile picture.",
+          "allowsEditing": true,
+          "allowsMultipleSelection": false,
+          "mediaTypes": [
+            "images"
+          ],
+          "android": {
+            "usePhotoPicker": true
+          },
+          "ios": {
+            "useModernPicker": true,
+            "appleTeam": "Your Apple Team ID"
+          }
+        }
+      ],
+      "expo-asset"
     ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.theacepick.app",
+      "buildNumber": "7",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Acepick needs camera access for video calls and profile pictures",
+        "NSMicrophoneUsageDescription": "Acepick needs microphone access for voice calls",
+        "NSLocationWhenInUseUsageDescription": "AcePick uses your location to show nearby professionals, delivery riders, and service providers. For example, when you search for a plumber or book a delivery, we use your location to find the closest available professionals and calculate accurate service areas.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "AcePick uses your background location to track active delivery orders and ongoing service jobs in real time. For example, when a rider is delivering your order, continuous location access allows you to track the delivery progress and receive accurate arrival time updates.",
+        "NSPhotoLibraryUsageDescription": "Acepick needs photo library access to upload profile pictures",
+        "NSContactsUsageDescription": "Acepick needs contacts access to invite friends",
+        "NSFaceIDUsageDescription": "Acepick uses Face ID to securely sign you in",
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.theacepick.app",
+      "googleServicesFile": "./google-services.json",
+      "softwareKeyboardLayoutMode": "resize",
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "ACCESS_WIFI_STATE",
+        "VIBRATE",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_PHONE_STATE",
+        "CALL_PHONE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "POST_NOTIFICATIONS",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_MICROPHONE",
+        "FOREGROUND_SERVICE_CAMERA",
+        "WAKE_LOCK",
+        "MODIFY_AUDIO_SETTINGS",
+        "READ_CONTACTS",
+        "WRITE_CONTACTS"
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ],
+      "intentFilters": [
+        {
+          "action": "android.intent.action.VIEW",
+          "category": [
+            "android.intent.category.DEFAULT",
+            "android.intent.category.BROWSABLE"
+          ],
+          "data": {
+            "scheme": "acepick"
+          }
+        }
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
     "extra": {
       "router": {
         "origin": false
@@ -66,6 +155,13 @@
       "eas": {
         "projectId": "a326550b-b6a8-4184-acd5-8cc999a18c4a"
       }
-    }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/a326550b-b6a8-4184-acd5-8cc999a18c4a"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "owner": "yomzeew"
   }
 }

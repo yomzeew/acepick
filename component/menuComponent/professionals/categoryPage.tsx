@@ -90,10 +90,11 @@ const Category = () => {
       }
     };
   }, []);
-
+ console.log('ok')
 
 
   const handlenavprofession = (value: any) => {
+   
     const navigationUrl = `/professionals?id=${value.id}&profession=${encodeURIComponent(value.title)}&sector=${category}`;
     router.push(navigationUrl);
   }

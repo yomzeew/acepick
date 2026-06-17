@@ -2,7 +2,7 @@ import ContainerTemplate from "component/dashboardComponent/containerTemplate"
 import HeaderComponent from "../../headerComp"
 import { useTheme } from "hooks/useTheme"
 import { getColors } from "static/color"
-import { View, ScrollView, TouchableOpacity, Linking } from "react-native"
+import { View, ScrollView, TouchableOpacity, Linking, Alert } from "react-native"
 import { ThemeText, ThemeTextsecond } from "component/ThemeText"
 import { Textstyles } from "static/textFontsize"
 import EmptyView from "component/emptyview"
@@ -15,8 +15,8 @@ const Support = () => {
 
     const handleEmailSupport = async () => {
         try {
-            const email = 'support@acepick.com'
-            const subject = encodeURIComponent('Support Request - StaffSync')
+            const email = 'support@theacepick.com'
+            const subject = encodeURIComponent('Support Request - AcePick')
             const body = encodeURIComponent('Please describe your issue or question here...')
             await Linking.openURL(`mailto:${email}?subject=${subject}&body=${body}`)
         } catch (error) {
@@ -28,7 +28,7 @@ const Support = () => {
 
     const handleCallSupport = async () => {
         try {
-            const phoneNumber = '+2348000000000'
+            const phoneNumber = '+2348058009620'
             await Linking.openURL(`tel:${phoneNumber}`)
         } catch (error) {
             console.error('Call error:', error)
@@ -37,8 +37,8 @@ const Support = () => {
 
     const handleWhatsApp = async () => {
         try {
-            const phoneNumber = '2348000000000'
-            const message = encodeURIComponent('Hello! I need help with StaffSync.')
+            const phoneNumber = '2348058009620'
+            const message = encodeURIComponent('Hello! I need help with AcePick.')
             const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`
             
             // Check if WhatsApp is installed
@@ -47,11 +47,15 @@ const Support = () => {
                 await Linking.openURL(whatsappUrl)
             } else {
                 // Fallback: open WhatsApp web or show error
-                console.log('WhatsApp not installed')
-                // You could show an alert here directing to app store
+                Alert.alert(
+                    'WhatsApp Not Available',
+                    'WhatsApp is not installed on your device. Please install WhatsApp to contact support.',
+                    [{ text: 'OK' }]
+                )
             }
         } catch (error) {
             console.error('WhatsApp error:', error)
+            Alert.alert('Error', 'Unable to open WhatsApp. Please try again.')
         }
     }
 
@@ -90,7 +94,7 @@ const Support = () => {
                                     <MaterialIcons name="email" color={primaryColor} size={20} />
                                     <View>
                                         <ThemeTextsecond size={Textstyles.text_xmedium}>Email Support</ThemeTextsecond>
-                                        <ThemeTextsecond size={Textstyles.text_xxxsmall}>support@acepick.com</ThemeTextsecond>
+                                        <ThemeTextsecond size={Textstyles.text_xxxsmall}>support@theacepick.com</ThemeTextsecond>
                                     </View>
                                 </View>
                                 <AntDesign name="right" size={24} color={secondaryTextColor} />
@@ -101,7 +105,7 @@ const Support = () => {
                                     <FontAwesome5 name="phone-alt" color={primaryColor} size={18} />
                                     <View>
                                         <ThemeTextsecond size={Textstyles.text_xmedium}>Call Support</ThemeTextsecond>
-                                        <ThemeTextsecond size={Textstyles.text_xxxsmall}>+234 800 000 0000</ThemeTextsecond>
+                                        <ThemeTextsecond size={Textstyles.text_xxxsmall}>08058009620</ThemeTextsecond>
                                     </View>
                                 </View>
                                 <AntDesign name="right" size={24} color={secondaryTextColor} />

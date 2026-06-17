@@ -14,7 +14,7 @@ import { AlertMessageBanner } from "component/AlertMessageBanner";
 import { setRegistrationData } from "redux/slices/authSlice";
 import { useDispatch } from "react-redux";
 import * as ImagePicker from 'expo-image-picker';
-import { uploadAvatar } from "services/supabaseStorage";
+import { uploadAvatarToLocal } from "services/localUploadService";
 import { getAllSector, getProfessionsBySector } from "utilizes/fetchlistofjobs";
 import AuthComponent from "component/auth/Authcontainer";
 
@@ -159,7 +159,7 @@ useEffect(()=>{
     let uri = selectedImage.uri;
 
     try {
-      const url = await uploadAvatar(uri);
+      const url = await uploadAvatarToLocal(uri);
       setphotoUrl(url);
       setSuccessMessage('Profile photo uploaded successfully.');
     } catch (error: any) {

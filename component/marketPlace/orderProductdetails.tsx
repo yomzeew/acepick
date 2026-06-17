@@ -8,7 +8,7 @@ import { ThemeText, ThemeTextsecond } from "component/ThemeText"
 import { useRouter } from "expo-router"
 import { useTheme } from "hooks/useTheme"
 import React, { useEffect, useState, type FC, useCallback, useMemo, memo } from "react"
-import { View, Image, ActivityIndicator, TouchableOpacity, Text, StyleSheet, TextInput } from "react-native"
+import { View, Image, ActivityIndicator, TouchableOpacity, Text, StyleSheet, TextInput, Linking, Alert } from "react-native"
 import { ScrollView } from "react-native-gesture-handler"
 import { useSelector } from "react-redux"
 import { RootState } from "redux/store"
@@ -1025,6 +1025,11 @@ const SellerDetails = ({ user }: any) => {
     const numberOfStars: number = user?.profile?.rate || 0;
     const userIDprofessionalId = { userId: user?.id, professionalId: '' };
     const router = useRouter();
+    // Use the professional entity ID if present, otherwise fall back to user ID with byUser flag
+    const profEntityId = user?.profile?.professional?.id;
+    const profileRoute = profEntityId
+        ? `/professional/${profEntityId}`
+        : `/professional/${user?.id}?byUser=1`;
 
     return (
         <View style={{ backgroundColor: selectioncardColor, borderRadius: 16, padding: 14, borderWidth: 1, borderColor }}>
@@ -1034,16 +1039,29 @@ const SellerDetails = ({ user }: any) => {
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: primaryColor + '15', overflow: 'hidden' }}>
+                    <TouchableOpacity
+                        onPress={() => router.push(profileRoute as any)}
+                        activeOpacity={0.8}
+                        style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: primaryColor + '15', overflow: 'hidden' }}
+                    >
                         <Image resizeMode="cover" style={{ width: 44, height: 44, borderRadius: 22 }} source={{ uri: avatar }} />
-                    </View>
+                    </TouchableOpacity>
                     <View>
                         <Text style={{ color: textPrimary, fontSize: 14, fontWeight: '600' }}>{clientName}</Text>
                         <RatingStar numberOfStars={numberOfStars} />
                     </View>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <TouchableOpacity style={{ backgroundColor: backgroundColortwo, width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' }}>
+                    <TouchableOpacity
+                        onPress={() => {
+                            if (user?.phone) {
+                                Linking.openURL(`tel:${user.phone}`);
+                            } else {
+                                Alert.alert('No Phone', 'Phone number not available for this seller.');
+                            }
+                        }}
+                        style={{ backgroundColor: backgroundColortwo, width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' }}
+                    >
                         <FontAwesome5 color="#fff" name="phone" size={14} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => router.push(`/mainchat/${JSON.stringify(userIDprofessionalId)}`)} style={{ backgroundColor: primaryColor, width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' }}>
@@ -1246,6 +1264,7 @@ const DeliveryTracker = ({ item, isBuyer, productTransactionId, productTransacti
                         lastName={item.rider.profile.lastName}
                         userId={item.riderId}
                         avatar={item.rider.profile.avatar}
+                        role="delivery"
                     />
                 </View>
             )}

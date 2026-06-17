@@ -22,6 +22,8 @@ interface InputComponentProps {
     editable?:boolean
     maxLength?:number
     maxDate?: Date;
+    error?: boolean;
+    autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 }
 
 const InputComponent = ({
@@ -37,7 +39,9 @@ const InputComponent = ({
   fieldType = "text", // Default to normal input
   editable,
   maxLength,
-  maxDate
+  maxDate,
+  error,
+  autoCapitalize
 }: InputComponentProps) => {
   const { theme } = useTheme();
   const { primaryColor, secondaryTextColor, backgroundColor } = getColors(theme);
@@ -78,7 +82,7 @@ const InputComponent = ({
   };
 
   return (
-    <View style={{ borderColor: color }} className="w-full h-16 border rounded-lg flex-row items-center px-4">
+    <View style={{ borderColor: error ? "red" : color }} className="w-full h-16 border rounded-lg flex-row items-center px-4">
       {prefix && (
         <View
           style={{ backgroundColor: primaryColor }}
@@ -113,6 +117,7 @@ const InputComponent = ({
           value={String(value)}
           editable={editable}
           maxLength={maxLength}
+          autoCapitalize={autoCapitalize}
         />
       )}
 

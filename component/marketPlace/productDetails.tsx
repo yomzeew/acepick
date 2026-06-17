@@ -16,6 +16,8 @@ import {
   Dimensions,
   StatusBar,
   Animated,
+  Alert,
+  Linking,
 } from "react-native";
 import { useSelector } from "react-redux";
 import { RootState } from "redux/store";
@@ -364,8 +366,25 @@ const ProductDetails = () => {
                   <View style={{ flexDirection: "row", gap: 8 }}>
                     <TouchableOpacity
                       onPress={() => {
+                        // Make a phone call to seller
+                        if (seller.phone) {
+                          Linking.openURL(`tel:${seller.phone}`);
+                        } else {
+                          // Fallback: show alert that phone number is not available
+                          Alert.alert("Contact Info", "Phone number not available for this seller.");
+                        }
+                      }}
+                      style={{
+                        width: 40, height: 40, borderRadius: 20,
+                        backgroundColor: "#FF3B30", alignItems: "center", justifyContent: "center",
+                      }}
+                    >
+                      <Ionicons name="call" size={20} color="#fff" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => {
                         const chatData = { userId: seller.id, professionalId: "" };
-                        router.push(`/mainchat/${JSON.stringify(chatData)}`);
+                        router.push(`/(Authenticated)/(chatcallmessage)/mainchat/${JSON.stringify(chatData)}`);
                       }}
                       style={{
                         width: 40, height: 40, borderRadius: 20,

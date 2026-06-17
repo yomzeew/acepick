@@ -1,11 +1,11 @@
-import { uploadAvatar } from './supabaseStorage';
+import { uploadAvatarToLocal } from './localUploadService';
 
 /**
- * Upload a user photo (avatar) to Supabase Storage.
+ * Upload a user photo (avatar) to local backend storage.
  *
  * For backward compatibility this still accepts FormData,
- * but callers should prefer importing `uploadAvatar` directly
- * from `services/supabaseStorage` and passing just the URI.
+ * but callers should prefer importing `uploadAvatarToLocal` directly
+ * from `services/localUploadService` and passing just the URI.
  *
  * @param data - Either a FormData (legacy) or a plain URI string
  * @returns {{ data: { url: string } }}
@@ -30,6 +30,6 @@ export const uploadPhotoUser = async (
     uri = filePart[1].uri;
   }
 
-  const url = await uploadAvatar(uri);
+  const url = await uploadAvatarToLocal(uri);
   return { data: { url } };
 };

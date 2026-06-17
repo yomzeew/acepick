@@ -3,7 +3,9 @@ import ContainerTemplate from "component/dashboardComponent/containerTemplate";
 import FallbackImage from "component/FallbackImage";
 import { useRouter } from "expo-router";
 import { useTheme } from "hooks/useTheme";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
+import { useDebounce } from "hooks/useDebounce";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -45,11 +47,14 @@ const HomeMarketScreen = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms debounce
   const [products, setProducts] = useState<Product[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [limit] = useState(20);
   const [page, setPage] = useState(1);
+  const flatListRef = useRef<FlatList>(null);
+  const [scrollOffset, setScrollOffset] = useState(0);
 
   // Filter state
   const [showPriceModal, setShowPriceModal] = useState(false);
@@ -79,8 +84,13 @@ const HomeMarketScreen = () => {
   const productMutation = useMutation({
     mutationFn: getproductFn,
     onSuccess: (response) => {
-      setProducts(response || []);
-      setHasMore((response || []).length === limit);
+      const newProducts = response || [];
+      if (page === 1) {
+        setProducts(newProducts);
+      } else {
+        setProducts(prev => [...prev, ...newProducts]);
+      }
+      setHasMore(newProducts.length === limit);
     },
     onError: (error: any) => {
       console.log("Error fetching products:", error);
@@ -89,7 +99,7 @@ const HomeMarketScreen = () => {
 
   const fetchProducts = useCallback(() => {
     const queryParts: string[] = [];
-    if (searchTerm) queryParts.push(`search=${searchTerm}`);
+    if (debouncedSearchTerm) queryParts.push(`search=${debouncedSearchTerm}`);
     if (selectedCategoryId) queryParts.push(`categoryId=${selectedCategoryId}`);
     if (appliedMinPrice) queryParts.push(`minPrice=${appliedMinPrice}`);
     if (appliedMaxPrice) queryParts.push(`maxPrice=${appliedMaxPrice}`);
@@ -98,15 +108,35 @@ const HomeMarketScreen = () => {
     queryParts.push(`limit=${limit}`);
     queryParts.push(`page=${page}`);
     productMutation.mutate(queryParts.join("&"));
-  }, [searchTerm, selectedCategoryId, appliedMinPrice, appliedMaxPrice, appliedState, appliedLga, limit, page]);
+  }, [debouncedSearchTerm, selectedCategoryId, appliedMinPrice, appliedMaxPrice, appliedState, appliedLga, limit, page]);
 
   useEffect(() => {
     categoryMutation.mutate();
   }, []);
 
+  // Handle screen focus to refresh data when coming back from product details
+  useFocusEffect(
+    useCallback(() => {
+      // Refresh data when screen comes into focus
+      if (page === 1 && (products.length > 0 || hasActiveFilters)) {
+        fetchProducts();
+      }
+      // Restore scroll position after a short delay to allow list to render
+      setTimeout(() => {
+        if (flatListRef.current && scrollOffset > 0) {
+          flatListRef.current.scrollToOffset({ offset: scrollOffset, animated: false });
+        }
+      }, 100);
+      return undefined;
+    }, [])
+  );
+
   useEffect(() => {
+    if (page === 1) {
+      setProducts([]);
+    }
     fetchProducts();
-  }, [selectedCategoryId, page, appliedMinPrice, appliedMaxPrice, appliedState, appliedLga]);
+  }, [selectedCategoryId, page, appliedMinPrice, appliedMaxPrice, appliedState, appliedLga, debouncedSearchTerm]);
 
   const applyPriceFilter = () => {
     setAppliedMinPrice(minPrice);
@@ -151,16 +181,40 @@ const HomeMarketScreen = () => {
     setPage(1);
   };
 
-  const handleSearch = () => {
-    setPage(1);
-    fetchProducts();
-  };
-
   const handleRefresh = async () => {
     setRefreshing(true);
     setPage(1);
     fetchProducts();
-    setRefreshing(false);
+    setTimeout(() => setRefreshing(false), 1000);
+  };
+
+  const loadMore = () => {
+    if (!productMutation.isPending && hasMore) {
+      setPage(prev => prev + 1);
+    }
+  };
+
+  const renderFooter = () => {
+    if (!hasMore && products.length > 0) {
+      return (
+        <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+          <Text style={{ color: textSecondary, fontSize: 13 }}>
+            End of results
+          </Text>
+        </View>
+      );
+    }
+    if (productMutation.isPending && page > 1) {
+      return (
+        <View style={{ flexDirection: 'row', justifyContent: 'center', paddingVertical: 20 }}>
+          <ActivityIndicator size="small" color={primaryColor} />
+          <Text style={{ color: textSecondary, fontSize: 13, marginLeft: 8 }}>
+            Loading more...
+          </Text>
+        </View>
+      );
+    }
+    return null;
   };
 
   const getImageSource = (item: Product) => {
@@ -360,8 +414,6 @@ const HomeMarketScreen = () => {
           <TextInput
             value={searchTerm}
             onChangeText={setSearchTerm}
-            onSubmitEditing={handleSearch}
-            returnKeyType="search"
             placeholder="Search products..."
             placeholderTextColor="rgba(255,255,255,0.5)"
             style={{
@@ -376,7 +428,6 @@ const HomeMarketScreen = () => {
               onPress={() => {
                 setSearchTerm("");
                 setPage(1);
-                setTimeout(fetchProducts, 100);
               }}
             >
               <Ionicons name="close-circle" size={20} color="rgba(255,255,255,0.7)" />
@@ -794,9 +845,10 @@ const HomeMarketScreen = () => {
         </View>
       ) : (
         <FlatList
+          ref={flatListRef}
           data={products}
           renderItem={renderProductCard}
-          keyExtractor={(item) => `${item.id}`}
+          keyExtractor={(item, index) => `${item.id}-${index}`}
           numColumns={2}
           contentContainerStyle={{
             paddingHorizontal: 16,
@@ -804,6 +856,10 @@ const HomeMarketScreen = () => {
             paddingBottom: 120,
           }}
           showsVerticalScrollIndicator={false}
+          onScroll={(event) => {
+            setScrollOffset(event.nativeEvent.contentOffset.y);
+          }}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -813,76 +869,13 @@ const HomeMarketScreen = () => {
             />
           }
           ListEmptyComponent={renderEmptyState}
-          ListFooterComponent={
-            products.length > 0 ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  paddingVertical: 16,
-                  gap: 16,
-                }}
-              >
-                <TouchableOpacity
-                  disabled={page === 1}
-                  onPress={() => setPage(page - 1)}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    backgroundColor: page === 1 ? dividerColor : primaryColor,
-                    paddingHorizontal: 16,
-                    paddingVertical: 10,
-                    borderRadius: 10,
-                    gap: 4,
-                    opacity: page === 1 ? 0.5 : 1,
-                  }}
-                >
-                  <Ionicons name="chevron-back" size={16} color="#fff" />
-                  <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
-                    Prev
-                  </Text>
-                </TouchableOpacity>
-
-                <View
-                  style={{
-                    backgroundColor: chipBg,
-                    paddingHorizontal: 16,
-                    paddingVertical: 10,
-                    borderRadius: 10,
-                  }}
-                >
-                  <Text style={{ color: textPrimary, fontWeight: "700", fontSize: 13 }}>
-                    Page {page}
-                  </Text>
-                </View>
-
-                <TouchableOpacity
-                  disabled={!hasMore}
-                  onPress={() => setPage(page + 1)}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    backgroundColor: !hasMore ? dividerColor : primaryColor,
-                    paddingHorizontal: 16,
-                    paddingVertical: 10,
-                    borderRadius: 10,
-                    gap: 4,
-                    opacity: !hasMore ? 0.5 : 1,
-                  }}
-                >
-                  <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
-                    Next
-                  </Text>
-                  <Ionicons name="chevron-forward" size={16} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            ) : null
-          }
+          ListFooterComponent={renderFooter}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
         />
       )}
 
-      {/* Floating Add Button */}
+      {/* Floating Sell Button */}
       <TouchableOpacity
         onPress={() => router.push("/addproductLayout")}
         activeOpacity={0.85}
@@ -891,11 +884,12 @@ const HomeMarketScreen = () => {
           bottom: 90,
           right: 16,
           backgroundColor: primaryColor,
-          width: 56,
-          height: 56,
-          borderRadius: 28,
+          flexDirection: "row",
           alignItems: "center",
-          justifyContent: "center",
+          paddingHorizontal: 18,
+          paddingVertical: 14,
+          borderRadius: 28,
+          gap: 6,
           shadowColor: primaryColor,
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.3,
@@ -903,7 +897,8 @@ const HomeMarketScreen = () => {
           elevation: 6,
         }}
       >
-        <Ionicons name="add" size={28} color="#fff" />
+        <Ionicons name="add-circle-outline" size={22} color="#fff" />
+        <Text style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>Sell</Text>
       </TouchableOpacity>
     </View>
   );

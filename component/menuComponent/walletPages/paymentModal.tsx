@@ -3,55 +3,36 @@ import { useMutation } from "@tanstack/react-query";
 import EmptyView from "component/emptyview";
 import { ThemeText, ThemeTextsecond } from "component/ThemeText";
 import { useRouter } from "expo-router";
-import { useDelay } from "hooks/useDelay";
 import { useTheme } from "hooks/useTheme";
 import { useEffect, useState } from "react";
-import { TextInput, TouchableOpacity, View, Text, Linking } from "react-native";
-import { paymentInitiate, paymentVerify } from "services/userService";
+import { TextInput, TouchableOpacity, View, Text } from "react-native";
+import { paymentInitiate } from "services/userService";
 import { getColors } from "static/color";
 import { Textstyles } from "static/textFontsize";
+import { useToast } from "context/ToastContext";
 
 interface PaymentProps {
-  setSuccessMessage: (value: any) => void;
   setErrorMessage: (value: any) => void;
   errorMessage: string;
-  successMessage: string;
+  /** Called with the Paystack URL + reference once the API responds.
+   *  The parent is responsible for closing the modal then navigating,
+   *  so the native Modal layer is gone before the WebView screen appears. */
+  onPaymentReady?: (url: string, reference: string) => void;
 }
 
 const PaymentModal = ({
-  setSuccessMessage,
   setErrorMessage,
   errorMessage,
-  successMessage,
+  onPaymentReady,
 }: PaymentProps) => {
   const { theme } = useTheme();
   const { primaryColor, secondaryTextColor, selectioncardColor } = getColors(theme);
+  const toast = useToast();
+  const router = useRouter();
   const [amount, setAmount] = useState<string>("");
   const [errorMsg, setErrorMsg] = useState<string>("");
-  const [ref, setRef] = useState<string>("");
 
-  const [shouldProceed, setShouldProceed] = useState<boolean>(false);
-
-  const router = useRouter();
-  useEffect(() => {
-    if (errorMessage) {
-      const timer = setTimeout(() => {
-        setErrorMessage(null);
-      }, 4000);
-      return () => clearTimeout(timer); // Cleanup on unmount or on new error
-    }
-  }, [errorMessage])
-  useEffect(() => {
-    if (errorMessage) {
-      const timer = setTimeout(() => {
-        setSuccessMessage(null);
-      }, 4000);
-      return () => clearTimeout(timer); // Cleanup on unmount or on new error
-    }
-  }, [successMessage])
- 
-
-  // Clear error message after 4 seconds
+  // Clear parent error message after 4 seconds
   useEffect(() => {
     if (errorMessage) {
       const timer = setTimeout(() => setErrorMessage(null), 4000);
@@ -63,17 +44,29 @@ const PaymentModal = ({
     mutationFn: paymentInitiate,
     onSuccess: (data) => {
       const { reference, authorization_url } = data.data;
-      setRef(reference);
-      setSuccessMessage("Payment initiated");
-      console.log(authorization_url)
-      if (authorization_url && reference) {
+      if (!authorization_url || !reference) return;
+
+      toast.success("Payment initiated", "Redirecting to payment gateway...");
+
+      if (onPaymentReady) {
+        // Hand off to the parent — parent closes modal first, then navigates.
+        // This guarantees the native Modal window is gone before the WebView
+        // screen is pushed onto the navigation stack.
+        onPaymentReady(authorization_url, reference);
+      } else {
+        // Fallback: navigate directly (no modal to close)
         router.push({
           pathname: "/paystackViewLayout",
-          params: { url: authorization_url, reference },
-        });
+          params: { url: authorization_url, reference, context: 'fund' },
+        } as any);
       }
     },
     onError: (error: any) => {
+      if (error?.bvnRequired) {
+        toast.error("BVN Verification Required", "You must verify your BVN before performing transactions");
+        router.push("/bvnactivationlayout" as any);
+        return;
+      }
       let msg = "An unexpected error occurred";
       if (error?.response?.data) {
         msg =
@@ -84,11 +77,8 @@ const PaymentModal = ({
         msg = error.message;
       }
       setErrorMessage(msg);
-      console.error(msg);
     },
   });
-
- 
 
   const handleNavBankPay = () => {
     const parsedAmount = parseFloat(amount);
@@ -97,8 +87,7 @@ const PaymentModal = ({
       return;
     }
     setErrorMsg("");
-    const payload={amount:parsedAmount,description:"Wallet topup"}
-    mutation.mutate(payload);
+    mutation.mutate({ amount: parsedAmount, description: "Wallet topup" });
   };
 
   return (
@@ -108,27 +97,29 @@ const PaymentModal = ({
         <ThemeText size={Textstyles.text_xsma}>Enter Amount</ThemeText>
         {errorMsg && <Text style={[Textstyles.text_xsma, { color: "red" }]}>{errorMsg}</Text>}
         <View className="w-full h-12">
-          <View className="h-12 w-full absolute top-6">
-            <ThemeText size={Textstyles.text_small}>₦</ThemeText>
-          </View>
           <TextInput
             style={{ color: secondaryTextColor }}
             keyboardType="numeric"
-            className="h-12 w-full text-lg border-b px-5 border-b-slate-400 mt-2"
-            onChangeText={(text: string) => setAmount(text)}
-            value={amount}
+            className="h-12 w-full text-lg border-b border-b-slate-400 pl-2"
+            onChangeText={(text: string) => {
+              const cleanText = text.replace(/[^0-9]/g, '');
+              setAmount(cleanText);
+            }}
+            value={amount ? `₦${parseInt(amount).toLocaleString()}` : '₦'}
           />
         </View>
       </View>
 
       <EmptyView height={30} />
-      <TouchableOpacity onPress={handleNavBankPay} className="w-full h-16">
+      <TouchableOpacity onPress={handleNavBankPay} disabled={mutation.isPending} className="w-full h-16">
         <View
-          style={{ backgroundColor: selectioncardColor, elevation: 4 }}
+          style={{ backgroundColor: selectioncardColor, elevation: 4, opacity: mutation.isPending ? 0.6 : 1 }}
           className="w-full h-full items-center flex-row gap-x-3 justify-center rounded-2xl"
         >
           <FontAwesome name="bank" color={primaryColor} size={16} />
-          <ThemeTextsecond size={Textstyles.text_xmedium}>Deposit</ThemeTextsecond>
+          <ThemeTextsecond size={Textstyles.text_xmedium}>
+            {mutation.isPending ? "Processing..." : "Deposit"}
+          </ThemeTextsecond>
         </View>
       </TouchableOpacity>
     </View>
@@ -136,4 +127,3 @@ const PaymentModal = ({
 };
 
 export default PaymentModal;
- 

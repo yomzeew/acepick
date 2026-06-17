@@ -17,7 +17,7 @@ import {
   Platform,
 } from "react-native";
 import { addproductFn, getCategories } from "services/marketplaceServices";
-import { uploadProductImages } from "services/supabaseStorage";
+import { uploadProductImagesToLocal } from "services/localUploadService";
 import { getColors } from "static/color";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -40,6 +40,7 @@ const Addproduct = () => {
   const [address, setAddress] = useState("");
   const [showStatePicker, setShowStatePicker] = useState(false);
   const [showLgaPicker, setShowLgaPicker] = useState(false);
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
   const allStates = getAllStates();
   const lgaList = productState ? getLgasByState(productState) : [];
@@ -48,6 +49,8 @@ const Addproduct = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [successTimeoutId, setSuccessTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  const [errorTimeoutId, setErrorTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
   const { theme } = useTheme();
   const {
@@ -92,13 +95,21 @@ const Addproduct = () => {
   });
 
   const uploadMutation = useMutation({
-    mutationFn: (uris: string[]) => uploadProductImages(uris),
+    mutationFn: (uris: string[]) => uploadProductImagesToLocal(uris),
     onSuccess: (urls: string[]) => {
       setImages((prev) => [...prev, ...urls]);
       setSuccessMessage("Images uploaded!");
+      // Clear previous timeout and set new one
+      if (successTimeoutId) clearTimeout(successTimeoutId);
+      const timeoutId = setTimeout(() => setSuccessMessage(null), 3000);
+      setSuccessTimeoutId(timeoutId);
     },
     onError: (error: any) => {
       setErrorMessage(error?.message || "Image upload failed");
+      // Clear previous timeout and set new one
+      if (errorTimeoutId) clearTimeout(errorTimeoutId);
+      const timeoutId = setTimeout(() => setErrorMessage(null), 5000);
+      setErrorTimeoutId(timeoutId);
     },
   });
 
@@ -118,6 +129,15 @@ const Addproduct = () => {
   useEffect(() => {
     categoryMutation.mutate();
   }, []);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      // Clear any pending timeouts
+      if (successTimeoutId) clearTimeout(successTimeoutId);
+      if (errorTimeoutId) clearTimeout(errorTimeoutId);
+    };
+  }, [successTimeoutId, errorTimeoutId]);
 
   const resetForm = () => {
     setName("");
@@ -157,7 +177,23 @@ const Addproduct = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = () => {
+  const geocodeAddress = async (query: string): Promise<{ lat: number; lng: number } | null> => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&countrycodes=ng&format=json&limit=1`,
+        { headers: { 'User-Agent': 'AcepickApp/1.0' } }
+      );
+      const json = await res.json();
+      if (json.length > 0) {
+        return { lat: parseFloat(json[0].lat), lng: parseFloat(json[0].lon) };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleSubmit = async () => {
     if (!validateForm()) return;
 
     const payload: any = {
@@ -173,6 +209,18 @@ const Addproduct = () => {
     if (productState) payload.state = productState;
     if (productLga) payload.lga = productLga;
     if (address.trim()) payload.address = address.trim();
+
+    // Geocode pickup location to get lat/lng
+    const locationQuery = [address.trim(), productLga, productState, 'Nigeria'].filter(Boolean).join(', ');
+    if (locationQuery.replace(/,\s*/g, '').trim()) {
+      setIsGeocoding(true);
+      const coords = await geocodeAddress(locationQuery);
+      setIsGeocoding(false);
+      if (coords) {
+        payload.lat = coords.lat;
+        payload.lng = coords.lng;
+      }
+    }
 
     mutationAdd.mutate(payload);
   };
@@ -295,27 +343,33 @@ const Addproduct = () => {
               <TouchableOpacity
                 onPress={() => {
                   setShowSuccessModal(false);
-                  router.back();
+                  router.push("/(Authenticated)/(dashboard)/marketlayout" as any);
                 }}
                 className="w-full py-3 rounded-xl items-center"
-                style={{ backgroundColor: primaryColor }}
+                style={{ backgroundColor: primaryColor, flexDirection: "row", justifyContent: "center", gap: 8 }}
               >
-                <Text style={{ color: "#fff", fontWeight: "600", fontSize: 16 }}>
-                  Done
+                <Ionicons name="storefront-outline" size={18} color="#fff" />
+                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>
+                  Go to Marketplace
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowSuccessModal(false);
+                  router.push("/(Authenticated)/(marketplace)/myItemsLayout?tab=Listings" as any);
+                }}
+                className="w-full py-3 rounded-xl items-center"
+                style={{ backgroundColor: isDark ? "#374151" : "#F3F4F6" }}
+              >
+                <Text style={{ color: textPrimary, fontWeight: "600", fontSize: 16 }}>
+                  View My Listings
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setShowSuccessModal(false)}
-                className="w-full py-3 rounded-xl items-center"
-                style={{ backgroundColor: isDark ? "#374151" : "#F3F4F6" }}
+                className="w-full py-2 items-center"
               >
-                <Text
-                  style={{
-                    color: textSecondary,
-                    fontWeight: "600",
-                    fontSize: 16,
-                  }}
-                >
+                <Text style={{ color: textSecondary, fontWeight: "500", fontSize: 14 }}>
                   Add Another Product
                 </Text>
               </TouchableOpacity>
@@ -415,15 +469,25 @@ const Addproduct = () => {
       </Modal>
 
       <ContainerTemplate>
-        <HeaderComponent title="Add Product" />
+        <HeaderComponent
+          title="Add Product"
+          fallback="/(Authenticated)/(dashboard)/marketlayout"
+          rightButton={{
+            label: "Shop",
+            icon: "storefront-outline",
+            onPress: () => router.push("/(Authenticated)/(dashboard)/marketlayout" as any),
+          }}
+        />
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           className="flex-1"
+          style={{ backgroundColor: cardBg }}
         >
           <ScrollView
-            contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 16 }}
+            contentContainerStyle={{ paddingBottom: 120, paddingHorizontal: 16 }}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
             {/* Image Upload Section */}
             <View
@@ -926,18 +990,44 @@ const Addproduct = () => {
               />
             </View>
 
-            {/* Submit Button */}
+          </ScrollView>
+
+          {/* Submit Button - fixed at bottom */}
+          <View 
+            style={{ 
+              position: "absolute", 
+              bottom: 0, 
+              left: 0, 
+              right: 0,
+              paddingHorizontal: 16, 
+              paddingTop: 8, 
+              paddingBottom: Platform.OS === 'ios' ? 28 : 16, 
+              backgroundColor: cardBg, 
+              borderTopWidth: 1, 
+              borderTopColor: dividerColor,
+              elevation: 8,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: -2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+            }}
+          >
             <TouchableOpacity
               onPress={handleSubmit}
-              disabled={mutationAdd.isPending}
-              className="rounded-xl py-4 items-center mt-6"
+              disabled={mutationAdd.isPending || uploadMutation.isPending || isGeocoding}
+              className="rounded-xl py-4 items-center"
               style={{
-                backgroundColor: primaryColor,
-                opacity: mutationAdd.isPending ? 0.7 : 1,
+                backgroundColor: (mutationAdd.isPending || uploadMutation.isPending || isGeocoding) ? "#9CA3AF" : primaryColor,
+                opacity: (mutationAdd.isPending || uploadMutation.isPending || isGeocoding) ? 0.7 : 1,
               }}
             >
-              {mutationAdd.isPending ? (
-                <ActivityIndicator size="small" color="#fff" />
+              {(mutationAdd.isPending || isGeocoding) ? (
+                <View className="flex-row items-center gap-2">
+                  <ActivityIndicator size="small" color="#fff" />
+                  <Text style={{ color: "#fff", fontSize: 14 }}>
+                    {isGeocoding ? "Getting location…" : "Submitting…"}
+                  </Text>
+                </View>
               ) : (
                 <View className="flex-row items-center gap-2">
                   <Ionicons name="add-circle-outline" size={20} color="#fff" />
@@ -949,7 +1039,7 @@ const Addproduct = () => {
                 </View>
               )}
             </TouchableOpacity>
-          </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       </ContainerTemplate>
     </>

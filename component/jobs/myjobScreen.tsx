@@ -28,6 +28,7 @@ import {
   import Divider from 'component/divider';
   import StarRating from 'component/starRating';
   import { JobCard } from './lastestJob';
+  import ProfileSlideupModal from 'component/profileSlideupModal';
   
   import { useTheme }   from 'hooks/useTheme';
   
@@ -75,6 +76,13 @@ import {
     const [banner, setBanner]             = useState<{type:'error'|'success';msg:string}|null>(null);
     const [rating, setRating]             = useState(0);
     const [showModalRate, setShowModalRate] = useState(false);
+    
+    // Profile modal state
+    const [showProfileModal, setShowProfileModal] = useState(false);
+    const [profileModalData, setProfileModalData] = useState<{
+      type: 'professional' | 'client';
+      data: JobProps['professional'] | JobProps['client'];
+    } | null>(null);
   
     useEffect(() => {
       if (banner) {
@@ -121,6 +129,11 @@ import {
 
     const handleApprove = () => {
       if (selectedJobId) approveMutation.mutate(selectedJobId);
+    };
+
+    const handleOpenProfile = (data: { type: 'professional' | 'client'; data: JobProps['professional'] | JobProps['client'] }) => {
+      setProfileModalData(data);
+      setShowProfileModal(true);
     };
   
     /* ── Dispute job ── */
@@ -369,6 +382,7 @@ import {
                       setSelectedJob(j.id);
                       setCancelModal(true);
                     }}
+                    onOpenProfile={handleOpenProfile}
                     router={router}
                   />
                 ))
@@ -389,6 +403,15 @@ import {
             </ScrollView>
           </View>
         </ContainerTemplate>
+      
+      {/* Profile Modal */}
+      {showProfileModal && (
+        <ProfileSlideupModal
+          isVisible={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+          profileData={profileModalData}
+        />
+      )}
       </>
     );
   };

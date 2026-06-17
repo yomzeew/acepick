@@ -1,11 +1,10 @@
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { useTheme } from "hooks/useTheme";
 import { getColors } from "static/color";
 import { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import InputComponent from "component/controls/textinput";
 import ButtonComponent from "component/buttoncomponent";
-import { ThemeText } from "component/ThemeText";
-import { Textstyles } from "static/textFontsize";
 import { useMutation } from "@tanstack/react-query";
 import { sendOtp } from "services/authServices";
 import { normalizePhone } from "utilizes/phoneNumberNormalize";
@@ -21,31 +20,32 @@ interface EmailPhoneStepProps {
 
 const EmailPhoneStep = ({ onNext, roleLabel }: EmailPhoneStepProps) => {
   const { theme } = useTheme();
-  const { primaryColor, backgroundColor, secondaryTextColor, backgroundColortwo } = getColors(theme);
+  const { primaryColor, subText, backgroundColortwo } = getColors(theme);
+  const isDark = theme === 'dark';
   const toast = useToast();
+  const dispatch = useDispatch();
 
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [shouldProceed, setShouldProceed] = useState<boolean>(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [shouldProceed, setShouldProceed] = useState(false);
 
-  const dispatch = useDispatch();
+  const cardBg   = isDark ? '#1F2937' : '#FFFFFF';
+  const border   = isDark ? '#374151' : '#E5E7EB';
+  const textMain = isDark ? '#F9FAFB' : '#111827';
 
-  const validatePhone = (phone: string): string | null => {
-    const cleanPhone = phone.replace(/[^0-9+]/g, '');
-    if (!cleanPhone) return "Phone number is required";
-    if (phone !== cleanPhone) return "Phone number should contain only numbers and +";
-    const phoneRegex = /^\+234[0-9]{10}$/;
-    const normalizedPhone = normalizePhone(cleanPhone);
-    if (!phoneRegex.test(normalizedPhone)) {
-      return "Please enter a valid Nigerian phone number (+234 followed by 10 digits)";
-    }
+  const validatePhone = (p: string): string | null => {
+    const clean = p.replace(/[^0-9+]/g, '');
+    if (!clean) return "Phone number is required";
+    if (p !== clean) return "Only numbers and + allowed";
+    const norm = normalizePhone(clean);
+    if (!/^\+234[0-9]{10}$/.test(norm)) return "Enter a valid Nigerian number (e.g. 08012345678)";
     return null;
   };
 
-  const handlePhoneChange = (value: string) => {
-    setPhone(value);
-    setPhoneError(validatePhone(value));
+  const handlePhoneChange = (v: string) => {
+    setPhone(v);
+    setPhoneError(validatePhone(v));
   };
 
   useDelay(() => {
@@ -58,84 +58,127 @@ const EmailPhoneStep = ({ onNext, roleLabel }: EmailPhoneStepProps) => {
   const mutation = useMutation({
     mutationFn: sendOtp,
     onSuccess: (data) => {
-      const emailSendStatus = data.data.emailSendStatus;
-      const smsSendStatus = data.data.smsSendStatus;
-      if (emailSendStatus) {
-        toast.success('OTP Sent', 'OTP sent to your Email');
+      const { emailSendStatus, smsSendStatus } = data.data;
+      const emailOk = emailSendStatus === true;
+      const smsOk   = smsSendStatus   === true;
+      if (emailOk || smsOk) {
+        toast.success('OTP Sent', emailOk && smsOk ? 'OTP sent to email & phone' : emailOk ? 'OTP sent to your email' : 'OTP sent to your phone');
         setShouldProceed(true);
       } else {
-        toast.error('Verification Failed', 'Please enter a valid email address or Phone Number');
+        toast.error('Verification Failed', 'Could not send OTP. Please check your email and phone number.');
       }
     },
     onError: (error: any) => {
-      const msg = error?.response?.data?.message || error?.response?.data?.error || error?.message || 'An unexpected error occurred';
-      toast.error('Error', msg);
+      toast.error('Error', error?.response?.data?.message || error?.message || 'Something went wrong');
     },
   });
 
   const handleNext = () => {
-    if (!email || !phone) {
-      toast.error('Missing Fields', 'Please fill both fields');
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      toast.error('Invalid Email', 'Please enter a valid email address');
-      return;
-    }
-    const phoneValidationError = validatePhone(phone);
-    if (phoneValidationError) {
-      toast.error('Invalid Phone', phoneValidationError);
-      return;
-    }
-    const phoneformat = normalizePhone(phone);
-    const payload = { email, phone: phoneformat, type: "EMAIL", reason: "verification" };
-    mutation.mutate(payload);
+    if (!email || !phone) { toast.error('Missing Fields', 'Please fill both email and phone'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast.error('Invalid Email', 'Enter a valid email address'); return; }
+    const phoneErr = validatePhone(phone);
+    if (phoneErr) { toast.error('Invalid Phone', phoneErr); return; }
+    mutation.mutate({ email, phone: normalizePhone(phone), type: 'EMAIL', reason: 'verification' });
   };
 
   return (
-    <>
-      <View className="flex-1 w-full items-center px-2">
-        <View className="h-3" />
-        <InputComponent
-          color={primaryColor}
-          placeholder="Email"
-          placeholdercolor={secondaryTextColor}
-          value={email}
-          onChange={setEmail}
-        />
-        <View className="h-3" />
-        <View className="w-full items-start">
-          <ThemeText size={Textstyles.text_xxxsmall}>hint: +23481xxxxxxxxx</ThemeText>
-        </View>
-        <InputComponent
-          color={primaryColor}
-          placeholder="Phone Number"
-          placeholdercolor={secondaryTextColor}
-          value={phone}
-          onChange={handlePhoneChange}
-          keyboardType="phone-pad"
-          maxLength={14}
-        />
-        {phoneError && (
-          <Text style={[Textstyles.text_xxxsmall, { color: backgroundColortwo }]} className="mt-1 w-full">
-            {phoneError}
-          </Text>
-        )}
-      </View>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={100}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20, paddingBottom: 32 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-      <View className="w-full px-5 pb-6">
-        <ButtonComponent
-          color={primaryColor}
-          text="Verify Email & Phone Number"
-          textcolor="#fff"
-          onPress={handleNext}
-          isLoading={mutation.isPending}
-          disabled={!email || !phone || !!phoneError}
-        />
-      </View>
-    </>
+        {/* Info banner */}
+        <View style={[styles.banner, { backgroundColor: primaryColor + '12', borderColor: primaryColor + '30' }]}>
+          <Ionicons name="shield-checkmark-outline" size={20} color={primaryColor} />
+          <Text style={[styles.bannerText, { color: primaryColor }]}>
+            We'll send a verification code to confirm your identity
+          </Text>
+        </View>
+
+        {/* Card */}
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+          {/* Email */}
+          <View style={styles.fieldGroup}>
+            <View style={styles.fieldLabel}>
+              <Ionicons name="mail-outline" size={15} color={primaryColor} />
+              <Text style={[styles.label, { color: textMain }]}>Email Address</Text>
+            </View>
+            <InputComponent
+              color={primaryColor}
+              placeholder="yourname@email.com"
+              placeholdercolor={subText}
+              value={email}
+              onChange={(v: string) => setEmail(v.toLowerCase())}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              editable
+            />
+          </View>
+
+          <View style={[styles.divider, { backgroundColor: border }]} />
+
+          {/* Phone */}
+          <View style={styles.fieldGroup}>
+            <View style={styles.fieldLabel}>
+              <Ionicons name="call-outline" size={15} color={primaryColor} />
+              <Text style={[styles.label, { color: textMain }]}>Phone Number</Text>
+            </View>
+            <InputComponent
+              color={primaryColor}
+              placeholder="08012345678"
+              placeholdercolor={subText}
+              value={phone}
+              onChange={handlePhoneChange}
+              keyboardType="phone-pad"
+              maxLength={14}
+              editable
+            />
+            {phoneError ? (
+              <View style={styles.errorRow}>
+                <Ionicons name="alert-circle-outline" size={13} color={backgroundColortwo} />
+                <Text style={[styles.errorText, { color: backgroundColortwo }]}>{phoneError}</Text>
+              </View>
+            ) : (
+              <Text style={[styles.hint, { color: subText }]}>Format: 080 or +234</Text>
+            )}
+          </View>
+        </View>
+
+        <View style={{ marginTop: 24 }}>
+          <ButtonComponent
+            color={primaryColor}
+            text={mutation.isPending ? "Sending OTP…" : "Send Verification Code"}
+            textcolor="#fff"
+            onPress={handleNext}
+            isLoading={mutation.isPending}
+            disabled={!email || !phone || !!phoneError || mutation.isPending}
+          />
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
+
+const styles = StyleSheet.create({
+  banner: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderWidth: 1, borderRadius: 14,
+    paddingHorizontal: 14, paddingVertical: 12,
+    marginTop: 8, marginBottom: 16,
+  },
+  bannerText: { flex: 1, fontSize: 13, fontFamily: 'TTFirsNeue', lineHeight: 18 },
+
+  card: {
+    borderRadius: 20, borderWidth: 1,
+    padding: 20,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06, shadowRadius: 12, elevation: 3,
+  },
+  fieldGroup: { gap: 8 },
+  fieldLabel: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  label: { fontSize: 13, fontWeight: '600', fontFamily: 'TTFirsNeueMedium' },
+  divider: { height: 1, marginVertical: 16 },
+  hint: { fontSize: 11, fontFamily: 'TTFirsNeue', marginTop: 2 },
+  errorRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  errorText: { fontSize: 11, fontFamily: 'TTFirsNeue' },
+});
 
 export default EmailPhoneStep;

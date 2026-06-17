@@ -1,11 +1,10 @@
 import ForgetOtp from 'component/auth/forgotpassword/forgetotp'
-import { View, Text } from 'react-native'
-
+import { View } from 'react-native'
 
 const VerifyOtpPage = () => {
   return (
-    <View>
-      <ForgetOtp/>
+    <View style={{ flex: 1 }}>
+      <ForgetOtp />
     </View>
   )
 }

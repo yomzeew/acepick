@@ -52,7 +52,16 @@ interface MainProps {
 const MainChatScreen = ({ userDetails }: MainProps) => {
     const user = useSelector((state: RootState) => state?.auth.user);
     const role=user?.role
-  const ids = JSON.parse(userDetails);
+    
+    // Handle both plain ID string and JSON string
+    let ids: { userId: string };
+    try {
+        // Try to parse as JSON first
+        ids = JSON.parse(userDetails || "{}");
+    } catch (error) {
+        // If parsing fails, treat it as a plain ID
+        ids = { userId: userDetails };
+    }
 
   const partnerId = ids?.userId;
   const userId = user?.id || '';
@@ -73,7 +82,12 @@ const MainChatScreen = ({ userDetails }: MainProps) => {
  
   const mutation = useMutation({
     mutationFn: generalUserDetailFn,
-    onSuccess: (response) => setData(response.data),
+    onSuccess: (response) => {
+      // Guard against null response
+      if (response && response.data) {
+        setData(response.data);
+      }
+    },
     onError: (error: any) => {
       let msg = "An unexpected error occurred";
       if (error?.response?.data) {

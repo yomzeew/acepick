@@ -4,10 +4,10 @@ import { FontAwesome5 } from "@expo/vector-icons"
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Entypo from '@expo/vector-icons/Entypo';
 import { useDispatch, useSelector } from "react-redux";
-import { setActivePage } from "../../redux/authSlice";
+import { setActivePage } from "../../redux/slices/authSlice";
 import { RootState } from "../../redux/store";
 import { useRouter } from "expo-router";
-import { act, memo } from "react";
+import React, { act, memo } from "react";
 
 const FooterProfessional=()=>{
     const {theme} =useTheme()

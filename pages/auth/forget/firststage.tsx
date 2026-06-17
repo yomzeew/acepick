@@ -1,11 +1,10 @@
-import { View, Text } from 'react-native'
-import React from 'react'
+import { View } from 'react-native'
 import RecoverPassword from '../../../component/auth/forgotpassword/recoverpasswordcomponent'
 
 const RecoverPasswordPage = () => {
   return (
-    <View>
-        <RecoverPassword/>
+    <View style={{ flex: 1 }}>
+      <RecoverPassword />
     </View>
   )
 }

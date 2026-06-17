@@ -1,5 +1,5 @@
 import { View, Image, TouchableOpacity } from "react-native"
-import { useState, useCallback, useMemo, memo } from "react"
+import React, { useState, useCallback, useMemo, memo } from "react"
 import NotificationIconWithBadge from "../notification/NotificationIconWithBadge"
 import { useSelector } from "react-redux"
 import { RootState } from "../../redux/store"

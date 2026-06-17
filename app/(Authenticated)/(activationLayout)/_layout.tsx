@@ -6,6 +6,7 @@ export default function ActivationLayout() {
     
       <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="bvnactivationlayout" />
+      <Stack.Screen name="bvnActivation" />
     
     </Stack>
 

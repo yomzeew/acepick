@@ -8,18 +8,22 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  Modal,
 } from "react-native";
 import { useTheme } from "../hooks/useTheme";
 import { getColors } from "../static/color";
+import { InModalToastContainer } from "../context/ToastContext";
 
-interface SlideupModalTemplateProps {
+export interface SlideupModalTemplateProps {
   children: ReactNode;
   showmodal: boolean;
   modalHeight: any;
   setshowmodal: (value: boolean) => void;
+  /** When false, tapping the backdrop will NOT dismiss the modal. Default true. */
+  dismissable?: boolean;
 }
 
-const SliderModalTemplate = ({ children, showmodal, setshowmodal, modalHeight }: SlideupModalTemplateProps) => {
+const SliderModalTemplate = ({ children, showmodal, setshowmodal, modalHeight, dismissable = true }: SlideupModalTemplateProps) => {
   const { theme } = useTheme();
   const { primaryColor, backgroundColor, backgroundColortwo, secondaryTextColor } = getColors(theme);
 
@@ -46,15 +50,36 @@ const SliderModalTemplate = ({ children, showmodal, setshowmodal, modalHeight }:
     }
   }, [showmodal]);
 
+  // Convert modalHeight to numeric value for animation
+  const getNumericHeight = () => {
+    if (typeof modalHeight === 'number') return modalHeight;
+    if (typeof modalHeight === 'string') {
+      if (modalHeight.includes('%')) {
+        // Get screen height from Dimensions or use a default
+        const { height: SCREEN_HEIGHT } = require('react-native').Dimensions.get('window');
+        const percentage = parseFloat(modalHeight.replace('%', ''));
+        return SCREEN_HEIGHT * (percentage / 100);
+      }
+      return parseFloat(modalHeight) || 300;
+    }
+    return 300;
+  };
+
   const translateY = slideAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [300, 0], // Slide from offscreen to visible
+    outputRange: [getNumericHeight(), 0], // Slide from offscreen to visible
   });
 
   return (
-    <>
+    <Modal
+      visible={showmodal}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={() => setshowmodal(false)}
+    >
       {/* 🔹 Dim Background */}
-      {showmodal &&<Pressable onPress={() => setshowmodal(false)} style={{ backgroundColor: backgroundColortwo, zIndex:50,elevation:50 }} className="h-full w-full absolute opacity-70" />}
+      <Pressable onPress={() => dismissable && setshowmodal(false)} style={{ backgroundColor: backgroundColortwo, zIndex:50,elevation:50 }} className="h-full w-full absolute opacity-70" />
 
       {showmodal && (
         <Animated.View
@@ -79,20 +104,14 @@ const SliderModalTemplate = ({ children, showmodal, setshowmodal, modalHeight }:
           </KeyboardAvoidingView>
         </Animated.View>
       )}
-    </>
+      <InModalToastContainer />
+    </Modal>
   );
 };
 
 export default SliderModalTemplate;
 
 
-
-interface SlideupModalTemplateProps {
-  children: ReactNode;
-  showmodal: boolean;
-  modalHeight: any;
-  setshowmodal: (value: boolean) => void;
-}
 
 export const SliderModalNoScrollview = ({ children, showmodal, setshowmodal, modalHeight }: SlideupModalTemplateProps) => {
   const { theme } = useTheme();
@@ -121,15 +140,36 @@ export const SliderModalNoScrollview = ({ children, showmodal, setshowmodal, mod
     }
   }, [showmodal]);
 
+  // Convert modalHeight to numeric value for animation
+  const getNumericHeight = () => {
+    if (typeof modalHeight === 'number') return modalHeight;
+    if (typeof modalHeight === 'string') {
+      if (modalHeight.includes('%')) {
+        // Get screen height from Dimensions or use a default
+        const { height: SCREEN_HEIGHT } = require('react-native').Dimensions.get('window');
+        const percentage = parseFloat(modalHeight.replace('%', ''));
+        return SCREEN_HEIGHT * (percentage / 100);
+      }
+      return parseFloat(modalHeight) || 300;
+    }
+    return 300;
+  };
+
   const translateY = slideAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [300, 0], // Slide from offscreen to visible
+    outputRange: [getNumericHeight(), 0], // Slide from offscreen to visible
   });
 
   return (
-    <>
+    <Modal
+      visible={showmodal}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={() => setshowmodal(false)}
+    >
       {/* 🔹 Dim Background */}
-      {showmodal &&<Pressable onPress={() => setshowmodal(false)} style={{ backgroundColor: backgroundColortwo, zIndex:50,elevation:50 }} className="h-full w-full absolute opacity-70" />}
+      <Pressable onPress={() => setshowmodal(false)} style={{ backgroundColor: backgroundColortwo, zIndex:50,elevation:50 }} className="h-full w-full absolute opacity-70" />
 
       {showmodal && (
         <Animated.View
@@ -155,7 +195,8 @@ export const SliderModalNoScrollview = ({ children, showmodal, setshowmodal, mod
           </KeyboardAvoidingView>
         </Animated.View>
       )}
-    </>
+      <InModalToastContainer />
+    </Modal>
   );
 };
 

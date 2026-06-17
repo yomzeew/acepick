@@ -1,4 +1,5 @@
-import { FontAwesome5, Feather } from "@expo/vector-icons"
+import axios from "axios"
+import { FontAwesome5, Feather,AntDesign } from "@expo/vector-icons"
 import { useMutation } from "@tanstack/react-query"
 import ButtonComponent from "component/buttoncomponent"
 import ContainerTemplate from "component/dashboardComponent/containerTemplate"
@@ -6,14 +7,17 @@ import HeaderComponent from "component/dashboardComponent/headercomponent"
 import WalletCard from "component/dashboardComponent/walletcompoment"
 import EmptyView from "component/emptyview"
 import SliderModalTemplate, { SliderModalNoScrollview } from "component/slideupModalTemplate"
+import VerificationBadge from "component/controls/verificationBadge"
 import { useRouter } from "expo-router"
 import { useCurrentLocation } from "hooks/useLocation"
 import { useTheme } from "hooks/useTheme"
+import { useBVNVerification } from "hooks/useBVNVerification"
 import { useEffect, useState } from "react"
-import { Text, TouchableOpacity, View, ScrollView, RefreshControl, FlatList } from "react-native"
+import { Text, TouchableOpacity, View, ScrollView, RefreshControl, FlatList, ActivityIndicator } from "react-native"
 import { useSelector } from "react-redux"
-import { RootState } from "redux/store"
-import { SaveTokenFunction, updateLocation } from "services/userService"
+import { RootState, store } from "redux/store"
+import { SaveTokenFunction } from "services/userService"
+import { API_BASE_URL } from "utilizes/endpoints"
 import { useDashboard } from "hooks/useDashboard"
 import { getColors } from "static/color"
 import { DeliveryData } from "types/type"
@@ -41,6 +45,7 @@ const HomeDelivery = () => {
     const [refreshing, setRefreshing] = useState(false);
     const fcmToken = useSelector((state: RootState) => state.auth.user?.fcmToken);
     const { data: dashboardData, refresh: refreshDashboard } = useDashboard();
+    const { isVerified: isBVNVerified, isLoading: bvnLoading } = useBVNVerification();
     const recentTransactions = (dashboardData as any)?.recentTransactions || [];
 
     const saveFcmToken = async () => {
@@ -61,26 +66,40 @@ const HomeDelivery = () => {
     const user = useSelector((state: RootState) => state?.auth?.user) ?? null;
     const { location, address, state, lga } = useCurrentLocation();
 
-    const mutation = useMutation({
-        mutationFn: ({ locationId, data }: { locationId: string; data: any }) => updateLocation(locationId, data),
-        onSuccess: async () => {},
-        onError: (error: any) => {
-            const msg = error?.response?.data?.message || error?.message || "Location update failed";
-            console.error("Location update failed:", msg);
-        },
-    });
+    const syncLocation = async (latitude: number, longitude: number) => {
+        const token = store.getState().auth?.token;
+        if (!token) return;
+        const headers = { Authorization: `Bearer ${token}` };
 
-    const updateLocationFn = () => {
-        const locationId = user?.location?.id?.toString();
-        if (!locationId) return;
-        const { latitude, longitude } = location?.coords ?? {};
-        mutation.mutate({ locationId, data: { latitude, longitude, address, state, lga } });
+        // Pick the most recently updated location record to keep coords current
+        const locations: any[] = user?.location ?? [];
+        const latest = [...locations].sort(
+            (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        )[0];
+        const locationId = latest?.id?.toString();
+
+        const payload = { latitude, longitude, address, state, lga };
+        try {
+            if (locationId) {
+                await axios.put(`${API_BASE_URL}/location/${locationId}`, payload, { headers });
+            } else {
+                await axios.post(`${API_BASE_URL}/locations`, payload, { headers });
+            }
+        } catch (err: any) {
+            console.error('GPS sync failed:', err?.response?.data?.message || err?.message);
+        }
     };
 
     useEffect(() => {
         saveFcmToken();
-        updateLocationFn();
     }, []);
+
+    useEffect(() => {
+        const { latitude, longitude } = location?.coords ?? {};
+        if (latitude && longitude) {
+            syncLocation(latitude, longitude);
+        }
+    }, [location?.coords?.latitude]);
 
     const statsData = [
         { label: "Completed", value: user?.profile?.totalJobsCompleted || 0, icon: "check-circle", color: primaryColor, bg: primaryColor + '15' },
@@ -99,12 +118,12 @@ const HomeDelivery = () => {
         <>
             {showmodal && (
                 <SliderModalTemplate modalHeight={"60%"} showmodal={showmodal} setshowmodal={setshowmodal}>
-                    <SlideupContent />
+                    <SlideupContent setshowmodal={setshowmodal} />
                 </SliderModalTemplate>
             )}
 
             <ContainerTemplate>
-                <HeaderComponent />
+                <HeaderComponent showSettings={false} />
 
                 <ScrollView
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -112,7 +131,21 @@ const HomeDelivery = () => {
                     contentContainerStyle={{ paddingBottom: 100 }}
                 >
                     <EmptyView height={8} />
-                    <VerificationBadge onPress={() => setshowmodal(true)} />
+                    {!bvnLoading && (
+                        <VerificationBadge 
+                            isVerified={isBVNVerified} 
+                            onPress={() => !isBVNVerified && router.push('/bvnActivation')}
+                            size="medium"
+                        />
+                    )}
+                    {bvnLoading && (
+                        <View className="flex-row items-center justify-center py-2">
+                            <ActivityIndicator size="small" color={primaryColor} />
+                            <Text className="ml-2" style={{ color: secondaryTextColor, fontSize: 12 }}>
+                                Checking verification status...
+                            </Text>
+                        </View>
+                    )}
                     <EmptyView height={14} />
 
                     <WalletCard
@@ -220,41 +253,7 @@ const HomeDelivery = () => {
     );
 };
 export default HomeDelivery;
-
-const VerificationBadge = ({ onPress }: { onPress: () => void }) => {
-    const { theme } = useTheme();
-    const { primaryColor, backgroundColortwo } = getColors(theme);
-    const isDark = theme === "dark";
-
-    return (
-        <TouchableOpacity
-            onPress={onPress}
-            activeOpacity={0.8}
-            style={{
-                backgroundColor: backgroundColortwo + '10',
-                borderRadius: 14,
-                padding: 14,
-                flexDirection: "row",
-                alignItems: "center",
-                borderWidth: 1,
-                borderColor: backgroundColortwo + '30',
-            }}
-        >
-            <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: backgroundColortwo + '20', alignItems: "center", justifyContent: "center" }}>
-                <Feather name="alert-triangle" size={18} color={backgroundColortwo} />
-            </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={{ fontSize: 13, fontWeight: "600", color: backgroundColortwo }}>Verification Required</Text>
-                <Text style={{ fontSize: 11, color: backgroundColortwo + '99', marginTop: 2 }}>Complete verification to start accepting orders</Text>
-            </View>
-            <View style={{ backgroundColor: primaryColor, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}>
-                <Text style={{ fontSize: 11, fontWeight: "600", color: "#fff" }}>Verify</Text>
-            </View>
-        </TouchableOpacity>
-    );
-};
-
-const SlideupContent = () => {
+const SlideupContent = ({ setshowmodal }: { setshowmodal: (value: boolean) => void }) => {
     const { theme } = useTheme();
     const { primaryColor, backgroundColortwo } = getColors(theme);
     const isDark = theme === "dark";
@@ -275,7 +274,7 @@ const SlideupContent = () => {
                     color={primaryColor}
                     text="Activate Now"
                     textcolor="#ffffff"
-                    onPress={() => null}
+                    onPress={() => setshowmodal(true)}
                 />
             </View>
         </View>
@@ -411,7 +410,7 @@ const ShippingCard: React.FC<ShippingCardProps> = ({ item }) => {
                         <Feather name="dollar-sign" size={14} color={primaryColor} />
                         <Text style={{ fontSize: 15, fontWeight: "700", color: primaryColor }}>₦{Number(item.cost).toLocaleString()}</Text>
                     </View>
-                    {item.distance > 0 && (
+                    {item.distance && typeof item.distance === 'number' && item.distance > 0 && (
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                             <Feather name="navigation" size={12} color={secondaryTextColor} />
                             <Text style={{ fontSize: 11, color: secondaryTextColor }}>{item.distance.toFixed(1)} km</Text>
@@ -438,8 +437,46 @@ const ShippingCard: React.FC<ShippingCardProps> = ({ item }) => {
                             <Text style={{ fontSize: 12, color: secondaryTextColor, marginTop: 4 }}>Order #{String(item.id).slice(-6)}</Text>
                         </View>
 
+                        {/* Delivery Fee — hero number rider cares about most */}
+                        <View style={{
+                            backgroundColor: primaryColor + '12',
+                            borderWidth: 1.5,
+                            borderColor: primaryColor,
+                            borderRadius: 14,
+                            padding: 16,
+                            marginBottom: 14,
+                            alignItems: "center",
+                        }}>
+                            <Text style={{ fontSize: 11, fontWeight: "700", color: primaryColor, letterSpacing: 0.8, marginBottom: 4 }}>
+                                YOUR DELIVERY EARNINGS
+                            </Text>
+                            <Text style={{ fontSize: 28, fontWeight: "800", color: primaryColor }}>
+                                ₦{Number(item.cost).toLocaleString()}
+                            </Text>
+                            <Text style={{ fontSize: 10, color: secondaryTextColor, marginTop: 4 }}>
+                                Platform commission will be deducted at settlement
+                            </Text>
+                        </View>
+
                         {/* Order Details */}
-                        <View style={{ backgroundColor: isDark ? "#111827" : "#F9FAFB", borderRadius: 12, padding: 14, marginBottom: 20 }}>
+                        <View style={{ backgroundColor: isDark ? "#111827" : "#F9FAFB", borderRadius: 12, padding: 14, marginBottom: 14 }}>
+                            {/* Product info */}
+                            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: isDark ? "#374151" : "#E5E7EB" }}>
+                                <View style={{ width: 28, height: 28, borderRadius: 7, backgroundColor: primaryColor + '15', alignItems: "center", justifyContent: "center", marginRight: 10 }}>
+                                    <Ionicons name="cube-outline" size={14} color={primaryColor} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: 10, color: secondaryTextColor }}>PACKAGE</Text>
+                                    <Text style={{ fontSize: 12, fontWeight: "600", color: isDark ? "#E5E7EB" : "#374151" }}>
+                                        {item.productTransaction.product.name}
+                                    </Text>
+                                    <Text style={{ fontSize: 11, color: secondaryTextColor, marginTop: 2 }}>
+                                        Qty: {item.productTransaction.quantity}  •  Value: ₦{Number(item.productTransaction.price).toLocaleString()}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* Pickup */}
                             <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
                                 <View style={{ width: 28, height: 28, borderRadius: 7, backgroundColor: primaryColor + '15', alignItems: "center", justifyContent: "center", marginRight: 10 }}>
                                     <Ionicons name="location" size={14} color={primaryColor} />
@@ -449,6 +486,8 @@ const ShippingCard: React.FC<ShippingCardProps> = ({ item }) => {
                                     <Text style={{ fontSize: 12, fontWeight: "500", color: isDark ? "#E5E7EB" : "#374151" }}>{pickupAddress || "Loading..."}</Text>
                                 </View>
                             </View>
+
+                            {/* Dropoff */}
                             <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
                                 <View style={{ width: 28, height: 28, borderRadius: 7, backgroundColor: backgroundColortwo + '15', alignItems: "center", justifyContent: "center", marginRight: 10 }}>
                                     <Ionicons name="flag" size={14} color={backgroundColortwo} />
@@ -458,14 +497,31 @@ const ShippingCard: React.FC<ShippingCardProps> = ({ item }) => {
                                     <Text style={{ fontSize: 12, fontWeight: "500", color: isDark ? "#E5E7EB" : "#374151" }}>{destinationAddress || "Loading..."}</Text>
                                 </View>
                             </View>
-                            <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                <View style={{ width: 28, height: 28, borderRadius: 7, backgroundColor: primaryColor + '15', alignItems: "center", justifyContent: "center", marginRight: 10 }}>
-                                    <Feather name="dollar-sign" size={14} color={primaryColor} />
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={{ fontSize: 10, color: secondaryTextColor }}>DELIVERY FEE</Text>
-                                    <Text style={{ fontSize: 14, fontWeight: "700", color: primaryColor }}>₦{Number(item.cost).toLocaleString()}</Text>
-                                </View>
+
+                            {/* Distance + expiry row */}
+                            <View style={{ flexDirection: "row", gap: 10 }}>
+                                {item.distance != null && (
+                                    <View style={{ flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: isDark ? "#1F2937" : "#FFFFFF", borderRadius: 8, padding: 8, gap: 6 }}>
+                                        <Feather name="navigation" size={12} color={secondaryTextColor} />
+                                        <View>
+                                            <Text style={{ fontSize: 9, color: secondaryTextColor }}>DISTANCE</Text>
+                                            <Text style={{ fontSize: 12, fontWeight: "600", color: isDark ? "#E5E7EB" : "#374151" }}>
+                                                {typeof item.distance === 'number' ? `${item.distance.toFixed(1)} km` : item.distance}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                )}
+                                {item.expiresAt && (
+                                    <View style={{ flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: isDark ? "#1F2937" : "#FFFFFF", borderRadius: 8, padding: 8, gap: 6 }}>
+                                        <Feather name="clock" size={12} color={backgroundColortwo} />
+                                        <View>
+                                            <Text style={{ fontSize: 9, color: secondaryTextColor }}>EXPIRES</Text>
+                                            <Text style={{ fontSize: 12, fontWeight: "600", color: backgroundColortwo }}>
+                                                {new Date(item.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                )}
                             </View>
                         </View>
 

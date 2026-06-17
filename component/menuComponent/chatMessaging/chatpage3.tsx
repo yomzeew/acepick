@@ -139,12 +139,6 @@ const ContactListScreen = () => {
                 </TouchableOpacity>
               </View>
               <View className="flex-row gap-x-4 items-center">
-                <TouchableOpacity onPress={() => {}}>
-                  <FontAwesome5 name="video" size={20} color={primaryColor} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => {}}>
-                  <FontAwesome5 name="phone" size={20} color={primaryColor} />
-                </TouchableOpacity>
                 <TouchableOpacity onPress={() => setShowSearch(!showSearch)}>
                   <FontAwesome5 name="search" size={20} color={primaryColor} />
                 </TouchableOpacity>
@@ -193,7 +187,37 @@ const ContactListScreen = () => {
    {/* Contacts List */}
    <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
       {filteredChats.map((chat:any,index:any) => {
-  const lastMessage = "Start a conversation";
+  // Parse last message for proper preview
+  const lastMessage = (() => {
+    const text = chat.lastMessage || "";
+    if (!text) return "Start a conversation";
+    
+    if (text.startsWith("<missedcall>")) {
+      const callType = text.replace("<missedcall>", "").trim();
+      return callType === "video" ? "Missed video call" : "Missed voice call";
+    }
+    
+    if (text.startsWith("<completedcall>")) {
+      const callData = text.replace("<completedcall>", "").trim();
+      const [callType, durationStr] = callData.split(":");
+      const durationSeconds = parseInt(durationStr || "0", 10);
+      const minutes = Math.floor(durationSeconds / 60);
+      const seconds = durationSeconds % 60;
+      const duration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      return callType === "video" ? `📹 Video call (${duration})` : `📞 Voice call (${duration})`;
+    }
+    
+    if (text.startsWith("<audio>")) {
+      return "🎙️ Voice message";
+    }
+    
+    if (text.startsWith("<img>")) {
+      return "📷 Photo";
+    }
+    
+    // Regular text - truncate
+    return text.length > 30 ? text.substring(0, 30) + "..." : text;
+  })();
 
           return (
             <TouchableOpacity
@@ -217,9 +241,26 @@ const ContactListScreen = () => {
                     />
                   </View>
                   <View className="flex-1">
-                    <ThemeText size={Textstyles.text_xsmall}>
-                      {chat.profile?.firstName ?? "Unknown"} {chat.profile?.lastName ?? ""}
-                    </ThemeText>
+                    <View className="flex-row items-center justify-between">
+                      <ThemeText size={Textstyles.text_xsmall}>
+                        {chat.profile?.firstName ?? "Unknown"} {chat.profile?.lastName ?? ""}
+                      </ThemeText>
+                      {chat.onlineUser?.isOnline ? (
+                        <Text style={{ fontSize: 10, color: '#22c55e', fontFamily: 'TTFirsNeue' }}>Online</Text>
+                      ) : chat.onlineUser?.lastActive ? (
+                        <Text style={{ fontSize: 10, color: '#9ca3af', fontFamily: 'TTFirsNeue' }}>
+                          {(() => {
+                            const diff = Date.now() - new Date(chat.onlineUser.lastActive).getTime();
+                            const mins = Math.floor(diff / 60000);
+                            if (mins < 1) return 'Just now';
+                            if (mins < 60) return `${mins}m ago`;
+                            const hrs = Math.floor(mins / 60);
+                            if (hrs < 24) return `${hrs}h ago`;
+                            return `${Math.floor(hrs / 24)}d ago`;
+                          })()}
+                        </Text>
+                      ) : null}
+                    </View>
                     <ThemeTextsecond size={Textstyles.text_xxxsmall}>
                       {lastMessage}
                     </ThemeTextsecond>

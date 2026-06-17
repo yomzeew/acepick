@@ -352,6 +352,7 @@ export interface JobMaterial {
     currency: string;
     currentBalance: number;
     pin: string | null;
+    isPinSet?: boolean;
     isActive: boolean;
     previousBalance: number;
     status: string;

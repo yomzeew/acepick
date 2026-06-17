@@ -1,42 +1,71 @@
-import { View, Text, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView} from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
+  AccessibilityInfo,
+  Alert,
+  StyleSheet,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../hooks/useTheme";
 import { getColors } from "../../static/color";
 import { StatusBar } from "expo-status-bar";
-import EmptyView from "../emptyview";
 import InputComponent from "../controls/textinput";
 import { useRouter } from "expo-router";
 import PasswordComponent from "../controls/passwordinput";
-import BackComponent from "../backcomponent";
-import CenteredTextComponent from "../centeredtextcomponent";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { useEffect, useState } from "react";
 import { loginUser } from "services/authServices";
-import { RootState } from "../../redux/store";
 import { setUser, setToken } from "redux/slices/authSlice";
 import { useMutation } from "@tanstack/react-query";
 import { AlertMessageBanner } from "component/AlertMessageBanner";
-import { useSecureAuth } from "hooks/useSecureAuth"
-import { AxiosError } from "axios";
+import { useSecureAuth } from "hooks/useSecureAuth";
+import { Ionicons } from "@expo/vector-icons";
 import Checkbox from "../controls/checkbox";
-
-
-interface UserDetails {
-  firstname: string;
-  lastname: string;
-  email: string;
-}
+import AcePick from "../../assets/acepick.svg";
 
 function DeliveryLoginComponent() {
   const { theme } = useTheme();
-  const { primaryColor, backgroundColor, primaryTextColor, secondaryTextColor } = getColors(theme);
-  const { saveAuthData, getRememberedCredentials, saveRememberedCredentials } = useSecureAuth();
+  const {
+    primaryColor,
+    backgroundColor,
+    primaryTextColor,
+    secondaryTextColor,
+    subText,
+    borderColor,
+  } = getColors(theme);
+  const insets = useSafeAreaInsets();
+  const isDark = theme === "dark";
+
+  const {
+    saveAuthData,
+    getAuthData,
+    getRememberedCredentials,
+    saveRememberedCredentials,
+    isBiometricAvailable,
+    getBiometricType,
+    authenticateWithBiometrics,
+    isBiometricEnabled,
+    setBiometricEnabled,
+  } = useSecureAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  
+  const [biometricType, setBiometricType] = useState<"fingerprint" | "face" | "iris" | null>(null);
+  const [biometricReady, setBiometricReady] = useState(false);
+
+  const router = useRouter();
+  const dispatch = useDispatch();
+
   useEffect(() => {
-    // Load remembered credentials on component mount
     const loadCredentials = async () => {
       const credentials = await getRememberedCredentials();
       if (credentials.rememberMe) {
@@ -46,52 +75,79 @@ function DeliveryLoginComponent() {
       }
     };
     loadCredentials();
-  }, [getRememberedCredentials]);
-  
+  }, []);
+
   useEffect(() => {
     if (errorMessage) {
-      const timer = setTimeout(() => {
-        setErrorMessage(null);
-      }, 4000);
-      return () => clearTimeout(timer); // Cleanup on unmount or on new error
+      const timer = setTimeout(() => setErrorMessage(null), 4000);
+      return () => clearTimeout(timer);
     }
   }, [errorMessage]);
 
-  const router = useRouter();
-  const dispatch = useDispatch();
-  const { isAuthenticated, isLoading, error } = useSelector((state: RootState) => state.auth);
+  useEffect(() => {
+    const checkBiometrics = async () => {
+      const available = await isBiometricAvailable();
+      const enabled = await isBiometricEnabled();
+      if (available && enabled) {
+        const type = await getBiometricType();
+        setBiometricType(type);
+        setBiometricReady(true);
+      }
+    };
+    checkBiometrics();
+  }, []);
 
   const mutation = useMutation({
     mutationFn: loginUser,
-    onSuccess:async (response) => {
+    onSuccess: async (response) => {
       const { user, token } = response.data;
-    
-      // Save remembered credentials if remember me is checked
+
+      // Only delivery riders allowed on this screen
+      if (user.role !== "delivery") {
+        setErrorMessage(
+          user.role === "client"
+            ? "This login is for delivery riders only. Please use the Client login."
+            : "This login is for delivery riders only. Please use the Professional login."
+        );
+        return;
+      }
+
       await saveRememberedCredentials(email, password, rememberMe);
-      
-      await saveAuthData(user, token); // Save securely
+      await saveAuthData(user, token);
+
+      const available = await isBiometricAvailable();
+      const alreadyEnabled = await isBiometricEnabled();
+      if (available && !alreadyEnabled) {
+        const type = await getBiometricType();
+        const label = type === "face" ? "Face ID" : "Fingerprint";
+        Alert.alert(
+          `Enable ${label}`,
+          `Would you like to use ${label} to sign in faster next time?`,
+          [
+            { text: "Not Now", style: "cancel" },
+            {
+              text: "Enable",
+              onPress: async () => {
+                await setBiometricEnabled(true);
+                setBiometricType(type);
+                setBiometricReady(true);
+              },
+            },
+          ]
+        );
+      }
+
       dispatch(setUser(user));
       dispatch(setToken(token));
-  
-      console.log("login success:", user);
-      if(user.role==='delivery'){
-        router.replace("/deliverydashboardlayout")
-      }
-      else{
-        // Fallback to client login if role doesn't match
-        router.replace("/homelayout");
-      }
-      
+      router.replace("/deliverydashboardlayout");
     },
-    onError: (error:any) => {
+    onError: (error: any) => {
       let msg = "An unexpected error occurred";
-
       if (error?.code === "ERR_NETWORK" || error?.message === "Network Error") {
         msg = "Unable to connect to server. Please check your internet connection and try again.";
       } else if (error?.response) {
         const status = error.response.status;
         const data = error.response.data;
-
         if (status === 401 || status === 400) {
           const backendMsg = data?.message || data?.error || "";
           const normalized = backendMsg.toLowerCase();
@@ -119,156 +175,282 @@ function DeliveryLoginComponent() {
       } else if (error?.message) {
         msg = error.message;
       }
-
       setErrorMessage(msg);
-      console.error("Login failed:", msg);
     },
   });
-  
+
+  const handleBiometricLogin = async () => {
+    try {
+      const label = biometricType === "face" ? "Face ID" : "Fingerprint";
+      const passed = await authenticateWithBiometrics(`Sign in with ${label}`);
+      if (!passed) return;
+      const stored = await getAuthData();
+      if (!stored) {
+        Alert.alert("Session Expired", "Please sign in with your email and password.");
+        return;
+      }
+      dispatch(setUser(stored.user));
+      dispatch(setToken(stored.token));
+      router.replace("/deliverydashboardlayout");
+    } catch {
+      setErrorMessage("Biometric authentication failed. Please try again.");
+    }
+  };
 
   const handleSign = () => {
-    setErrorMessage(null); // clear previous error
-    const payload = { email, password };
-    if(!email){
-      setErrorMessage("Please Enter Email")
-      return
+    setErrorMessage(null);
+    if (!email) {
+      setErrorMessage("Please enter your email");
+      AccessibilityInfo.announceForAccessibility("Please enter email address");
+      return;
     }
-    if(!password){
-      setErrorMessage("Please Enter Password")
-      return
+    if (!password) {
+      setErrorMessage("Please enter your password");
+      AccessibilityInfo.announceForAccessibility("Please enter password");
+      return;
     }
-    mutation.mutate(payload);
+    mutation.mutate({ email, password });
   };
+
+  const cardBg = isDark ? "#1F2937" : "#FFFFFF";
+
   return (
     <>
-     {errorMessage && (
-       <AlertMessageBanner type="error" message={errorMessage} />
-     )}
-   
-  <KeyboardAvoidingView
-    style={{ flex: 1, backgroundColor: backgroundColor }}
-    behavior={Platform.OS === "ios" ? "padding" : "height"}
-    keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-  >
-  <ScrollView
-    contentContainerStyle={{ flexGrow: 1 }}
-    keyboardShouldPersistTaps="handled"
-    showsVerticalScrollIndicator={false}
-  >
-  <View style={{ backgroundColor: backgroundColor }} className="flex-1 w-full p-6">
-  
-  <StatusBar style="auto" />
-  <EmptyView />
-  <BackComponent bordercolor={primaryColor} textcolor={secondaryTextColor}/>
-  <EmptyView />
-  <CenteredTextComponent textcolor={primaryTextColor} text=" Sign in as a Delivery"/>
+      {errorMessage && <AlertMessageBanner type="error" message={errorMessage} />}
 
-  <View className="h-10"></View>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
-  <View className="items-center">
-    <InputComponent value={email} onChange={(text)=>setEmail(text)} color={primaryColor} placeholder="Email" placeholdercolor={secondaryTextColor}/>
-    <View className="h-5"></View>
-    <PasswordComponent value={password} onChange={(text)=>setPassword(text)} color={primaryColor} placeholder="Password" placeholdercolor={secondaryTextColor}/>
-  </View>
+      <View style={[styles.root, { backgroundColor }]}>
+        {/* ── Top accent strip ── */}
+        <View style={[styles.topStrip, { backgroundColor: primaryColor }]} />
 
-  <View className="h-8"></View>
-  <View className="w-full flex-row justify-end">
-    <TouchableOpacity onPress={()=> router.navigate("/recoverpasswordscreen")}>
-      <Text style={{ color: primaryColor }} className="text-base">
-        Forgot Password?
-      </Text>
-    </TouchableOpacity>
-  </View>
-
-  <View className="h-6"></View>
-  <View className="w-full flex-row justify-start">
-    <Checkbox 
-      isChecked={rememberMe} 
-      onToggle={setRememberMe}
-    />
-    <Text style={{ color: secondaryTextColor }} className="text-base ml-2">
-      Remember Me
-    </Text>
-  </View>
-
-  <View className="flex-1" />
-
-  <View className="pb-10 justify-center items-center w-full">
-  <TouchableOpacity
-  disabled={!email || !password || mutation.isPending}
-  style={{
-    backgroundColor: primaryColor,
-    opacity: mutation.isPending? 0.6 : 1,
-  }}
-  className="w-11/12 h-14 rounded-lg justify-center items-center"
-  onPress={handleSign}
->
-{mutation.isPending ? (
-  <ActivityIndicator color="#fff" />
-) : (
-  <Text className="text-white text-lg font-bold text-center">Login</Text>
-)}
-</TouchableOpacity>
-
-    <View className="h-5"></View>
-    <View className="flex-row w-3.5/5 justify-between">
-      <Text className="text-gray-400 text-base">Don't have an account? </Text>
-      <TouchableOpacity onPress={()=>router.navigate("/onboarding-delivery")}>
-        <Text style={{ color: primaryColor }} className="text-base font-bold">
-          Register Now
-        </Text>
-      </TouchableOpacity>
-    </View>
-    
-    <View className="h-8"></View>
-    
-    {/* Switch Account Section */}
-    <View className="items-center">
-      <Text style={{ color: secondaryTextColor }} className="text-base mb-3">
-        Switch to:
-      </Text>
-      <View className="flex-row justify-center gap-4">
-        <TouchableOpacity
-          onPress={() => router.navigate("/loginprofession")}
-          style={{
-            backgroundColor: theme === "dark" ? "#2a2a2a" : "#f5f5f5",
-            borderColor: primaryColor,
-            borderWidth: 1,
-            paddingHorizontal: 16,
-            paddingVertical: 8,
-            borderRadius: 8,
-          }}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
         >
-          <Text style={{ color: primaryColor }} className="text-sm font-medium">
-            Professional
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => router.navigate("/login")}
-          style={{
-            backgroundColor: theme === "dark" ? "#2a2a2a" : "#f5f5f5",
-            borderColor: primaryColor,
-            borderWidth: 1,
-            paddingHorizontal: 16,
-            paddingVertical: 8,
-            borderRadius: 8,
-          }}
-        >
-          <Text style={{ color: primaryColor }} className="text-sm font-medium">
-            Client
-          </Text>
-        </TouchableOpacity>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <ScrollView
+              contentContainerStyle={[
+                styles.scroll,
+                { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 },
+              ]}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              bounces={false}
+            >
+              {/* ── Logo + brand ── */}
+              <View style={styles.logoSection}>
+                <View style={[styles.logoRing, {
+                  borderColor: primaryColor + "30",
+                  backgroundColor: isDark ? "#111827" : "#fff",
+                }]}>
+                  <AcePick width={64} height={64} />
+                </View>
+                <Text style={[styles.brandName, { color: primaryColor }]}>AcePick</Text>
+                <Text style={[styles.tagline, { color: subText }]}>
+                  Deliver packages and earn on your schedule
+                </Text>
+              </View>
+
+              {/* ── Form card ── */}
+              <View style={[styles.card, {
+                backgroundColor: cardBg,
+                shadowColor: isDark ? "#000" : primaryColor,
+                borderColor: isDark ? "#374151" : "#E5E7EB",
+              }]}>
+                <Text style={[styles.cardTitle, { color: primaryTextColor }]}>
+                  Welcome Back 👋
+                </Text>
+                <Text style={[styles.cardSubtitle, { color: subText }]}>
+                  Sign in to your delivery account
+                </Text>
+
+                {/* Inputs */}
+                <View style={{ marginTop: 24, gap: 14 }}>
+                  <InputComponent
+                    value={email}
+                    onChange={setEmail}
+                    color={primaryColor}
+                    placeholder="Email address"
+                    placeholdercolor={subText}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    editable={true}
+                  />
+                  <PasswordComponent
+                    value={password}
+                    onChange={setPassword}
+                    color={primaryColor}
+                    placeholder="Password"
+                    placeholdercolor={subText}
+                  />
+                </View>
+
+                {/* Remember me + Forgot */}
+                <View style={styles.rememberRow}>
+                  <View style={styles.rememberLeft}>
+                    <Checkbox isChecked={rememberMe} onToggle={setRememberMe} />
+                    <Text style={[styles.rememberText, { color: secondaryTextColor }]}>
+                      Remember me
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => router.navigate("/recoverpasswordscreen")}>
+                    <Text style={[styles.forgotText, { color: primaryColor }]}>
+                      Forgot Password?
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Login button */}
+                <TouchableOpacity
+                  disabled={!email || !password || mutation.isPending}
+                  onPress={handleSign}
+                  accessibilityLabel="Login button"
+                  accessibilityHint="Signs you into your delivery account"
+                  accessibilityRole="button"
+                  style={[styles.loginBtn, {
+                    backgroundColor: primaryColor,
+                    opacity: !email || !password || mutation.isPending ? 0.5 : 1,
+                    shadowColor: primaryColor,
+                  }]}
+                >
+                  {mutation.isPending ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.loginBtnText}>Sign In</Text>
+                  )}
+                </TouchableOpacity>
+
+                {/* Biometric */}
+                {biometricReady && (
+                  <>
+                    <View style={[styles.dividerRow, { marginTop: 16 }]}>
+                      <View style={[styles.divider, { backgroundColor: borderColor }]} />
+                      <Text style={[styles.dividerText, { color: subText }]}>or</Text>
+                      <View style={[styles.divider, { backgroundColor: borderColor }]} />
+                    </View>
+                    <TouchableOpacity
+                      onPress={handleBiometricLogin}
+                      style={[styles.biometricBtn, {
+                        borderColor: primaryColor + "50",
+                        backgroundColor: isDark ? "#111827" : primaryColor + "08",
+                      }]}
+                    >
+                      <Ionicons
+                        name={biometricType === "face" ? "scan-outline" : "finger-print-outline"}
+                        size={22}
+                        color={primaryColor}
+                      />
+                      <Text style={[styles.biometricText, { color: primaryColor }]}>
+                        Sign in with {biometricType === "face" ? "Face ID" : "Fingerprint"}
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+
+              {/* ── Register link ── */}
+              <View style={styles.registerRow}>
+                <Text style={[styles.registerText, { color: subText }]}>New rider? </Text>
+                <TouchableOpacity onPress={() => router.navigate("/onboarding-delivery")}>
+                  <Text style={[styles.registerLink, { color: primaryColor }]}>
+                    Register as Rider
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* ── Switch role pills ── */}
+              <View style={styles.switchSection}>
+                <Text style={[styles.switchLabel, { color: subText }]}>Switch to:</Text>
+                <View style={styles.pillRow}>
+                  {[
+                    { label: "Client", route: "/loginscreen" },
+                    { label: "Professional", route: "/loginprofession" },
+                  ].map(({ label, route }) => (
+                    <TouchableOpacity
+                      key={label}
+                      onPress={() => router.navigate(route as any)}
+                      style={[styles.pill, {
+                        borderColor: primaryColor + "60",
+                        backgroundColor: isDark ? "#111827" : "#fff",
+                      }]}
+                    >
+                      <Text style={[styles.pillText, { color: primaryColor }]}>{label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </ScrollView>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       </View>
-    </View>
-    
-    <EmptyView />
-  </View>
-</View>
-</ScrollView>
-</KeyboardAvoidingView>
-</>
-
+    </>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  topStrip: { height: 4, width: "100%" },
+  scroll: { paddingHorizontal: 24, flexGrow: 1 },
+
+  logoSection: { alignItems: "center", marginBottom: 28 },
+  logoRing: {
+    width: 96, height: 96, borderRadius: 28,
+    borderWidth: 1.5, alignItems: "center", justifyContent: "center",
+    shadowColor: "#000", shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
+  },
+  brandName: { fontSize: 22, fontWeight: "800", marginTop: 12, fontFamily: "TTFirsNeueMedium" },
+  tagline: { fontSize: 13, marginTop: 4, fontFamily: "TTFirsNeue", textAlign: "center", paddingHorizontal: 32 },
+
+  card: {
+    borderRadius: 24, padding: 24, borderWidth: 1,
+    shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4,
+  },
+  cardTitle: { fontSize: 22, fontWeight: "700", fontFamily: "TTFirsNeueMedium" },
+  cardSubtitle: { fontSize: 14, marginTop: 4, fontFamily: "TTFirsNeue" },
+
+  rememberRow: {
+    flexDirection: "row", justifyContent: "space-between",
+    alignItems: "center", marginTop: 14,
+  },
+  rememberLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  rememberText: { fontSize: 13, fontFamily: "TTFirsNeue" },
+  forgotText: { fontSize: 13, fontWeight: "600", fontFamily: "TTFirsNeueMedium" },
+
+  loginBtn: {
+    height: 54, borderRadius: 14, alignItems: "center",
+    justifyContent: "center", marginTop: 24,
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5,
+  },
+  loginBtnText: { color: "#fff", fontSize: 16, fontWeight: "700", fontFamily: "TTFirsNeueMedium" },
+
+  dividerRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 },
+  divider: { flex: 1, height: 1 },
+  dividerText: { fontSize: 12, fontFamily: "TTFirsNeue" },
+
+  biometricBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 8, paddingVertical: 13, borderRadius: 14, borderWidth: 1,
+  },
+  biometricText: { fontSize: 14, fontWeight: "600", fontFamily: "TTFirsNeueMedium" },
+
+  registerRow: {
+    flexDirection: "row", justifyContent: "center",
+    alignItems: "center", marginTop: 28,
+  },
+  registerText: { fontSize: 14, fontFamily: "TTFirsNeue" },
+  registerLink: { fontSize: 14, fontWeight: "700", fontFamily: "TTFirsNeueMedium" },
+
+  switchSection: { alignItems: "center", marginTop: 24 },
+  switchLabel: { fontSize: 12, fontFamily: "TTFirsNeue", marginBottom: 10 },
+  pillRow: { flexDirection: "row", gap: 10 },
+  pill: {
+    paddingHorizontal: 20, paddingVertical: 9,
+    borderRadius: 50, borderWidth: 1,
+  },
+  pillText: { fontSize: 13, fontWeight: "600", fontFamily: "TTFirsNeueMedium" },
+});
 
 export default DeliveryLoginComponent;

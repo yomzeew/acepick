@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
-import { uploadProductImages } from '../../services/supabaseStorage';
+import { uploadProductImagesToLocal } from '../../services/localUploadService';
 import {
   productUrl,
   getProductUrl,
@@ -217,7 +217,7 @@ export const uploadProductImagesAsync = createAsyncThunk(
   async (uris: string[], { rejectWithValue, dispatch }) => {
     try {
       dispatch(setUploadProgress(10));
-      const urls = await uploadProductImages(uris);
+      const urls = await uploadProductImagesToLocal(uris);
       dispatch(setUploadProgress(100));
       return { data: { urls } };
     } catch (error: any) {

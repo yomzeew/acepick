@@ -32,7 +32,7 @@ class NetworkService {
 
   private async checkServerStatus(): Promise<boolean> {
     try {
-      const response = await axios.get(`${API_BASE_URL.replace('/api', '')}/api/health`, {
+      const response = await axios.get(`${API_BASE_URL}/health`, {
         timeout: 10000, // Increased timeout for mobile networks
         validateStatus: (status) => status < 500,
       });

@@ -4,6 +4,7 @@ import {
   View,
   TouchableOpacity,
   Text,
+  ActivityIndicator,
 } from "react-native";
 import HeaderComponent from "./headercomponent"
 import { useTheme } from "../../hooks/useTheme";
@@ -11,6 +12,7 @@ import { getColors } from "../../static/color";
 import ContainerTemplate from "./containerTemplate";
 import WalletCard from "./walletcompoment";
 import FilterCard from "./filterCard";
+import VerificationBadge from "component/controls/verificationBadge";
 import { useEffect, useState } from "react";
 import SliderModalTemplate, { SliderModalNoScrollview } from "component/slideupModalTemplate";
 import { useRouter } from "expo-router";
@@ -18,6 +20,7 @@ import ListofAPmodal from "./listofA&Pmodal";
 import { FontAwesome5, Feather } from "@expo/vector-icons";
 import SectorsComponent from "./sectorsComponent";
 import { useCurrentLocation } from "hooks/useLocation";
+import { useBVNVerification } from "hooks/useBVNVerification";
 import { useMutation } from "@tanstack/react-query";
 import { SaveTokenFunction, updateLocation } from "services/userService";
 import { useSelector } from "react-redux";
@@ -28,21 +31,30 @@ import TransferFund from "component/menuComponent/walletPages/transferfund";
 import { AlertMessageBanner } from "component/AlertMessageBanner";
 import JobStatistics from "component/jobStatistics";
 
-const SectionHeader = ({ title, actionText, onAction }: { title: string; actionText?: string; onAction?: () => void }) => {
+const SectionHeader = ({ title, subtitle, actionText, onAction }: { title: string; subtitle?: string; actionText?: string; onAction?: () => void }) => {
   const { theme } = useTheme();
   const { secondaryTextColor, primaryColor } = getColors(theme);
   return (
-    <View className="flex-row justify-between items-center mb-3">
-      <Text style={{ fontFamily: 'TTFirsNeueMedium', fontSize: 16, color: secondaryTextColor }}>
-        {title}
-      </Text>
-      {actionText && onAction && (
-        <TouchableOpacity onPress={onAction} activeOpacity={0.7}>
-          <Text style={{ fontFamily: 'TTFirsNeue', fontSize: 13, color: primaryColor }}>
-            {actionText}
+    <View className="mb-3">
+      <View className="flex-row justify-between items-center">
+        <View className="flex-1">
+          <Text style={{ fontFamily: 'TTFirsNeueMedium', fontSize: 16, color: secondaryTextColor }}>
+            {title}
           </Text>
-        </TouchableOpacity>
-      )}
+          {subtitle && (
+            <Text style={{ fontFamily: 'TTFirsNeue', fontSize: 12, color: secondaryTextColor, opacity: 0.7, marginTop: 2 }}>
+              {subtitle}
+            </Text>
+          )}
+        </View>
+        {actionText && onAction && (
+          <TouchableOpacity onPress={onAction} activeOpacity={0.7}>
+            <Text style={{ fontFamily: 'TTFirsNeue', fontSize: 12, color: primaryColor }}>
+              {actionText}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 };
@@ -50,7 +62,7 @@ const SectionHeader = ({ title, actionText, onAction }: { title: string; actionT
 const HomeComp = () => {
   const router = useRouter()
   const { theme } = useTheme();
-  const { selectioncardColor, borderColor, secondaryTextColor, successColor, errorColor } = getColors(theme);
+  const { selectioncardColor, borderColor, secondaryTextColor, successColor, errorColor, primaryColor } = getColors(theme);
   const [showmodal, setshowmodal] = useState<boolean>(false)
   const [showwithdraw, setshowwithdraw] = useState<boolean>(false)
   const [showprofession, setshowprofession] = useState(false)
@@ -63,6 +75,7 @@ const HomeComp = () => {
   const user = useSelector((state: RootState) => state.auth?.user) ?? null;
   const fcmToken = useSelector((state: RootState) => (state.auth.user?.fcmToken))
   const { data: dashboardData, refresh: refreshDashboard } = useDashboard();
+  const { isVerified: isBVNVerified, isLoading: bvnLoading, refetch: refetchBVN } = useBVNVerification();
   const recentTransactions = (dashboardData as any)?.recentTransactions || [];
 
   const saveFcmToken = async () => {
@@ -75,6 +88,7 @@ const HomeComp = () => {
     setRefreshing(true);
     setBalanceRefreshTrigger(prev => !prev);
     refreshDashboard();
+    refetchBVN(); // Also refresh BVN status
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);
@@ -107,6 +121,8 @@ const HomeComp = () => {
   useEffect(() => {
     saveFcmToken();
     updateLocationFn();
+    // Refetch BVN status on mount to ensure latest status
+    refetchBVN();
   }, [])
 
 
@@ -153,6 +169,25 @@ const HomeComp = () => {
         <HeaderComponent />
         <View style={{ height: 12 }} />
         
+        {/* Verification Badge */}
+        {!bvnLoading && (
+          <View className="mb-4">
+            <VerificationBadge 
+              isVerified={isBVNVerified} 
+              onPress={() => !isBVNVerified && router.push('/bvnActivation')}
+              size="medium"
+            />
+          </View>
+        )}
+        {bvnLoading && (
+          <View className="flex-row items-center justify-center py-2 mb-4">
+            <ActivityIndicator size="small" color={primaryColor} />
+            <Text className="ml-2" style={{ color: secondaryTextColor, fontSize: 12 }}>
+              Checking verification status...
+            </Text>
+          </View>
+        )}
+        
         <ScrollView
           refreshControl={
             <RefreshControl 
@@ -178,11 +213,51 @@ const HomeComp = () => {
           <View className="mb-5">
             <SectionHeader 
               title="Job Overview" 
+              subtitle="Track your service requests and assignments"
               actionText="View All" 
               onAction={() => router.push('/jobstatusLayout/COMPLETED')} 
             />
             <JobStatistics />
           </View>
+
+          {/* Disputes Section */}
+          {true && ( // Always show for testing - change back to (user?.profile?.totalDisputes ?? 0) > 0 for production
+            <TouchableOpacity
+              onPress={() => router.push('/(Authenticated)/(jobs)/jobstatusLayout/DISPUTED')}
+              activeOpacity={0.7}
+              className="mb-5"
+            >
+              <View
+                style={{
+                  backgroundColor: selectioncardColor,
+                  borderColor: borderColor,
+                  borderWidth: 1,
+                  borderLeftWidth: 3,
+                  borderLeftColor: errorColor,
+                }}
+                className="rounded-xl p-3 flex-row items-center"
+              >
+                <View
+                  style={{ backgroundColor: errorColor + '15' }}
+                  className="w-10 h-10 rounded-xl items-center justify-center mr-3"
+                >
+                  <Feather name="alert-triangle" size={18} color={errorColor} />
+                </View>
+                <View className="flex-1">
+                  <Text style={{ fontFamily: 'TTFirsNeueMedium', fontSize: 14, color: secondaryTextColor }}>
+                    Active Disputes
+                  </Text>
+                  <Text style={{ fontFamily: 'TTFirsNeue', fontSize: 12, color: secondaryTextColor, opacity: 0.6 }}>
+                    {user?.profile?.totalDisputes} dispute{(user?.profile?.totalDisputes ?? 0) > 1 ? 's' : ''} pending resolution
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={18} color={secondaryTextColor} />
+              </View>
+            </TouchableOpacity>
+          )}
+          
+
+
           
           {/* Search Section */}
           <View className="mb-5">
@@ -199,7 +274,7 @@ const HomeComp = () => {
             <SectionHeader 
               title="Browse Sectors" 
               actionText="See All" 
-              onAction={() => router.push('/category/all')} 
+              onAction={() => router.push('/(Authenticated)/sectorsPage')} 
             />
             <SectorsComponent
               setErrorMessage={setErrorMessage}

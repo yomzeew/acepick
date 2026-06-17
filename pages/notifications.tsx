@@ -23,6 +23,7 @@ export default function NotificationsScreen() {
   const { notifications, unreadCount, isLoading, error } = useSelector(
     (state: RootState) => state.notifications
   );
+  const userRole = useSelector((state: RootState) => state.auth.user?.role);
 
   useEffect(() => {
     dispatch(fetchNotifications({ page: 1 }) as any);
@@ -44,27 +45,59 @@ export default function NotificationsScreen() {
   }, [error, dispatch]);
 
   const handleNotificationPress = (notification: Notification) => {
-    switch (notification.type) {
+    console.log("notification", notification);
+    
+    // Check if this is actually a call notification (even if type is 'chat')
+    const isCallNotification = notification.data?.type === 'call' || 
+                             notification.data?.callType === 'voice' || 
+                             notification.data?.callType === 'video';
+    
+    if (isCallNotification) {
+      // Handle as call notification
+      const callType = notification.data?.callType;
+      const callerId = notification.data?.callerId;
+      
+      if (callType === 'video') {
+        router.push(callerId ? `/(Authenticated)/(chatcallmessage)/videocall/${callerId}` : '/(Authenticated)/(chatcallmessage)');
+      } else {
+        router.push(callerId ? `/(Authenticated)/(chatcallmessage)/callchat/${callerId}` : '/(Authenticated)/(chatcallmessage)');
+      }
+      return;
+    }
+    
+    const notifType = notification.type?.toLowerCase();
+    switch (notifType) {
       case 'job':
-        router.push(notification.data?.jobId ? `/jobs/${notification.data.jobId}` : '/(Authenticated)/(dashboard)/professionals');
+        router.push(notification.data?.jobId ? `/(Authenticated)/(jobs)/jobstatusLayout/${notification.data.jobId}` : '/(Authenticated)/(dashboard)/myjobLayout');
         break;
       case 'order':
-        router.push(notification.data?.orderId ? `/orders/${notification.data.orderId}` : '/(Authenticated)/(dashboard)/delivery');
+        if (userRole === 'delivery') {
+          router.push('/(Authenticated)/(delivery)/myOrderLayout');
+        } else {
+          router.push('/(Authenticated)/(marketplace)/myItemsLayout?tab=Bought' as any);
+        }
         break;
       case 'payment':
-        router.push(notification.data?.transactionId ? `/wallet/transaction/${notification.data.transactionId}` : '/(Authenticated)/(dashboard)/client');
+        router.push('/(Authenticated)/(wallet)/walletpay');
         break;
       case 'chat':
         router.push(notification.data?.senderId ? `/(Authenticated)/(chatcallmessage)/mainchat/${notification.data.senderId}` : '/(Authenticated)/(chatcallmessage)');
         break;
+      case 'call':
+      case 'voice_call':
+        router.push(notification.data?.callerId ? `/(Authenticated)/(chatcallmessage)/callchat/${notification.data.callerId}` : '/(Authenticated)/(chatcallmessage)');
+        break;
+      case 'video_call':
+        router.push(notification.data?.callerId ? `/(Authenticated)/(chatcallmessage)/videocall/${notification.data.callerId}` : '/(Authenticated)/(chatcallmessage)');
+        break;
       case 'system':
-        router.push(notification.data?.navigateTo ? notification.data.navigateTo : '/(Authenticated)/(dashboard)');
+        router.push(notification.data?.navigateTo || '/(Authenticated)/(dashboard)/homelayout');
         break;
       case 'profile':
-        router.push('/(Authenticated)/(dashboard)/client');
+        router.push('/(Authenticated)/(profile)/profilelayout');
         break;
       default:
-        router.push('/(Authenticated)/(dashboard)');
+        router.push('/(Authenticated)/(dashboard)/homelayout');
         break;
     }
   };

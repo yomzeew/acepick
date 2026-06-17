@@ -1,7 +1,7 @@
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useTheme } from "hooks/useTheme";
 import { getColors } from "static/color";
-import { Textstyles } from "static/textFontsize";
+import { Ionicons } from "@expo/vector-icons";
 
 interface OnboardingStepperProps {
   currentStep: number;
@@ -11,78 +11,97 @@ interface OnboardingStepperProps {
 
 const OnboardingStepper = ({ currentStep, totalSteps, stepLabels }: OnboardingStepperProps) => {
   const { theme } = useTheme();
-  const { primaryColor, secondaryTextColor } = getColors(theme);
+  const { primaryColor, subText } = getColors(theme);
+  const isDark = theme === 'dark';
+
+  const progress = totalSteps > 1 ? currentStep / (totalSteps - 1) : 1;
 
   return (
-    <View className="w-full px-6 pt-4 pb-2">
-      {/* Step indicator dots with connecting lines */}
-      <View className="flex-row items-center justify-between mb-2">
-        {Array.from({ length: totalSteps }).map((_, index) => {
-          const isCompleted = index < currentStep;
-          const isActive = index === currentStep;
-          const isLast = index === totalSteps - 1;
-
+    <View style={styles.wrapper}>
+      {/* Dot + line row */}
+      <View style={styles.dotRow}>
+        {Array.from({ length: totalSteps }).map((_, i) => {
+          const done    = i < currentStep;
+          const active  = i === currentStep;
+          const isLast  = i === totalSteps - 1;
           return (
-            <View key={index} className="flex-row items-center" style={{ flex: isLast ? 0 : 1 }}>
-              {/* Step circle */}
-              <View
-                className="items-center justify-center rounded-full"
-                style={{
-                  width: 30,
-                  height: 30,
-                  backgroundColor: isCompleted || isActive ? primaryColor : 'transparent',
-                  borderWidth: 2,
-                  borderColor: isCompleted || isActive ? primaryColor : secondaryTextColor,
-                }}
-              >
-                {isCompleted ? (
-                  <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>✓</Text>
+            <View key={i} style={[styles.dotCell, isLast ? { flex: 0 } : { flex: 1 }]}>
+              {/* Circle */}
+              <View style={[
+                styles.circle,
+                {
+                  backgroundColor: done || active ? primaryColor : isDark ? '#374151' : '#E5E7EB',
+                  borderColor: done || active ? primaryColor : isDark ? '#4B5563' : '#D1D5DB',
+                  width:  active ? 30 : 24,
+                  height: active ? 30 : 24,
+                  borderRadius: active ? 15 : 12,
+                },
+              ]}>
+                {done ? (
+                  <Ionicons name="checkmark" size={13} color="#fff" />
                 ) : (
-                  <Text
-                    style={{
-                      color: isActive ? '#fff' : secondaryTextColor,
-                      fontSize: 12,
-                      fontWeight: '600',
-                    }}
-                  >
-                    {index + 1}
+                  <Text style={[styles.circleNum, { color: active ? '#fff' : isDark ? '#6B7280' : '#9CA3AF' }]}>
+                    {i + 1}
                   </Text>
                 )}
               </View>
 
-              {/* Connecting line */}
+              {/* Connector line */}
               {!isLast && (
-                <View
-                  style={{
-                    flex: 1,
-                    height: 2,
-                    backgroundColor: isCompleted ? primaryColor : secondaryTextColor + '40',
-                    marginHorizontal: 4,
-                  }}
-                />
+                <View style={[styles.line, { backgroundColor: isDark ? '#374151' : '#E5E7EB' }]}>
+                  <View style={[
+                    styles.lineFill,
+                    {
+                      backgroundColor: primaryColor,
+                      width: done ? '100%' : active ? '50%' : '0%',
+                    },
+                  ]} />
+                </View>
               )}
             </View>
           );
         })}
       </View>
 
-      {/* Current step label */}
-      <Text
-        style={[Textstyles.text_xsmall, { color: primaryColor, textAlign: 'center', fontWeight: '600' }]}
-        className="mt-1"
-      >
-        {stepLabels[currentStep] || ''}
-      </Text>
-
-      {/* Step counter */}
-      <Text
-        style={[Textstyles.text_xxxsmall, { color: secondaryTextColor, textAlign: 'center' }]}
-        className="mt-1"
-      >
-        Step {currentStep + 1} of {totalSteps}
-      </Text>
+      {/* Label + counter */}
+      <View style={styles.labelRow}>
+        <View style={[styles.labelPill, { backgroundColor: primaryColor + '15', borderColor: primaryColor + '30' }]}>
+          <Text style={[styles.labelText, { color: primaryColor }]}>
+            {stepLabels[currentStep] ?? ''}
+          </Text>
+        </View>
+        <Text style={[styles.counter, { color: subText }]}>
+          {currentStep + 1} / {totalSteps}
+        </Text>
+      </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  wrapper: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
+
+  dotRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  dotCell: { flexDirection: 'row', alignItems: 'center' },
+  circle: {
+    borderWidth: 2,
+    justifyContent: 'center', alignItems: 'center',
+    zIndex: 1,
+  },
+  circleNum: { fontSize: 11, fontWeight: '700' },
+  line: { flex: 1, height: 3, borderRadius: 2, marginHorizontal: 3, overflow: 'hidden' },
+  lineFill: { height: '100%', borderRadius: 2 },
+
+  labelRow: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  labelPill: {
+    borderWidth: 1, borderRadius: 20,
+    paddingHorizontal: 12, paddingVertical: 4,
+  },
+  labelText: { fontSize: 12, fontWeight: '600', fontFamily: 'TTFirsNeueMedium' },
+  counter:   { fontSize: 12, fontFamily: 'TTFirsNeue' },
+});
 
 export default OnboardingStepper;

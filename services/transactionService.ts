@@ -114,14 +114,17 @@ class TransactionService {
     try {
       const transactions = await this.getTransactions();
       const data = transactions.data || [];
+      
+      // Only include successful transactions in credit/debit calculations
+      const successfulTransactions = data.filter(t => t.status === 'success');
 
       const stats = {
         totalTransactions: data.length,
-        successfulTransactions: data.filter(t => t.status === 'success').length,
+        successfulTransactions: successfulTransactions.length,
         failedTransactions: data.filter(t => t.status === 'failed').length,
         pendingTransactions: data.filter(t => t.status === 'pending').length,
-        totalCredits: data.filter(t => t.type === 'credit').reduce((sum, t) => sum + Number(t.amount), 0),
-        totalDebits: data.filter(t => t.type === 'debit').reduce((sum, t) => sum + Number(t.amount), 0),
+        totalCredits: successfulTransactions.filter(t => t.type === 'credit').reduce((sum, t) => sum + Number(t.amount), 0),
+        totalDebits: successfulTransactions.filter(t => t.type === 'debit').reduce((sum, t) => sum + Number(t.amount), 0),
       };
 
       return stats;

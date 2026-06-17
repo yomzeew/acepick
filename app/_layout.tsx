@@ -10,9 +10,11 @@ import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import { StatusBar } from "expo-status-bar";
 import IncomingCallModal from "component/incomingcallModal";
+import ActiveCallBanner from "component/ActiveCallBanner";
 import ErrorBoundary from "../component/ErrorBoundary";
 import WithNetworkStatus from "../component/withNetworkStatus";
 import { ToastProvider } from "../context/ToastContext";
+import { useAppPermissions } from "../hooks/useAppPermissions";
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -50,6 +52,7 @@ export default function RootLayout() {
 
 const RootContent = ({ onLayoutRootView }: { onLayoutRootView: () => void }) => {
   const auth = useSelector((state: RootState) => state.auth.isAuthenticated);
+  useAppPermissions();
 
   return (
     <ThemeProvider>
@@ -57,6 +60,7 @@ const RootContent = ({ onLayoutRootView }: { onLayoutRootView: () => void }) => 
         <WithNetworkStatus>
           <View style={styles.container} onLayout={onLayoutRootView}>
             <StatusBar style="auto" />
+            <ActiveCallBanner />
             <Stack screenOptions={{ headerShown: false }}>
               {auth ? (
                 <Stack.Screen name="(Authenticated)" />

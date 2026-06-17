@@ -22,12 +22,14 @@ const SectorsComponent = ({ setErrorMessage }: SectorsComponentProps) => {
     const mutation = useMutation({
         mutationFn: ListofSectors,
         onSuccess: async (dataResponse) => {
+            console.log('📊 Sectors data received:', dataResponse);
             const transformedData = dataResponse.map((sector: any) => ({
                 title: sector.title || sector.name,
-                numOfProf: Math.floor(Math.random() * 50) + 10,
-                numOfJobs: Math.floor(Math.random() * 100) + 20,
+                numOfProf: sector.numOfProf || 0, // Use real count from backend
+                numOfJobs: sector.numOfJobs || 0, // Use real count from backend
                 description: sector.description || ''
             }));
+            console.log('📊 Transformed sectors data:', transformedData);
             setData(transformedData);
         },
         onError: (error: any) => {

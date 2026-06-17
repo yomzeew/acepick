@@ -14,7 +14,7 @@ import { useState } from "react"
 
 const FAQ = () => {
     const { theme } = useTheme()
-    const { primaryColor, secondaryTextColor, selectioncardColor } = getColors(theme)
+    const { primaryColor, secondaryTextColor, selectioncardColor, textColor, borderColor } = getColors(theme)
     
     const [expandedItems, setExpandedItems] = useState<number[]>([])
     const [searchQuery, setSearchQuery] = useState("")
@@ -72,7 +72,7 @@ const FAQ = () => {
             id: 9,
             category: "Technical",
             question: "How do I report a technical issue?",
-            answer: "You can report issues through the Help section in the app, email support@staffsync.com, or use the in-app chat support feature."
+            answer: "You can report issues through the Help section in the app, email support@acepick.com, or use the in-app chat support feature."
         },
         {
             id: 10,
@@ -113,7 +113,7 @@ const FAQ = () => {
     const handleEmailSupport = async () => {
         try {
             const email = 'support@acepick.com'
-            const subject = encodeURIComponent('Support Request - StaffSync')
+            const subject = encodeURIComponent('Support Request - AcePick')
             const body = encodeURIComponent('Please describe your issue or question here...')
             await Linking.openURL(`mailto:${email}?subject=${subject}&body=${body}`)
         } catch (error) {
@@ -124,7 +124,7 @@ const FAQ = () => {
     const handleWhatsAppSupport = async () => {
         try {
             const phoneNumber = '2348000000000'
-            const message = encodeURIComponent('Hello! I need help with StaffSync.')
+            const message = encodeURIComponent('Hello! I need help with AcePick.')
             const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`
             
             const canOpen = await Linking.canOpenURL(whatsappUrl)
@@ -208,7 +208,7 @@ const FAQ = () => {
                         {filteredFAQs.length === 0 ? (
                             <View className="items-center justify-center py-10">
                                 <FontAwesome5 name="question-circle" size={48} color={secondaryTextColor} />
-                                <Text className="text-gray-500 mt-4">No FAQs found</Text>
+                                <Text style={{ color: secondaryTextColor }} className="mt-4">No FAQs found</Text>
                             </View>
                         ) : (
                             filteredFAQs.map(item => (
@@ -225,7 +225,7 @@ const FAQ = () => {
                                                         {item.category}
                                                     </Text>
                                                 </View>
-                                                <Text className="text-sm font-medium text-gray-800">
+                                                <Text style={{ color: secondaryTextColor }} className="text-sm font-medium">
                                                     {item.question}
                                                 </Text>
                                             </View>
@@ -237,8 +237,8 @@ const FAQ = () => {
                                         </View>
                                         
                                         {expandedItems.includes(item.id) && (
-                                            <View className="mt-3 pt-3 border-t border-gray-200">
-                                                <Text className="text-sm text-gray-600 leading-relaxed">
+                                            <View className="mt-3 pt-3 border-t" style={{ borderColor: borderColor }}>
+                                                <Text style={{ color: textColor }} className="text-sm leading-relaxed">
                                                     {item.answer}
                                                 </Text>
                                             </View>

@@ -3,8 +3,8 @@ import PasswordSuccessPage from '@pages/auth/forget/laststage'
 const PasswordSuccessScreen = () => {
   return (
     <>
-    <View>
-       <PasswordSuccessPage/>
+    <View style={{ flex: 1 }}>
+      <PasswordSuccessPage />
     </View>
     </>
   )

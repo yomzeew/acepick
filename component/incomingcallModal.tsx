@@ -21,12 +21,15 @@ import { getInitials } from "utilizes/initialsName";
 import { useRouter } from "expo-router";
 import { useCall } from "context/WebRtcContext";
 import { useVideoCallContext } from "context/VideoCallContext";
+import { useActiveCall } from "context/ActiveCallContext";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const AVATAR_SIZE = 120;
 const RING_GAP = 30;
 
 const IncomingCallModal = () => {
+  const { startCall: registerCall } = useActiveCall();
+
   // Voice call context
   const {
     incomingCall: voiceIncoming,
@@ -36,6 +39,7 @@ const IncomingCallModal = () => {
     modalVisible: voiceModalVisible,
     partnerId: voicePartnerId,
     hangUp: hangUpVoice,
+    setIsCalling: setVoiceCalling,
   } = useCall();
 
   // Video call context
@@ -47,6 +51,7 @@ const IncomingCallModal = () => {
     modalVisible: videoModalVisible,
     partnerId: videoPartnerId,
     hangUp: hangUpVideo,
+    setIsCalling: setVideoCalling,
   } = useVideoCallContext();
 
   const isVideoCall = !!videoIncoming && videoModalVisible;
@@ -216,16 +221,26 @@ const IncomingCallModal = () => {
   const handleAnswer = async () => {
     if (isVideoCall) {
       try {
+        // Set isCalling state immediately for callee UI
+        setVideoCalling(true);
+        
         await acceptVideo();
-        router.push(`/videoCallAnswer/${JSON.stringify(videoPartnerId)}`);
+        const route = `/videoCallAnswer/${JSON.stringify(videoPartnerId)}`;
+        registerCall('video', route, videoPartnerId);
+        router.push(route as any);
       } catch (error) {
         console.error("Error accepting video call:", error);
         hangUpVideo();
       }
     } else {
       try {
+        // Set isCalling state immediately for callee UI
+        setVoiceCalling(true);
+        
         await acceptVoice();
-        router.push(`/callAnswer/${JSON.stringify(voicePartnerId)}`);
+        const route = `/callchat/${JSON.stringify({ userId: voicePartnerId })}`;
+        registerCall('voice', route, voicePartnerId);
+        router.push(route as any);
       } catch (error) {
         console.error("Error accepting call:", error);
         hangUpVoice();

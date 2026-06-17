@@ -37,6 +37,7 @@ export interface ChatContact {
     lastName?: string;
     avatar?: string;
     professional?: {
+      id?: number;
       profession?: {
         name?: string;
       };
@@ -55,7 +56,10 @@ export interface ChatState {
   messages: ChatMessage[];        // messages for current room
   contacts: ChatContact[];        // all contacts
   previousChats: ChatContact[];   // users with existing conversations
+  refreshTrigger: number;          // timestamp to trigger contact list refresh
   isLoading: boolean;
+  isCacheLoaded: boolean;         // true once cached messages have been loaded
+  isSynced: boolean;              // true once server messages have replaced cache
   error: string | null;
 }
 
@@ -66,7 +70,10 @@ const initialState: ChatState = {
   messages: [],
   contacts: [],
   previousChats: [],
+  refreshTrigger: 0,
   isLoading: false,
+  isCacheLoaded: false,
+  isSynced: false,
   error: null,
 };
 
@@ -79,16 +86,34 @@ const chatSlice = createSlice({
     setRoom: (state, action: PayloadAction<string>) => {
       state.roomId = action.payload;
       state.messages = [];
+      state.isCacheLoaded = false;
+      state.isSynced = false;
     },
     clearRoom: (state) => {
       state.roomId = null;
       state.messages = [];
+      state.isCacheLoaded = false;
+      state.isSynced = false;
+    },
+    loadCachedMessages: (state, action: PayloadAction<ChatMessage[]>) => {
+      // Only load cache if server hasn't synced yet
+      if (!state.isSynced && action.payload.length > 0) {
+        state.messages = action.payload;
+      }
+      state.isCacheLoaded = true;
     },
     setMessages: (state, action: PayloadAction<ChatMessage[]>) => {
       state.messages = action.payload;
+      state.isSynced = true;
     },
     addMessage: (state, action: PayloadAction<ChatMessage>) => {
-      state.messages.push(action.payload);
+      const msg = action.payload;
+      const isDuplicate = state.messages.some(
+        (m) => m.from === msg.from && m.text === msg.text && m.timestamp === msg.timestamp
+      );
+      if (!isDuplicate) {
+        state.messages.push(msg);
+      }
     },
     setContacts: (state, action: PayloadAction<ChatContact[]>) => {
       state.contacts = action.payload;
@@ -103,12 +128,16 @@ const chatSlice = createSlice({
       state.error = action.payload;
     },
     resetChat: () => initialState,
+    setRefreshTrigger: (state, action: PayloadAction<number>) => {
+      state.refreshTrigger = action.payload;
+    },
   },
 });
 
 export const {
   setRoom,
   clearRoom,
+  loadCachedMessages,
   setMessages,
   addMessage,
   setContacts,
@@ -116,6 +145,7 @@ export const {
   setLoading,
   setError,
   resetChat,
+  setRefreshTrigger,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

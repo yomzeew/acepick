@@ -1,4 +1,4 @@
-export type NotificationType = 'job' | 'order' | 'payment' | 'chat' | 'system' | 'profile';
+export type NotificationType = 'job' | 'order' | 'payment' | 'chat' | 'call' | 'voice_call' | 'video_call' | 'system' | 'profile';
 
 export interface Notification {
   id: number;

@@ -22,10 +22,13 @@ export default function JobsLayout() {
       name="invoiceViewLayout"
        />
          <Stack.Screen
-      name="jobstatusLayout"
+      name="jobstatusLayout/[jobstatus]"
        />
             <Stack.Screen
       name="joborderLayout"
+       />
+         <Stack.Screen
+      name="jobdetailsLayout/[id]"
        />
        
     </Stack>

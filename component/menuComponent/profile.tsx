@@ -11,19 +11,23 @@ import {
   TouchableOpacity,
   Dimensions,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "redux/store";
 import { getColors } from "static/color";
 import { useFocusEffect } from "@react-navigation/native";
 import { formatAmount } from "utilizes/amountFormat";
+import { logoutAsync } from "redux/slices/authSlice";
+import ChatCacheService from "services/chatCache";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const ProfileComponent = () => {
   const { theme } = useTheme();
-  const { primaryColor, backgroundColortwo } = getColors(theme);
+  const { primaryColor, backgroundColortwo, warningColor, errorColor } = getColors(theme);
   const router = useRouter();
+  const dispatch = useDispatch();
 
   const isDark = theme === "dark";
   const bgColor = isDark ? "#111827" : "#F3F4F6";
@@ -65,12 +69,30 @@ const ProfileComponent = () => {
     setTimeout(() => setRefreshing(false), 500);
   };
 
+  const handleLogout = async () => {
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to logout?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Logout",
+          style: "destructive",
+          onPress: async () => {
+            await dispatch(logoutAsync() as any);
+            router.replace("/loginscreen");
+          },
+        },
+      ]
+    );
+  };
+
   // ── Job Stats Config ──
   const jobStats = [
     { label: "Completed", value: completedJobs, icon: "checkmark-circle" as const, color: primaryColor, route: "/jobstatusLayout/COMPLETED" },
     { label: "Ongoing", value: ongoingJobs, icon: "time" as const, color: primaryColor, route: "/jobstatusLayout/ONGOING" },
-    { label: "Pending", value: pendingJobs, icon: "hourglass" as const, color: backgroundColortwo, route: "/jobstatusLayout/PENDING" },
-    { label: "Canceled", value: canceledJobs, icon: "close-circle" as const, color: backgroundColortwo, route: "/jobstatusLayout/CANCELLED" },
+    { label: "Pending", value: pendingJobs, icon: "hourglass" as const, color: warningColor, route: "/jobstatusLayout/PENDING" },
+    { label: "Canceled", value: canceledJobs, icon: "close-circle" as const, color: errorColor, route: "/jobstatusLayout/CANCELLED" },
   ];
 
   // ── Menu Sections ──
@@ -79,14 +101,14 @@ const ProfileComponent = () => {
       title: "Account",
       items: [
         { label: "Edit Profile", subtitle: "Update your personal information", icon: "person-outline", color: primaryColor, onPress: () => router.push("/profileeditlayout") },
-        { label: "My Professions", subtitle: "Manage your professional skills", icon: "briefcase-outline", color: primaryColor, onPress: () => router.push("/profileprofessionlayout") },
-        { label: "Switch to Professional", subtitle: "Access professional features", icon: "swap-horizontal-outline", color: backgroundColortwo, onPress: () => router.push("/switchtoprofessionallayout") },
+        { label: "Switch Role", subtitle: "Switch between client, professional, delivery", icon: "swap-horizontal-outline", color: "#6366F1", onPress: () => router.push("/switch-role") },
+        { label: "Delete Account", subtitle: "Permanently remove your account", icon: "trash-outline", color: "#DC2626", onPress: () => router.push("/deleteaccountlayout") },
       ],
     },
     {
       title: "Activity",
       items: [
-        { label: `Disputes (${totalDisputes})`, subtitle: "View and manage disputes", icon: "warning-outline", color: backgroundColortwo, onPress: () => router.push("/jobstatusLayout/[jobstatus]?status=DISPUTED") },
+        { label: `Disputes (${totalDisputes})`, subtitle: "View and manage disputes", icon: "warning-outline", color: "#EF4444", onPress: () => router.push("/jobstatusLayout/DISPUTED" as any) },
         { label: `Reviews & Ratings (${totalReviews})`, subtitle: "See what others say about you", icon: "star-outline", color: primaryColor, onPress: () => router.push("/reviewlayout") },
         { label: "Billing History", subtitle: "View transaction history", icon: "receipt-outline", color: primaryColor, onPress: () => router.push("/billhistorylayout") },
       ],
@@ -316,6 +338,25 @@ const ProfileComponent = () => {
             </View>
           </View>
         ))}
+
+        {/* ── Logout Button ── */}
+        <View style={{ marginHorizontal: 16, marginTop: 20 }}>
+          <TouchableOpacity
+            onPress={handleLogout}
+            style={{
+              backgroundColor: '#DC262615',
+              borderRadius: 14,
+              paddingVertical: 14,
+              alignItems: "center",
+              flexDirection: "row",
+              justifyContent: "center",
+              gap: 8,
+            }}
+          >
+            <Ionicons name="log-out-outline" size={18} color="#DC2626" />
+            <Text style={{ color: '#DC2626', fontSize: 15, fontWeight: "600" }}>Logout</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* ── App Version ── */}
         <View style={{ alignItems: "center", marginTop: 24, marginBottom: 16 }}>

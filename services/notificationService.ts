@@ -60,7 +60,7 @@ class NotificationService {
   async markAsRead(notificationId: number): Promise<void> {
     try {
       const headers = await this.getAuthHeaders();
-      await axios.post(
+      await axios.put(
         `${API_BASE_URL}${NOTIFICATION_ENDPOINTS.MARK_READ(notificationId)}`,
         {},
         { headers }
@@ -73,7 +73,7 @@ class NotificationService {
   async markAllAsRead(): Promise<void> {
     try {
       const headers = await this.getAuthHeaders();
-      await axios.post(
+      await axios.put(
         `${API_BASE_URL}${NOTIFICATION_ENDPOINTS.MARK_ALL_READ}`,
         {},
         { headers }

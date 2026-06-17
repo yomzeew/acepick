@@ -1,12 +1,12 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useTheme } from "hooks/useTheme";
 import { getColors } from "static/color";
 import { useEffect, useState, useRef } from "react";
 import { AppState, AppStateStatus } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
 import OtpComponent from "component/controls/otpcomponent";
 import ButtonComponent from "component/buttoncomponent";
-import { Textstyles } from "static/textFontsize";
 import { useSelector } from "react-redux";
 import type { RootState } from "redux/store";
 import { useMutation } from "@tanstack/react-query";
@@ -20,114 +20,84 @@ interface OtpVerificationStepProps {
 
 const OtpVerificationStep = ({ onNext }: OtpVerificationStepProps) => {
   const { theme } = useTheme();
-  const { primaryColor, backgroundColor, secondaryTextColor } = getColors(theme);
+  const { primaryColor, subText } = getColors(theme);
+  const isDark = theme === 'dark';
+  const toast  = useToast();
 
-  const toast = useToast();
-  const [shouldProceed, setShouldProceed] = useState<boolean>(false);
+  const phone = useSelector((s: RootState) => s.auth?.registrationData?.phone ?? '');
+  const email = useSelector((s: RootState) => s.auth?.registrationData?.email ?? '');
 
-  const phone = useSelector((state: RootState) => state?.auth?.registrationData?.phone ?? "");
-  const email = useSelector((state: RootState) => state?.auth?.registrationData?.email ?? "");
+  const maskedEmail = email.length > 4
+    ? email.slice(0, 2) + '***' + email.slice(email.indexOf('@'))
+    : email;
 
-  const masked = phone.length >= 6
-    ? phone.slice(0, 3) + "******" + phone.slice(-3)
-    : phone.replace(/.(?=.{3})/g, "*");
-
-  const RESEND_TIMER = 30;
-  const [countdown, setCountdown] = useState(RESEND_TIMER);
-  const [canResend, setCanResend] = useState(false);
-  const [otpEmail, setOtpEmail] = useState('');
+  const RESEND_TIMER = 60;
+  const [countdown, setCountdown]   = useState(RESEND_TIMER);
+  const [canResend, setCanResend]   = useState(false);
+  const [otpEmail, setOtpEmail]     = useState('');
+  const [shouldProceed, setShouldProceed] = useState(false);
   const endTimeRef = useRef<number>(Date.now() + RESEND_TIMER * 1000);
 
-  // Date-based countdown timer
-  useEffect(() => {
-    const initializeTimer = async () => {
-      try {
-        const storedEndTime = await AsyncStorage.getItem('otpTimerEnd');
-        if (storedEndTime) {
-          const endTime = parseInt(storedEndTime, 10);
-          if (endTime > Date.now()) {
-            endTimeRef.current = endTime;
-          } else {
-            await AsyncStorage.removeItem('otpTimerEnd');
-            endTimeRef.current = Date.now() + RESEND_TIMER * 1000;
-          }
-        }
-      } catch (error) {
-        console.error('Error initializing timer:', error);
-      }
-    };
+  const cardBg   = isDark ? '#1F2937' : '#FFFFFF';
+  const border   = isDark ? '#374151' : '#E5E7EB';
+  const textMain = isDark ? '#F9FAFB' : '#111827';
 
-    initializeTimer();
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('otpTimerEnd');
+        if (stored) {
+          const end = parseInt(stored, 10);
+          if (end > Date.now()) endTimeRef.current = end;
+          else { await AsyncStorage.removeItem('otpTimerEnd'); endTimeRef.current = Date.now() + RESEND_TIMER * 1000; }
+        }
+      } catch {}
+    };
+    init();
 
     const tick = async () => {
       const remaining = Math.max(0, Math.round((endTimeRef.current - Date.now()) / 1000));
       setCountdown(remaining);
       try {
-        if (remaining > 0) {
-          await AsyncStorage.setItem('otpTimerEnd', endTimeRef.current.toString());
-        } else {
-          await AsyncStorage.removeItem('otpTimerEnd');
-          setCanResend(true);
-        }
-      } catch (error) {
-        console.error('Error storing timer:', error);
-      }
+        if (remaining > 0) await AsyncStorage.setItem('otpTimerEnd', endTimeRef.current.toString());
+        else { await AsyncStorage.removeItem('otpTimerEnd'); setCanResend(true); }
+      } catch {}
     };
 
     const interval = setInterval(tick, 1000);
     tick();
 
-    const handleAppState = (state: AppStateStatus) => {
-      if (state === 'active') {
-        initializeTimer();
-        tick();
-      }
-    };
-    const sub = AppState.addEventListener('change', handleAppState);
+    const sub = AppState.addEventListener('change', (s: AppStateStatus) => {
+      if (s === 'active') { init(); tick(); }
+    });
 
-    return () => {
-      clearInterval(interval);
-      sub.remove();
-    };
+    return () => { clearInterval(interval); sub.remove(); };
   }, []);
 
-  useDelay(() => {
-    if (shouldProceed) {
-      onNext();
-    }
-  }, 2000, [shouldProceed]);
+  useDelay(() => { if (shouldProceed) onNext(); }, 2000, [shouldProceed]);
 
   const mutation = useMutation({
     mutationFn: verifyOtp,
     onSuccess: (data) => {
       if (data?.status || data?.success) {
-        const { emailVerified, smsVerified, emailError, smsError } = data.data || {};
-        if (emailVerified) {
-          toast.success('Verified', 'Email verified successfully');
-        }
+        toast.success('Verified ✓', 'Your email has been verified');
         setShouldProceed(true);
       } else {
-        toast.error('Failed', data.message || 'Verification failed');
+        toast.error('Failed', data.message || 'Incorrect code. Please try again.');
       }
     },
     onError: (error: any) => {
-      const msg = error?.response?.data?.message || error?.message || 'An unexpected error occurred';
-      toast.error('Error', msg);
+      toast.error('Error', error?.response?.data?.message || error?.message || 'Something went wrong');
     },
   });
 
-  const mutationResend = useMutation({
+  const resendMutation = useMutation({
     mutationFn: sendOtp,
     onSuccess: (data) => {
-      const emailSendStatus = data.data?.emailSendStatus;
-      const smsSendStatus = data.data?.smsSendStatus;
-      if (emailSendStatus) {
-        toast.success('OTP Resent', smsSendStatus ? 'OTP sent to both Phone Number and Email' : 'OTP sent to Email');
-      }
+      if (data.data?.emailSendStatus) toast.success('OTP Resent', 'A new code was sent to your email');
     },
     onError: (error: any) => {
-      const msg = error?.response?.data?.message || error?.message || 'An unexpected error occurred';
-      toast.error('Error', msg);
+      toast.error('Error', error?.response?.data?.message || error?.message || 'Something went wrong');
     },
   });
 
@@ -135,62 +105,87 @@ const OtpVerificationStep = ({ onNext }: OtpVerificationStepProps) => {
     endTimeRef.current = Date.now() + RESEND_TIMER * 1000;
     setCountdown(RESEND_TIMER);
     setCanResend(false);
-    if (!email || !phone) {
-      toast.error('Missing Info', 'Enter email or phone number');
-      return;
-    }
-    mutationResend.mutate({ email, type: "EMAIL", reason: "verification" });
+    if (!email || !phone) { toast.error('Missing Info', 'Email or phone not found'); return; }
+    resendMutation.mutate({ email, type: 'EMAIL', reason: 'verification' });
   };
 
-  const submitFn = () => {
-    if (!otpEmail) {
-      toast.error('Missing OTP', 'Enter the email OTP code');
-      return;
-    }
-
-    const payload = {
-      emailCode: { email, code: otpEmail },
-    };
-
-    mutation.mutate(payload);
+  const handleVerify = () => {
+    if (!otpEmail) { toast.error('Missing OTP', 'Enter the verification code'); return; }
+    mutation.mutate({ emailCode: { email, code: otpEmail } });
   };
 
   return (
-    <>
-      <View className="flex-1 w-full px-2">
-        <View className="p-4">
-          <Text style={[Textstyles.text_xsma, { color: secondaryTextColor }]} className="mb-4">
-            Enter the verification code we just sent to your email
-          </Text>
+    <View style={{ flex: 1, paddingHorizontal: 20 }}>
+      {/* Info card */}
+      <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+        {/* Email icon + address */}
+        <View style={styles.emailBadge}>
+          <View style={[styles.iconCircle, { backgroundColor: primaryColor + '15' }]}>
+            <Ionicons name="mail-outline" size={28} color={primaryColor} />
+          </View>
+          <Text style={[styles.sentTo, { color: subText }]}>Code sent to</Text>
+          <Text style={[styles.emailText, { color: textMain }]}>{maskedEmail}</Text>
+        </View>
 
+        <View style={[styles.divider, { backgroundColor: border }]} />
+
+        {/* OTP input */}
+        <View style={{ marginTop: 4 }}>
           <OtpComponent
-            onOtpComplete={(value: string) => setOtpEmail(value)}
-            textcolor={secondaryTextColor}
-            text={canResend ? "" : `Resend in ${countdown}s`}
+            onOtpComplete={(v: string) => setOtpEmail(v)}
+            textcolor={subText}
+            text={canResend ? '' : `Resend in ${countdown}s`}
           />
+        </View>
 
-          {canResend && (
-            <Pressable onPress={handleResend}>
-              <Text style={[Textstyles.text_xsma, { color: primaryColor }]} className="mt-2">
-                Resend OTP
+        {/* Resend */}
+        <View style={styles.resendRow}>
+          {canResend ? (
+            <TouchableOpacity onPress={handleResend} disabled={resendMutation.isPending}>
+              <Text style={[styles.resendLink, { color: primaryColor }]}>
+                {resendMutation.isPending ? 'Sending…' : 'Resend Code'}
               </Text>
-            </Pressable>
+            </TouchableOpacity>
+          ) : (
+            <Text style={[styles.resendHint, { color: subText }]}>
+              Didn't receive it? Wait {countdown}s to resend
+            </Text>
           )}
         </View>
       </View>
 
-      <View className="w-full px-5 pb-6">
+      {/* Verify button */}
+      <View style={{ marginTop: 24 }}>
         <ButtonComponent
           color={primaryColor}
-          text="Verify Now"
+          text={mutation.isPending ? 'Verifying…' : 'Verify & Continue'}
           textcolor="#fff"
-          onPress={submitFn}
+          onPress={handleVerify}
           isLoading={mutation.isPending}
           disabled={!otpEmail || mutation.isPending}
         />
       </View>
-    </>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  card: {
+    borderRadius: 20, borderWidth: 1, padding: 24, marginTop: 8,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06, shadowRadius: 12, elevation: 3,
+  },
+  emailBadge: { alignItems: 'center', marginBottom: 20 },
+  iconCircle: {
+    width: 64, height: 64, borderRadius: 20,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 12,
+  },
+  sentTo:    { fontSize: 12, fontFamily: 'TTFirsNeue', marginBottom: 4 },
+  emailText: { fontSize: 15, fontWeight: '700', fontFamily: 'TTFirsNeueMedium' },
+  divider:   { height: 1, marginBottom: 20 },
+  resendRow: { marginTop: 16, alignItems: 'center' },
+  resendLink: { fontSize: 14, fontWeight: '700', fontFamily: 'TTFirsNeueMedium' },
+  resendHint: { fontSize: 12, fontFamily: 'TTFirsNeue' },
+});
 
 export default OtpVerificationStep;

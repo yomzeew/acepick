@@ -3,6 +3,7 @@ import { store } from '../redux/store';
 import {
   setContacts,
   setPreviousChats,
+  setRefreshTrigger,
   ChatMessage,
 } from '../redux/slices/chatSlice';
 import { updateJobStatus, Job } from '../redux/slices/jobsSlice';
@@ -39,6 +40,13 @@ export const initializeSocketListeners = (socket?: Socket | null) => {
   // Previous chat partners
   activeSocket.on('got_previous_chats', (users: any[]) => {
     store.dispatch(setPreviousChats(users));
+  });
+
+  // Contact list updated - trigger refresh by updating a timestamp
+  activeSocket.on('contact_list_updated', () => {
+    console.log('Contact list updated, triggering refresh...');
+    // Set a timestamp to trigger refresh in components that listen for it
+    store.dispatch(setRefreshTrigger(Date.now()));
   });
 
   // ── Job event listeners (server → client) ──────────────────────────

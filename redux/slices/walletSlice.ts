@@ -219,7 +219,7 @@ const walletSlice = createSlice({
         if (wallet) {
           state.wallet = wallet;
           state.balance = wallet.balance;
-          state.pinSet = wallet.isPinSet || !!wallet.pin;
+          state.pinSet = !!wallet.isActive || !!wallet.isPinSet || !!wallet.pin;
         }
       })
       .addCase(fetchWalletAsync.rejected, (state, action) => {
@@ -239,7 +239,7 @@ const walletSlice = createSlice({
         if (wallet) {
           state.wallet = wallet;
           state.balance = wallet.balance;
-          state.pinSet = wallet.isPinSet || !!wallet.pin;
+          state.pinSet = !!wallet.isActive || !!wallet.isPinSet || !!wallet.pin;
         }
       })
       .addCase(createWalletAsync.rejected, (state, action) => {

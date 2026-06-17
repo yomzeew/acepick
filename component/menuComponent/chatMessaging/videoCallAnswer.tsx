@@ -18,6 +18,7 @@ import { RootState } from "redux/store";
 import { generalUserDetailFn } from "services/userService";
 import { getColors } from "static/color";
 import { getInitials } from "utilizes/initialsName";
+import { useActiveCall } from "context/ActiveCallContext";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -26,6 +27,7 @@ interface VideoCallAnswerProps {
 }
 
 const VideoCallAnswer = ({ userId, route }: VideoCallAnswerProps & { route?: any }) => {
+  const { startCall: registerCall, endCall: unregisterCall } = useActiveCall();
   const {
     isCalling,
     incomingCall,
@@ -38,6 +40,13 @@ const VideoCallAnswer = ({ userId, route }: VideoCallAnswerProps & { route?: any
     toggleMute,
     isFrontCamera,
   } = useVideoCallContext();
+
+  // Register active call route for the global banner
+  useEffect(() => {
+    if (isCalling && partnerId) {
+      registerCall('video', `/videoCallAnswer/${JSON.stringify(partnerId)}`, partnerId);
+    }
+  }, [isCalling, partnerId]);
 
   const { theme } = useTheme();
   const { primaryColor, selectioncardColor, backgroundColortwo } = getColors(theme);
@@ -96,6 +105,7 @@ const VideoCallAnswer = ({ userId, route }: VideoCallAnswerProps & { route?: any
 
   const handleHangUp = async () => {
     try {
+      unregisterCall();
       await hangUp();
       router.back();
     } catch (error) {
@@ -204,11 +214,14 @@ const VideoCallAnswer = ({ userId, route }: VideoCallAnswerProps & { route?: any
           }}
         >
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => {
+              // Minimize — navigate away but keep call alive
+              router.back();
+            }}
             className="w-10 h-10 rounded-full items-center justify-center"
             style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
           >
-            <Ionicons name="chevron-back" size={20} color="#fff" />
+            <Ionicons name={isCalling ? "chevron-down" : "chevron-back"} size={20} color="#fff" />
           </TouchableOpacity>
           <View className="flex-row items-center">
             <Ionicons name="videocam" size={16} color={primaryColor} style={{ marginRight: 6 }} />

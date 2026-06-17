@@ -1,0 +1,16 @@
+import ProfessionalProfile from "@pages/dashboard/professionalProfilePages"
+import { useLocalSearchParams } from "expo-router"
+
+const ProfessionalProfileLayout = () => {
+    const params = useLocalSearchParams()
+    console.log('🔍 [professionalId].tsx Route params:', params)
+    console.log('🔍 Stack trace for who opened this:', new Error().stack)
+    
+    return (
+        <>
+            <ProfessionalProfile />
+        </>
+    )
+}
+
+export default ProfessionalProfileLayout

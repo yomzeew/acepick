@@ -1,6 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
-import { sectorUrl } from 'utilizes/endpoints';
+import { sectorUrlDetails } from 'utilizes/endpoints';
 import MockDataService from './mockDataService';
+import { store } from '../redux/store';
 
 // Type definitions
 interface Sector {
@@ -15,11 +16,19 @@ interface ApiResponse<T = any> {
   message?: string;
 }
 
+const getAuthHeader = () => {
+  const token = store.getState().auth?.token;
+  return { headers: { Authorization: `Bearer ${token}` } };
+};
+
 export const ListofSectors = async (): Promise<Sector[]> => {
   try {
-    console.log('🔍 Fetching sectors from:', sectorUrl);
-    const response: AxiosResponse<ApiResponse<Sector[]>> = await axios.get(sectorUrl, { timeout: 10000 });
-    console.log('✅ Sectors fetched successfully:', response.data.data?.length || 0);
+    console.log('🔍 Fetching sectors with metrics from:', sectorUrlDetails);
+    const response: AxiosResponse<ApiResponse<Sector[]>> = await axios.get(sectorUrlDetails, { 
+      ...getAuthHeader(),
+      timeout: 10000 
+    });
+    console.log('✅ Sectors with metrics fetched successfully:', response.data.data?.length || 0);
     return response.data.data || [];
   } catch (error: any) {
     console.log('❌ Error fetching sectors:', error.message);

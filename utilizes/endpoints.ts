@@ -1,30 +1,28 @@
+import { Platform } from 'react-native';
+
 /**
  * API Endpoints for Acepick Mobile App
  */
 
 const getDevBaseUrl = () => {
-  // adb reverse tcp:3000 tcp:3000 maps localhost on emulator to host
-  //return 'http://localhost:3000/api';
-  return 'https://acepickbackend.onrender.com/api'
+  // Development API URL - Use different IPs based on platform
+  if (Platform.OS === 'android') {
+    //return 'http://10.0.2.2:3000/api'; // Android emulator special IP
+    return 'https://dev.acepickdev.com/api'
+  }
+  
+  // iOS Simulator and other platforms use localhost
+  return 'https://dev.acepickdev.com/api';
+  
 };
 
 export const API_BASE_URL = __DEV__ 
   ? getDevBaseUrl()
-  : 'https://acepickbackend.onrender.com/api';
+  : 'https://dev.acepickdev.com/api';
 
 // Auth endpoints
 export const AUTH = {
   LOGIN: '/auth/login',
-  WORKER_LOGIN: '/auth/worker/login',
-  WORKER_PASSWORD_LOGIN: '/auth/worker/password-login',
-  WORKER_REGISTER: '/auth/worker/register',
-  WORKER_VERIFY_OTP: '/auth/worker/verify-otp',
-  WORKER_SAVE_PROFILE: '/auth/worker/save-profile',
-  WORKER_SAVE_SKILLS: '/auth/worker/save-skills',
-  WORKER_DOCUMENTS: '/auth/worker/documents',
-  WORKER_PROFILE_PIC: '/auth/worker/profile-pic',
-  WORKER_VERIFY_RTW: '/auth/worker/verify-rtw',
-  WORKER_COMPLETE_ONBOARDING: '/auth/worker/complete-onboarding',
   SEND_OTP: '/auth/send-otp',
   VERIFY_OTP: '/auth/verify-otp',
   REGISTER: '/auth/register',
@@ -41,6 +39,8 @@ export const AUTH = {
   DELETE_USERS: '/auth/delete-users',
   VERIFY_BVN: '/auth/verify-bvn',
   VERIFY_WEBHOOK: '/auth/verify/webhook',
+  BVN_VERIFY: '/bvn/verify',
+  BVN_STATUS: '/bvn/status',
   ME: '/auth/me',
   UPDATE_ME: '/auth/me',
   CHANGE_PASSWORD: '/auth/change-password',
@@ -48,7 +48,12 @@ export const AUTH = {
   RESET_PASSWORD: '/auth/reset-password',
   LOGOUT: '/auth/logout',
   UPLOAD_AVATAR: '/auth/upload_avatar',
+  UPDATE_NOTIFICATIONS: '/notifications/update-preferences',
 } as const;
+
+// Export BVN endpoints separately for convenience
+export const BVN_VERIFY = AUTH.BVN_VERIFY;
+export const BVN_STATUS = AUTH.BVN_STATUS;
 
 // Sectors & Professions
 export const SECTORS = {
@@ -211,15 +216,19 @@ export const ORDERS = {
   CONFIRM_DELIVERY: (productTransactionId: string) => `/orders/confirm_delivery/${productTransactionId}`,
   CANCEL: (orderId: string) => `/orders/cancel/${orderId}`,
   RETRY: (orderId: string) => `/orders/retry/${orderId}`,
+  RETRY_RIDER: (orderId: string) => `/orders/retry-rider/${orderId}`,
   DISPUTE: '/orders/dispute',
   RESOLVE_DISPUTE: (disputeId: string) => `/orders/dispute/resolve/${disputeId}`,
   SELLER_ACCEPT: (ptId: string) => `/orders/seller-accept/${ptId}`,
   SELLER_REJECT: (ptId: string) => `/orders/seller-reject/${ptId}`,
   SELLER_MARK_READY: (ptId: string) => `/orders/seller-mark-ready/${ptId}`,
   SELLER_CONFIRM: (ptId: string) => `/orders/seller-confirm/${ptId}`,
+  SELLER_HANDOVER: (ptId: string) => `/orders/seller-handover/${ptId}`,
+  BUYER_CANCEL: (ptId: string) => `/orders/buyer-cancel/${ptId}`,
   RETURN_REQUEST: '/orders/return-request',
   RESOLVE_RETURN: (returnRequestId: string) => `/orders/return-request/resolve/${returnRequestId}`,
   AUTO_RELEASE: '/orders/auto-release-payments',
+  CLEANUP_EXPIRED: '/orders/cleanup-expired',
 } as const;
 
 // Ratings & Reviews
@@ -228,10 +237,8 @@ export const RATINGS = {
   IS_RATED: '/is-rated',
   UPDATE: (id: string) => `/ratings/${id}`,
   DELETE: (id: string) => `/ratings/${id}`,
-  AVERAGE: '/ratings/average',
   BY_USER: (userId: string) => `/ratings/user/${userId}`,
   FOR_USER: (userId: string) => `/ratings/for-user/${userId}`,
-  STATS: (userId: string) => `/ratings/stats/${userId}`,
   REPORT: (ratingId: string) => `/ratings/${ratingId}/report`,
 } as const;
 
@@ -270,9 +277,32 @@ export const PROFILE = {
   CLIENT: (id: string) => `/clients/${id}`,
 } as const;
 
+// Chat Contacts
+export const CHAT_CONTACTS = {
+  LIST: '/chat-contacts',
+  ADD: '/chat-contacts',
+  REMOVE: '/chat-contacts',
+  UNHIDE: '/chat-contacts/unhide',
+} as const;
+
 // WebRTC TURN credentials
 export const TURN = {
   CREDENTIALS: '/turn-credentials',
+} as const;
+
+// Call Recordings
+export const CALL_RECORDINGS = {
+  SAVE: '/call-recordings',
+  LIST: '/call-recordings',
+  DELETE: (id: number) => `/call-recordings/${id}`,
+} as const;
+
+// Role switching
+export const ROLE_SWITCH = {
+  AVAILABLE_ROLES: '/available-roles',
+  SWITCH: '/switch-role',
+  SETUP_PROFESSIONAL: '/setup-professional',
+  SETUP_DELIVERY: '/setup-delivery',
 } as const;
 
 // Dashboard endpoints
@@ -300,6 +330,14 @@ export const ADMIN = {
   CUMULATIVE_USERS: '/admin/dashboard/cummulative-users',
 } as const;
 
+// Upload endpoints
+export const UPLOAD = {
+  FILES: '/upload-files',
+  FILE: '/upload-file',
+  AVATAR: '/upload-avatar',
+  PRODUCT_IMAGES: '/products/upload',
+} as const;
+
 // Test endpoints
 export const TEST = {
   NOTIFICATION: '/notification-test',
@@ -314,11 +352,17 @@ export const TEST = {
 export const viewWalletUrl = `${API_BASE_URL}${WALLET.VIEW}`;
 export const debitWallet = `${API_BASE_URL}${WALLET.DEBIT}`;
 export const debitWalletUrl = `${API_BASE_URL}${WALLET.DEBIT}`;
+export const debitWalletProductUrl = `${API_BASE_URL}${WALLET.DEBIT_PRODUCT}`;
 export const setPinUrl = `${API_BASE_URL}${WALLET.SET_PIN}`;
 export const resetPinUrl = `${API_BASE_URL}${WALLET.RESET_PIN}`;
+export const forgotPinUrl = `${API_BASE_URL}${WALLET.FORGOT_PIN}`;
 export const pushTokenUrl = `${API_BASE_URL}${AUTH.UPDATE_PUSH_TOKEN}`;
+export const deleteUserUrl = `${API_BASE_URL}${AUTH.DELETE_USERS}`;
+export const updateNotificationsUrl = `${API_BASE_URL}${AUTH.UPDATE_NOTIFICATIONS}`;
 export const locationUrl = `${API_BASE_URL}${LOCATIONS.ADD}`;
+export const updateLocationUrl = (id: string) => `${API_BASE_URL}${LOCATIONS.UPDATE(id)}`;
 export const getLocationUrl = (id: string) => `${API_BASE_URL}${LOCATIONS.GET_BY_ID(id)}`;
+export const myLocationsUrl = `${API_BASE_URL}${LOCATIONS.MY_LOCATIONS}`;
 export const jobsUrl = `${API_BASE_URL}${JOBS.LIST}`;
 export const jobUrlatest = `${API_BASE_URL}${JOBS.LATEST}`;
 export const jobUrlAcceptDecline = (jobId: string) => `${API_BASE_URL}${JOBS.RESPOND(jobId)}`;
@@ -415,6 +459,8 @@ export const sellerAcceptOrderUrl = (ptId: string) => `${API_BASE_URL}${ORDERS.S
 export const sellerRejectOrderUrl = (ptId: string) => `${API_BASE_URL}${ORDERS.SELLER_REJECT(ptId)}`;
 export const sellerMarkReadyUrl = (ptId: string) => `${API_BASE_URL}${ORDERS.SELLER_MARK_READY(ptId)}`;
 export const sellerConfirmUrl = (ptId: string) => `${API_BASE_URL}${ORDERS.SELLER_CONFIRM(ptId)}`;
+export const sellerHandOverUrl = (ptId: string) => `${API_BASE_URL}${ORDERS.SELLER_HANDOVER(ptId)}`;
+export const buyerCancelOrderUrl = (ptId: string) => `${API_BASE_URL}${ORDERS.BUYER_CANCEL(ptId)}`;
 export const returnRequestUrl = `${API_BASE_URL}${ORDERS.RETURN_REQUEST}`;
 export const resolveReturnUrl = (returnRequestId: string) => `${API_BASE_URL}${ORDERS.RESOLVE_RETURN(returnRequestId)}`;
 export const giveRatingUrl = `${API_BASE_URL}${RATINGS.GIVE}`;

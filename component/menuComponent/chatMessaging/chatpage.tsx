@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   ScrollView,
   View,
@@ -8,11 +8,12 @@ import {
   ActivityIndicator,
   RefreshControl,
   TextInput,
+  Alert,
+  Linking,
 } from "react-native";
 import { AntDesign, FontAwesome5, FontAwesome6, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "redux/store";
+import { useAppDispatch, useAppSelector } from "redux/store";
 import { setPreviousChats, ChatContact } from "redux/slices/chatSlice";
 import { useTheme } from "hooks/useTheme";
 import { getColors } from "static/color";
@@ -20,7 +21,7 @@ import ContainerTemplate from "component/dashboardComponent/containerTemplate";
 import { ThemeText, ThemeTextsecond } from "component/ThemeText";
 import { Textstyles } from "static/textFontsize";
 import { useMutation } from "@tanstack/react-query";
-import { getContactListFn } from "services/userService";
+import { getContactListFn, removeChatContactFn } from "services/userService";
 import { getInitials } from "utilizes/initialsName";
 import { useDebounce } from "hooks/useDebounce";
 
@@ -44,7 +45,7 @@ const getRoleFilters = (role?: string): string[] => {
 
 const ContactListScreen = () => {
   const router = useRouter();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { theme } = useTheme();
   const {
     selectioncardColor,
@@ -63,8 +64,11 @@ const ContactListScreen = () => {
     delivery: { icon: "bicycle", iconSet: "Ionicons", color: primaryColor, label: "Delivery" },
   };
 
-  const role = useSelector((state: RootState) => state?.auth?.user?.role);
-  const previousChats = useSelector((state: RootState) => state.chat.previousChats);
+  const role = useAppSelector((state) => state?.auth?.user?.role);
+  const previousChats = useAppSelector((state) => state.chat.previousChats);
+  const refreshTrigger = useAppSelector((state) => state.chat.refreshTrigger);
+  const user = useAppSelector((state) => state.auth.user);
+  const token = useAppSelector((state) => state.auth.token);
   const allowedFilters = getRoleFilters(role);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const [filterRole, setFilterRole] = useState<string | undefined>(undefined);
@@ -77,15 +81,79 @@ const ContactListScreen = () => {
   const mutation = useMutation({
     mutationFn: getContactListFn,
     onSuccess: (response) => {
-      dispatch(setPreviousChats(response.data));
+      dispatch(setPreviousChats(response.data?.data || []));
       setRefreshing(false);
     },
-    onError: () => setRefreshing(false),
+    onError: (error) => {
+      setRefreshing(false);
+    },
+  });
+
+  const removeContactMutation = useMutation({
+    mutationFn: removeChatContactFn,
+    onSuccess: () => {
+      // Refresh the contact list after successful removal
+      mutation.mutate({ search: debouncedSearch, role: filterRole, page: 1, limit: 30 });
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', 'Failed to remove contact. Please try again.');
+    }
   });
 
   useEffect(() => {
     mutation.mutate({ search: debouncedSearch, role: filterRole, page: 1, limit: 30 });
   }, [debouncedSearch, filterRole]);
+
+  // Refetch contacts when refreshTrigger changes (socket event)
+  useEffect(() => {
+    if (refreshTrigger > 0 && !mutation.isPending) {
+      mutation.mutate({ search: debouncedSearch, role: filterRole, page: 1, limit: 30 });
+    }
+  }, [refreshTrigger]);
+
+  // Sort contacts by most recent activity
+  const sortedContacts = useMemo(() => {
+    if (!Array.isArray(previousChats) || previousChats.length === 0) return [];
+    
+    return [...previousChats].sort((a, b) => {
+      // First priority: online status (online users first)
+      const aOnline = a.onlineUser?.isOnline ? 1 : 0;
+      const bOnline = b.onlineUser?.isOnline ? 1 : 0;
+      if (aOnline !== bOnline) return bOnline - aOnline;
+      
+      // Second priority: last active timestamp
+      const aLastActive = a.onlineUser?.lastActive || a.updatedAt || '';
+      const bLastActive = b.onlineUser?.lastActive || b.updatedAt || '';
+      
+      if (aLastActive && bLastActive) {
+        return new Date(bLastActive).getTime() - new Date(aLastActive).getTime();
+      }
+      
+      // Third priority: updated timestamp
+      const aUpdated = a.updatedAt || '';
+      const bUpdated = b.updatedAt || '';
+      
+      if (aUpdated && bUpdated) {
+        return new Date(bUpdated).getTime() - new Date(aUpdated).getTime();
+      }
+      
+      // Fallback: created timestamp
+      const aCreated = a.createdAt || '';
+      const bCreated = b.createdAt || '';
+      
+      if (aCreated && bCreated) {
+        return new Date(bCreated).getTime() - new Date(aCreated).getTime();
+      }
+      
+      return 0;
+    });
+  }, [previousChats]);
+
+  const filteredContacts = useMemo(() => {
+    if (!Array.isArray(sortedContacts) || sortedContacts.length === 0) return [];
+    if (!filterRole) return sortedContacts;
+    return sortedContacts.filter((contact: ChatContact) => contact.role === filterRole);
+  }, [sortedContacts, filterRole]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -94,6 +162,55 @@ const ContactListScreen = () => {
 
   const goToChat = (contact: ChatContact) => {
     router.push(`/mainchat/${JSON.stringify({ userId: contact.id, professionalId: "" })}`);
+  };
+
+  const handleCallContact = (contact: ChatContact, e?: any) => {
+    // Stop event propagation to prevent chat navigation
+    if (e) {
+      e.stopPropagation();
+    }
+    
+    if (!contact.phone) {
+      Alert.alert('No Phone Number', 'This contact does not have a phone number available.');
+      return;
+    }
+
+    Alert.alert(
+      'Call Contact',
+      `Would you like to call ${contact.profile?.firstName || 'Contact'} at ${contact.phone}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Call', 
+          onPress: () => Linking.openURL(`tel:${contact.phone}`)
+        }
+      ]
+    );
+  };
+
+  const handleRemoveContact = (contact: ChatContact, e?: any) => {
+    // Stop event propagation to prevent chat navigation
+    if (e) {
+      e.stopPropagation();
+    }
+
+    const contactName = `${contact.profile?.firstName || 'Contact'} ${contact.profile?.lastName || ''}`.trim();
+
+    Alert.alert(
+      'Remove Contact',
+      `Are you sure you want to remove ${contactName} from your contacts?\n\nYou can re-add them later by starting a new chat.`,
+      [
+        { 
+          text: 'Cancel', 
+          style: 'cancel' 
+        },
+        { 
+          text: 'Remove', 
+          style: 'destructive',
+          onPress: () => removeContactMutation.mutate(contact.id)
+        }
+      ]
+    );
   };
 
   const handleImageError = (id: string) => {
@@ -142,8 +259,13 @@ const ContactListScreen = () => {
           <View>
             <ThemeText size={Textstyles.text_xmedium}>Messages</ThemeText>
             <Text style={{ color: subText, fontSize: 12 }}>
-              {previousChats?.length || 0} contacts
+              {filteredContacts.length} contacts
             </Text>
+            {filteredContacts.length > 0 && (
+              <Text style={{ color: subText, fontSize: 10, fontStyle: 'italic' }}>
+                Long press to remove
+              </Text>
+            )}
           </View>
         </View>
         <View className="flex-row items-center gap-x-2">
@@ -227,26 +349,59 @@ const ContactListScreen = () => {
   };
 
   // ── Contact card ──────────────────────────────────────────────────────
-  const renderContact = (contact: ChatContact, index: number) => {
+  const renderContact = useCallback((contact: ChatContact, index: number) => {
     const isOnline = contact.onlineUser?.isOnline;
     const hasAvatar = contact.profile?.avatar && !imageErrors.has(contact.id);
     const name = `${contact.profile?.firstName ?? "Unknown"} ${contact.profile?.lastName ?? ""}`.trim();
     const profession = contact.profile?.professional?.profession?.name;
     const lastSeen = contact.onlineUser?.lastActive;
 
+    // Console log partner details
+    console.log('=== Chat Partner Details ===', {
+      id: contact.id,
+      name: name,
+      role: contact.role,
+      avatar: contact.profile?.avatar,
+      hasAvatar: hasAvatar,
+      profession: profession,
+      isOnline: isOnline,
+      lastSeen: lastSeen,
+      email: contact.email,
+      fullProfile: contact.profile,
+      onlineUser: contact.onlineUser
+    });
+
     return (
       <TouchableOpacity
         key={contact.id || index}
         onPress={() => goToChat(contact)}
+        onLongPress={() => handleRemoveContact(contact)}
         activeOpacity={0.7}
+        delayLongPress={500}
         className="mx-5 mb-2"
       >
         <View
           style={{ backgroundColor: selectioncardColor }}
           className="flex-row items-center p-3.5 rounded-2xl"
         >
-          {/* Avatar */}
-          <View className="relative mr-3">
+          {/* Avatar — tap to view profile */}
+          <TouchableOpacity
+            className="relative mr-3"
+            activeOpacity={0.8}
+            onPress={(e) => {
+              e.stopPropagation();
+              if (contact.role === 'delivery') {
+                router.push(`/rider/${contact.id}` as any);
+              } else {
+                const profId = contact.profile?.professional?.id;
+                if (profId) {
+                  router.push(`/professional/${profId}` as any);
+                } else {
+                  router.push(`/professional/${contact.id}?byUser=1` as any);
+                }
+              }
+            }}
+          >
             <View
               className="w-12 h-12 rounded-full overflow-hidden items-center justify-center"
               style={{ backgroundColor: primaryColor + "15" }}
@@ -275,7 +430,7 @@ const ContactListScreen = () => {
                 borderColor: selectioncardColor,
               }}
             />
-          </View>
+          </TouchableOpacity>
 
           {/* Info */}
           <View className="flex-1 mr-2">
@@ -299,12 +454,23 @@ const ContactListScreen = () => {
             {isOnline && (
               <Text style={{ color: primaryColor, fontSize: 10, fontWeight: "600" }}>Online</Text>
             )}
-            <Ionicons name="chevron-forward" size={16} color={subText} />
+            <View className="flex-row gap-x-2">
+              {contact.phone && (
+                <TouchableOpacity
+                  onPress={(e) => handleCallContact(contact, e)}
+                  className="w-8 h-8 rounded-full items-center justify-center"
+                  style={{ backgroundColor: primaryColor + "15" }}
+                >
+                  <Ionicons name="call-outline" size={14} color={primaryColor} />
+                </TouchableOpacity>
+              )}
+              <Ionicons name="chevron-forward" size={16} color={subText} />
+            </View>
           </View>
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [goToChat, handleCallContact, handleRemoveContact, imageErrors, primaryColor, selectioncardColor, subText, getRoleBadge, getTimeAgo]);
 
   // ── Empty state ───────────────────────────────────────────────────────
   const renderEmpty = () => (
@@ -321,6 +487,13 @@ const ContactListScreen = () => {
       >
         {search ? `No results for "${search}"` : "Your contacts will appear here once they're available."}
       </Text>
+      {!search && (
+        <Text
+          style={{ color: subText, textAlign: "center", marginTop: 4, fontSize: 11, fontStyle: 'italic' }}
+        >
+          Tap to chat, long press to remove contacts
+        </Text>
+      )}
       {search.length > 0 && (
         <TouchableOpacity
           onPress={() => setSearch("")}
@@ -334,7 +507,7 @@ const ContactListScreen = () => {
   );
 
   // ── Loading state ─────────────────────────────────────────────────────
-  if (mutation.isPending && !refreshing && (!previousChats || previousChats.length === 0)) {
+  if (mutation.isPending && !refreshing && (!previousChats || previousChats.length === 0) && !search) {
     return (
       <ContainerTemplate>
         {renderHeader()}
@@ -364,8 +537,8 @@ const ContactListScreen = () => {
           />
         }
       >
-        {previousChats && previousChats.length > 0
-          ? previousChats.map((contact, index) => renderContact(contact as ChatContact, index))
+        {Array.isArray(filteredContacts) && filteredContacts.length > 0
+          ? filteredContacts.map((contact, index) => renderContact(contact as ChatContact, index))
           : renderEmpty()}
       </ScrollView>
     </ContainerTemplate>

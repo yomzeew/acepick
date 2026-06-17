@@ -1,15 +1,15 @@
 import axios from 'axios';
-import { API_BASE_URL, sectorUrl } from 'utilizes/endpoints';
+import { API_BASE_URL, sectorUrlLegacy } from 'utilizes/endpoints';
 
 export const testConnection = async () => {
   console.log('🔧 Testing API connection...');
   console.log('📍 API_BASE_URL:', API_BASE_URL);
-  console.log('📍 sectorUrl:', sectorUrl);
+  console.log('📍 sectorUrlLegacy:', sectorUrlLegacy);
   
   try {
     // Test basic connectivity
     console.log('🌐 Testing basic connectivity...');
-    const response = await axios.get(sectorUrl, { timeout: 5000 });
+    const response = await axios.get(sectorUrlLegacy, { timeout: 5000 });
     console.log('✅ Connection successful!');
     console.log('📊 Response status:', response.status);
     console.log('📊 Data length:', response.data.data?.length || 0);

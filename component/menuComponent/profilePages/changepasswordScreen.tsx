@@ -15,6 +15,8 @@ import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import { RootState } from "redux/store";
+import { API_BASE_URL } from "utilizes/endpoints";
+import { useDispatch } from "react-redux";
 
 const ChangePasswordScreen = () => {
   const { theme } = useTheme();
@@ -26,6 +28,7 @@ const ChangePasswordScreen = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
   const user = useSelector((state: RootState) => state.auth.user);
+  const token = useSelector((state: RootState) => state.auth.token);
 
   // Auto-clear messages after 4 seconds
   useEffect(() => {
@@ -60,7 +63,11 @@ const ChangePasswordScreen = () => {
 
   const changePasswordMutation = useMutation({
     mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
-      const response = await axios.put("/api/user/change-password", data);
+      const response = await axios.put(`${API_BASE_URL}/user/change-password`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
       return response.data;
     },
     onSuccess: () => {

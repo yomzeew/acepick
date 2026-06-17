@@ -16,9 +16,9 @@ Notifications.setNotificationHandler({
     const data = notification?.request?.content?.data;
     const isCall = data?.type === 'call';
     return {
-      shouldPlaySound: true,
+      shouldPlaySound: !isCall, // Call sounds are handled by WebRTC ringtone
       shouldSetBadge: false,
-      shouldShowBanner: true,
+      shouldShowBanner: !isCall, // Don't show banner for calls — handled by IncomingCallModal
       shouldShowList: !isCall, // Don't show call notifications in list — we handle them in-app
     };
   },
@@ -41,6 +41,7 @@ export const NotificationWrapper: React.FC<{ children: React.ReactNode }> = ({ c
 
     // ── Call action buttons ──
     const callData = getCallDataFromNotification(response);
+    console.log('📞 Call notification data:', { callData, actionId, data });
     if (callData) {
       // REJECT action — dismiss without opening the app
       if (actionId === 'REJECT') {
@@ -49,8 +50,9 @@ export const NotificationWrapper: React.FC<{ children: React.ReactNode }> = ({ c
       }
       // PICK_UP action or default tap — navigate to call screen
       const route = callData.callType === 'video'
-        ? `/videocall/${JSON.stringify({ userId: callData.callerId })}`
-        : `/callchat/${JSON.stringify({ userId: callData.callerId })}`;
+        ? `/(Authenticated)/(chatcallmessage)/videocall/${callData.callerId}`
+        : `/(Authenticated)/(chatcallmessage)/callchat/${callData.callerId}`;
+      console.log('📞 Navigating to call route:', { route, callType: callData.callType, callerId: callData.callerId });
       setTimeout(() => router.push(route as any), 500);
       return;
     }
@@ -83,30 +85,26 @@ export const NotificationWrapper: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
-  // Set up notifications when authenticated
+  // Always re-register push token on every login (token can change between sessions)
   useEffect(() => {
-    if (isAuthenticated && !fcmToken) {
+    if (isAuthenticated && authToken) {
+      console.log('Starting push token registration...');
       registerForPushNotificationsAsync().then(async (token) => {
-        console.log('🔔 Push token registered:', token);
+        console.log('Push token registered:', token);
         if (token) {
           dispatch(setFcmToken(token));
+          SaveTokenFunction(token)
+            .then(() => console.log('Push token saved to backend'))
+            .catch((err) => console.error('Failed to save push token:', err));
+        } else {
+          console.warn('Push token registration returned null - this is expected on simulator');
         }
+      }).catch((err) => {
+        console.error('Push token registration failed:', err);
+        console.warn('This is normal when running on simulator or without Firebase configuration');
       });
     }
-  }, [isAuthenticated, fcmToken, dispatch]);
-
-  // Save token to backend when we have both token and auth token
-  useEffect(() => {
-    if (isAuthenticated && fcmToken && authToken) {
-      SaveTokenFunction(fcmToken)
-        .then(() => {
-          console.log('✅ Push token saved to backend');
-        })
-        .catch((err) => {
-          console.error('❌ Failed to save push token:', err);
-        });
-    }
-  }, [isAuthenticated, fcmToken, authToken]);
+  }, [isAuthenticated, authToken]);
 
   // Set up notification listeners when authenticated
   useEffect(() => {

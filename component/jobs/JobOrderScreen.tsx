@@ -78,7 +78,7 @@ const JobOrderScreen = () => {
     })
 
     const [manualaddress, setManualAddress] = useState('')
-    const { address, loading: locationLoading, error: locationError } = useCurrentLocation()
+    const { location, address, state, lga, loading: locationLoading, error: locationError } = useCurrentLocation()
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
@@ -124,6 +124,37 @@ const JobOrderScreen = () => {
             return () => clearTimeout(timer)
         }
     }, [errorMessage])
+
+    // Auto-capture location coordinates when available
+    useEffect(() => {
+        if (location && location.coords && !locationLoading && !locationError) {
+            setJobData(prev => ({
+                ...prev,
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+                // Also auto-populate state and LGA if not already set
+                state: prev.state || state || '',
+                lga: prev.lga || lga || '',
+                // Auto-populate address if not already set and using auto location
+                address: prev.address || (showmanuallocation ? '' : address) || ''
+            }))
+        }
+    }, [location, locationLoading, locationError, state, lga, address, showmanuallocation])
+
+    // Update coordinates when state/LGA changes (for manual selection)
+    useEffect(() => {
+        if (jobData.state && jobData.lga && !showmanuallocation) {
+            // If user manually selects state/LGA, we should use the current location coordinates
+            // or fetch new coordinates for the selected location
+            if (location && location.coords) {
+                setJobData(prev => ({
+                    ...prev,
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude,
+                }))
+            }
+        }
+    }, [jobData.state, jobData.lga, showmanuallocation, location])
 
     useEffect(() => {
         if (successMessage) {
@@ -277,6 +308,9 @@ const JobOrderScreen = () => {
             state: jobData.mode === 'PHYSICAL' ? jobData.state : undefined,
             lga: jobData.mode === 'PHYSICAL' ? jobData.lga : undefined,
             skillsRequired: jobData.skillsRequired,
+            // Include location coordinates for physical jobs
+            latitude: jobData.mode === 'PHYSICAL' ? jobData.latitude : null,
+            longitude: jobData.mode === 'PHYSICAL' ? jobData.longitude : null,
         })
     }
 

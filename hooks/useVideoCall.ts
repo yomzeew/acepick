@@ -7,7 +7,9 @@ import {
   MediaStream,
 } from 'react-native-webrtc';
 import { Audio } from "expo-av";
+import InCallManager from 'react-native-incall-manager';
 import { getTurnCredentialsFn } from "services/userService";
+import DeviceIdService from 'services/deviceIdService';
 
 const FALLBACK_ICE_SERVERS = {
   iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }],
@@ -15,13 +17,16 @@ const FALLBACK_ICE_SERVERS = {
 
 export const useVideoCall = (socket: any | null) => {
   const [isCalling, setIsCalling] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [incomingCall, setIncomingCall] = useState<any>(null);
   const [partnerId, setPartnerId] = useState('');
   const [soundsLoaded, setSoundsLoaded] = useState(false);
   const [isFrontCamera, setIsFrontCamera] = useState(true);
+  const [hasRemoteStream, setHasRemoteStream] = useState(false);
 
   const partnerIdRef = useRef('');
+  const isConnectingRef = useRef(false);
 
   const peerConnection = useRef<RTCPeerConnection | null>(null);
   const localStream = useRef<MediaStream | null>(null);
@@ -31,6 +36,23 @@ export const useVideoCall = (socket: any | null) => {
 
   const ringtoneSound = useRef<Audio.Sound | null>(null);
   const callToneSound = useRef<Audio.Sound | null>(null);
+  
+  // Device ID for call events
+  const [deviceId, setDeviceId] = useState<string | null>(null);
+
+  // Initialize device ID
+  useEffect(() => {
+    const initDeviceId = async () => {
+      try {
+        const id = await DeviceIdService.getDeviceId();
+        setDeviceId(id);
+      } catch (error) {
+        console.error('Error initializing device ID in useVideoCall:', error);
+      }
+    };
+    
+    initDeviceId();
+  }, []);
 
   /** 🔊 Load and unload sounds */
   const loadSounds = async () => {
@@ -112,16 +134,12 @@ export const useVideoCall = (socket: any | null) => {
     }
   };
 
-  /** 🔊 Configure audio session for calls */
-  const configureAudioSession = async () => {
+  /** 🔊 Start InCallManager for video — speaker on by default */
+  const configureAudioSession = () => {
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: true,
-        shouldDuckAndroid: false,
-        playThroughEarpieceAndroid: false,
-      });
+      InCallManager.start({ media: 'video', auto: false });
+      InCallManager.setSpeakerphoneOn(true);
+      InCallManager.setForceSpeakerphoneOn(true);
     } catch (err) {
       console.error("🔴 Failed to configure audio session", err);
     }
@@ -130,25 +148,12 @@ export const useVideoCall = (socket: any | null) => {
   /** 🎙📹 Setup local media (audio + video) */
   const initLocalStream = async () => {
     try {
-      // Reset expo-av audio session so it doesn't interfere with WebRTC
-      try {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          playsInSilentModeIOS: false,
-          staysActiveInBackground: false,
-          shouldDuckAndroid: true,
-          playThroughEarpieceAndroid: false,
-        });
-      } catch (e) {
-        console.warn('⚠️ Could not reset audio mode:', e);
-      }
-
       const stream = await mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
-        },
+        } as any,
         video: {
           facingMode: isFrontCamera ? 'user' : 'environment',
           width: { ideal: 640 },
@@ -157,6 +162,7 @@ export const useVideoCall = (socket: any | null) => {
         },
       });
       localStream.current = stream;
+      configureAudioSession();
 
       const audioTrack = stream.getAudioTracks()[0];
       console.log('🎙 Video call audio track:', audioTrack?.id, 'enabled:', audioTrack?.enabled, 'readyState:', audioTrack?.readyState);
@@ -191,7 +197,7 @@ export const useVideoCall = (socket: any | null) => {
       if (!remoteStream.current) {
         remoteStream.current = new MediaStream();
       }
-
+      
       event.streams.forEach((stream: any) => {
         stream.getTracks().forEach((track: any) => {
           if (!remoteStream.current?.getTracks().some((t: any) => t.id === track.id)) {
@@ -199,6 +205,10 @@ export const useVideoCall = (socket: any | null) => {
           }
         });
       });
+      
+      // ✅ Set hasRemoteStream when remote track arrives
+      setHasRemoteStream(true);
+      console.log('📹 Remote video stream arrived');
     };
 
     (peerConnection.current as any).onicecandidate = (event: any) => {
@@ -208,11 +218,15 @@ export const useVideoCall = (socket: any | null) => {
     };
   };
 
-  /** 📹 Video call another user */
+  /** 📞 Call another user */
   const callUser = async (id: string) => {
     await fetchIceServers();
     await initLocalStream();
-    setIsCalling(true);
+    
+    // Set connecting state immediately
+    setIsConnecting(true);
+    isConnectingRef.current = true;
+    
     setPartnerId(id);
     partnerIdRef.current = id;
     initPeerConnection();
@@ -221,17 +235,20 @@ export const useVideoCall = (socket: any | null) => {
     await peerConnection.current!.setLocalDescription(offer);
     await playCallTone();
 
-    socket.emit("video-call-user", { offer, to: id });
+    socket.emit("video-call-user", { offer, to: id, deviceId });
   };
 
   /** ✅ Accept incoming video call */
   const acceptCall = async () => {
     try {
       if (!incomingCall) throw new Error("No incoming video call");
-      // Stop ringtone FIRST so expo-av releases audio hardware
+      
+      // Stop ringtone and unload sounds FIRST before initializing stream
       await stopRingtone();
+      await unloadSounds();
       setModalVisible(false);
 
+      // Now safely initialize local stream after audio cleanup
       await fetchIceServers();
       await initLocalStream();
       initPeerConnection();
@@ -255,10 +272,12 @@ export const useVideoCall = (socket: any | null) => {
       socket.emit("video-make-answer", {
         answer,
         to: incomingCall.from,
+        deviceId,
       });
 
       setIsCalling(true);
       setIncomingCall(null);
+      configureAudioSession();
     } catch (err) {
       console.error("Error accepting video call:", err);
       await hangUp();
@@ -268,15 +287,22 @@ export const useVideoCall = (socket: any | null) => {
   /** ❌ Hang up or reject */
   const hangUp = async () => {
     const pid = partnerIdRef.current;
-    await cleanWebRtc();
-    if (pid) socket.emit("video-end-call", { to: pid });
+    
+    try {
+      await cleanWebRtc();
+    } catch (error) {
+      console.error('Error during video cleanup:', error);
+    } finally {
+      // Always emit end-call, even if cleanup fails
+      if (pid) socket.emit("video-end-call", { to: pid, deviceId });
+    }
   };
 
   const rejectCall = async () => {
     await stopRingtone();
     setIncomingCall(null);
     setModalVisible(false);
-    if (partnerIdRef.current) socket.emit("video-reject-call", { to: partnerIdRef.current });
+    if (partnerIdRef.current) socket.emit("video-reject-call", { to: partnerIdRef.current, deviceId });
   };
 
   /** 🔄 Toggle camera */
@@ -306,47 +332,104 @@ export const useVideoCall = (socket: any | null) => {
       const audioTrack = localStream.current.getAudioTracks()[0];
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
+        return !audioTrack.enabled; // Return new mute state
       }
     }
+    return false; // Default fallback
   };
 
   /** 🧼 Clean everything */
   const cleanWebRtc = async () => {
-    await stopCallTone();
-    await stopRingtone();
-
-    localStream.current?.getTracks().forEach((track) => track.stop());
-    localStream.current = null;
-
-    remoteStream.current?.getTracks().forEach((track) => track.stop());
-    remoteStream.current = null;
-
+    console.log('🧹 Starting video call cleanup...');
+    
     try {
-      peerConnection.current?.close();
-    } catch (e) {
-      console.warn("PeerConnection close error:", e);
-    }
-    peerConnection.current = null;
+      // Stop sounds first
+      await Promise.allSettled([
+        stopCallTone(),
+        stopRingtone()
+      ]);
 
-    iceCandidatesQueue.current = [];
-    setIsCalling(false);
-    setIncomingCall(null);
-    setModalVisible(false);
-    partnerIdRef.current = '';
+      // Stop local stream tracks
+      if (localStream.current) {
+        localStream.current.getTracks().forEach((track) => {
+          try {
+            track.stop();
+          } catch (e) {
+            console.warn('Error stopping local track:', e);
+          }
+        });
+        localStream.current = null;
+      }
+
+      // Stop remote stream tracks
+      if (remoteStream.current) {
+        remoteStream.current.getTracks().forEach((track) => {
+          try {
+            track.stop();
+          } catch (e) {
+            console.warn('Error stopping remote track:', e);
+          }
+        });
+        remoteStream.current = null;
+      }
+
+      // Close peer connection
+      if (peerConnection.current) {
+        try {
+          peerConnection.current.close();
+        } catch (e) {
+          console.warn("PeerConnection close error:", e);
+        }
+        peerConnection.current = null;
+      }
+
+      // Clear state
+      iceCandidatesQueue.current = [];
+      setIsCalling(false);
+      setIsConnecting(false);
+      isConnectingRef.current = false;
+      setIncomingCall(null);
+      setModalVisible(false);
+      setHasRemoteStream(false); // ✅ Reset remote stream state
+      partnerIdRef.current = '';
+      try { InCallManager.stop(); } catch (e) { console.warn('InCallManager stop error:', e); }
+      
+      console.log('✅ Video call cleanup completed');
+    } catch (error) {
+      console.error('❌ Error in video call cleanup:', error);
+      // Ensure state is cleared even if cleanup fails
+      localStream.current = null;
+      remoteStream.current = null;
+      peerConnection.current = null;
+      iceCandidatesQueue.current = [];
+      setIsCalling(false);
+      setIsConnecting(false);
+      isConnectingRef.current = false;
+      setIncomingCall(null);
+      setModalVisible(false);
+      partnerIdRef.current = '';
+    }
   };
 
   /** 🔌 Socket listeners for video call events */
   useEffect(() => {
     if (!socket) return;
 
-    const handleIncomingVideoCall = async (data: any) => {
+    const handleIncomingCall = async (data: any) => {
+      // Call collision detection: if we're already connecting to someone, reject this incoming call
+      if (isConnectingRef.current || isCalling) {
+        console.log('⚠️ Video call collision detected - already in a call, rejecting incoming call from:', data.from);
+        socket.emit("video-call-busy", { to: data.from, deviceId });
+        return;
+      }
+      
       setPartnerId(data.from);
       partnerIdRef.current = data.from;
       setIncomingCall({ from: data.from, offer: data.offer });
       await playRingtone();
     };
 
-    const handleVideoAnswerMade = async (data: any) => {
+    const handleAnswerMade = async (data: any) => {
       if (!peerConnection.current) return;
 
       await peerConnection.current.setRemoteDescription(
@@ -361,6 +444,12 @@ export const useVideoCall = (socket: any | null) => {
       iceCandidatesQueue.current = [];
       await stopCallTone();
 
+      // ✅ Clear connecting state and set isCalling to true when call is answered
+      setIsConnecting(false);
+      isConnectingRef.current = false;
+      setIsCalling(true);
+      configureAudioSession();
+
       // Verify audio is still flowing after call tone stops
       const audioTrack = localStream.current?.getAudioTracks()[0];
       if (audioTrack) {
@@ -371,7 +460,7 @@ export const useVideoCall = (socket: any | null) => {
       }
     };
 
-    const handleVideoIceCandidate = async (data: any) => {
+    const handleIceCandidate = async (data: any) => {
       const candidate = new RTCIceCandidate(data.candidate);
       if (!peerConnection.current || !peerConnection.current.remoteDescription?.type) {
         iceCandidatesQueue.current.push(candidate);
@@ -380,18 +469,34 @@ export const useVideoCall = (socket: any | null) => {
       }
     };
 
-    socket.on("video-call-made", handleIncomingVideoCall);
-    socket.on("video-answer-made", handleVideoAnswerMade);
-    socket.on("video-ice-candidate", handleVideoIceCandidate);
+    const handleCallTimeout = async () => {
+      console.log("[call-timeout] Video call timed out after 60s — no answer");
+      await cleanWebRtc();
+    };
+
+    const handleCallBusy = async () => {
+      console.log('📞 Partner is busy on another video call');
+      await cleanWebRtc();
+    };
+
+    socket.on("video-call-made", handleIncomingCall);
+    socket.on("video-answer-made", handleAnswerMade);
+    socket.on("video-ice-candidate", handleIceCandidate);
     socket.on("video-call-ended", hangUp);
     socket.on("video-call-rejected", hangUp);
+    socket.on("video-call-unavailable", handleCallBusy);
+    socket.on("video-call-timeout", handleCallTimeout);
+    socket.on("video-call-busy", handleCallBusy);
 
     return () => {
-      socket.off("video-call-made", handleIncomingVideoCall);
-      socket.off("video-answer-made", handleVideoAnswerMade);
-      socket.off("video-ice-candidate", handleVideoIceCandidate);
+      socket.off("video-call-made", handleIncomingCall);
+      socket.off("video-answer-made", handleAnswerMade);
+      socket.off("video-ice-candidate", handleIceCandidate);
       socket.off("video-call-ended", hangUp);
       socket.off("video-call-rejected", hangUp);
+      socket.off("video-call-unavailable", handleCallBusy);
+      socket.off("video-call-timeout", handleCallTimeout);
+      socket.off("video-call-busy", handleCallBusy);
     };
   }, [socket]);
 
@@ -402,6 +507,7 @@ export const useVideoCall = (socket: any | null) => {
 
   return {
     isCalling,
+    isConnecting,
     setIsCalling,
     incomingCall,
     callUser,
@@ -414,9 +520,11 @@ export const useVideoCall = (socket: any | null) => {
     partnerId,
     localStream,
     remoteStream,
-    toggleCamera,
-    toggleVideo,
+    hasRemoteStream,
     toggleMute,
+    toggleCamera,
+    toggleVideo: toggleCamera,
     isFrontCamera,
+    cleanupCall: cleanWebRtc,
   };
 };

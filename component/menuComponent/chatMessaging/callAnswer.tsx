@@ -21,11 +21,13 @@ import { generalUserDetailFn, getClientDetailFn,  getProfessionDetailFnBYUserID 
 import { getColors } from "static/color";
 import { Textstyles } from "static/textFontsize";
 import { getInitials } from "utilizes/initialsName";
+import { useActiveCall } from "context/ActiveCallContext";
 
 interface CallAnswerProps{
     userId:any
 }
 const CallAnswer=({ userId, route }: CallAnswerProps & { route?: any })=>{
+    const { startCall: registerCall, endCall: unregisterCall } = useActiveCall();
     const {
         isCalling,
         incomingCall,
@@ -33,6 +35,13 @@ const CallAnswer=({ userId, route }: CallAnswerProps & { route?: any })=>{
         remoteStream,
         partnerId,
       } = useCall(); // Using context
+
+    // Register active call route for the global banner
+    useEffect(() => {
+      if (isCalling && partnerId) {
+        registerCall('voice', `/callAnswer/${JSON.stringify(partnerId)}`, partnerId);
+      }
+    }, [isCalling, partnerId]);
       const { theme } = useTheme();
       const { primaryColor, selectioncardColor } = getColors(theme);
       const [data, setData] = useState<any>(null);
@@ -55,6 +64,7 @@ const CallAnswer=({ userId, route }: CallAnswerProps & { route?: any })=>{
   const handleHangUp = async () => {
     try {
       console.log("Ending call...");
+      unregisterCall();
       await hangUp();
       router.back();
     } catch (error) {

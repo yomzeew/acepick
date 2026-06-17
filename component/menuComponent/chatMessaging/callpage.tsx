@@ -20,6 +20,8 @@ import { getColors } from "static/color";
 import { Profile } from "types/userDetailsType";
 import { getInitials } from "utilizes/initialsName";
 import { useRouter } from "expo-router";
+import { useCallRecording } from "hooks/useCallRecording";
+import { useActiveCall } from "context/ActiveCallContext";
 
 interface MainProps {
   userDetails?: string;
@@ -28,8 +30,10 @@ interface MainProps {
 const CallChat = ({ userDetails = "{}" }: MainProps) => {
   const { socket } = useSocket();
   const router = useRouter();
+  const { startCall: registerCall, endCall: unregisterCall, activeCall, updateElapsed } = useActiveCall();
   const {
     isCalling,
+    isConnecting,
     incomingCall,
     callUser,
     acceptCall,
@@ -45,22 +49,47 @@ const CallChat = ({ userDetails = "{}" }: MainProps) => {
   }, []);
 
   const user = useSelector((state: RootState) => state?.auth.user);
-  const ids = JSON.parse(userDetails);
-  const partnerId = ids?.userId;
+  const userId = user?.id || '';
+  
+  // Handle both JSON string and plain string for userDetails
+  let partnerId: string;
+  try {
+    const ids = JSON.parse(userDetails);
+    partnerId = ids?.userId || '';
+  } catch {
+    // If userDetails is not valid JSON, treat it as a plain userId string
+    partnerId = userDetails;
+  }
+  
+  if (!partnerId) return;
+
+  // Register active call route for the global banner
+  useEffect(() => {
+    if (isCalling && partnerId) {
+      registerCall('voice', `/callchat/${JSON.stringify({ userId: partnerId })}`, partnerId);
+    }
+  }, [isCalling, partnerId]);
 
   const [data, setData] = useState<Profile | null>(null);
   const [imageError, setImageError] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(false);
+
+  const {
+    isRecording,
+    recordingDuration,
+    startRecording,
+    stopRecording,
+    isUploading,
+  } = useCallRecording({ partnerId: partnerId || '', userId, callType: 'voice' });
   const [callStatus, setCallStatus] = useState<
     "idle" | "ringing" | "connecting" | "connected" | "failed"
-  >("idle");
-  const [callDuration, setCallDuration] = useState(0);
-  const callTimerRef = useRef<NodeJS.Timeout | null>(null);
+  >(isCalling ? "connected" : "idle");
 
   // Pulse animation for ringing
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const pulseOpacity = useRef(new Animated.Value(0.6)).current;
+  const isAnsweredRef = useRef(isCalling);
 
   useEffect(() => {
     if (callStatus === "ringing" || callStatus === "connecting") {
@@ -110,7 +139,12 @@ const CallChat = ({ userDetails = "{}" }: MainProps) => {
 
   const mutation = useMutation({
     mutationFn: generalUserDetailFn,
-    onSuccess: (response) => setData(response.data),
+    onSuccess: (response) => {
+      // Guard against null response
+      if (response && response.data) {
+        setData(response.data);
+      }
+    },
     onError: (error: any) => console.error("Failed to fetch user:", error?.message),
   });
 
@@ -118,31 +152,60 @@ const CallChat = ({ userDetails = "{}" }: MainProps) => {
     if (partnerId) mutation.mutate(partnerId);
   }, []);
 
+  // Update global elapsed time when call is active
   useEffect(() => {
-    if (isCalling) {
-      setCallStatus("connecting");
-      callTimerRef.current = setInterval(() => {
-        setCallDuration((prev) => {
-          const next = prev + 1;
-          if (next < 5) setCallStatus("ringing");
-          else setCallStatus("connected");
-          return next;
-        });
+    if (isCalling && activeCall) {
+      const interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - activeCall.startTime) / 1000);
+        updateElapsed(elapsed);
       }, 1000);
-    } else {
-      setCallDuration((prev) => {
-        if (prev > 0) setCallStatus("idle");
-        return 0;
-      });
-      clearInterval(callTimerRef.current!);
+
+      return () => clearInterval(interval);
     }
-    return () => clearInterval(callTimerRef.current!);
-  }, [isCalling]);
+  }, [isCalling, activeCall?.startTime, updateElapsed]);
 
   useEffect(() => {
-    if (incomingCall) setCallStatus("ringing");
-    else if (!isCalling && !incomingCall) setCallStatus("idle");
-  }, [incomingCall, isCalling]);
+    if (isCalling) {
+      // If we arrived with isCalling already true (accepted incoming call),
+      // skip the ringing phase and go straight to connected
+      if (isAnsweredRef.current) {
+        setCallStatus("connected");
+      } else {
+        setCallStatus("connecting");
+      }
+      
+      // Update status based on elapsed time
+      const checkStatus = () => {
+        if (activeCall && activeCall.elapsed < 5) {
+          setCallStatus("ringing");
+        } else {
+          setCallStatus("connected");
+        }
+      };
+      
+      const statusInterval = setInterval(checkStatus, 1000);
+      checkStatus(); // Check immediately
+      
+      return () => clearInterval(statusInterval);
+    } else {
+      if (activeCall && activeCall.elapsed > 0) setCallStatus("idle");
+      isAnsweredRef.current = false;
+    }
+  }, [isCalling, activeCall?.elapsed]);
+
+  // Set callStatus based on actual connection state, not elapsed time
+  useEffect(() => {
+    if (isCalling) {
+      setCallStatus('connected'); // answer-made fired → truly connected
+    } else if (incomingCall) {
+      setCallStatus('ringing');
+    } else {
+      setCallStatus('idle');
+    }
+  }, [isCalling, incomingCall]);
+
+  // Set 'connecting' when callUser is called (handled in callUser function)
+  // Set 'idle' on hangUp (handled in hangUp function)
 
   const statusConfig: Record<string, { text: string; color: string }> = {
     idle: { text: "Tap to call", color: "#9CA3AF" },
@@ -151,7 +214,7 @@ const CallChat = ({ userDetails = "{}" }: MainProps) => {
       color: backgroundColortwo,
     },
     connecting: { text: "Connecting...", color: backgroundColortwo },
-    connected: { text: formatTime(callDuration), color: primaryColor },
+    connected: { text: formatTime(activeCall?.elapsed || 0), color: primaryColor },
     failed: { text: "Call failed", color: backgroundColortwo },
   };
 
@@ -213,11 +276,18 @@ const CallChat = ({ userDetails = "{}" }: MainProps) => {
       {/* Top bar */}
       <View className="pt-14 px-5 flex-row items-center justify-between">
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => {
+            if (isCalling) {
+              // Minimize — navigate away but keep call alive
+              router.back();
+            } else {
+              router.back();
+            }
+          }}
           className="w-10 h-10 rounded-full items-center justify-center"
           style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
         >
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+          <Ionicons name={isCalling ? "chevron-down" : "chevron-back"} size={20} color="#fff" />
         </TouchableOpacity>
         <Text style={{ color: "#fff", fontSize: 16, fontFamily: "TTFirsNeueMedium" }}>
           Voice Call
@@ -342,7 +412,7 @@ const CallChat = ({ userDetails = "{}" }: MainProps) => {
               letterSpacing: 4,
             }}
           >
-            {formatTime(callDuration)}
+            {formatTime(activeCall?.elapsed || 0)}
           </Text>
         )}
       </View>
@@ -357,7 +427,7 @@ const CallChat = ({ userDetails = "{}" }: MainProps) => {
         }}
       >
         {/* Idle state - single call button */}
-        {!isCalling && !incomingCall && (
+        {!isCalling && !incomingCall && !isConnecting && callStatus !== "connecting" && callStatus !== "ringing" && (
           <View className="items-center">
             <ActionButton
               icon="phone"
@@ -370,6 +440,26 @@ const CallChat = ({ userDetails = "{}" }: MainProps) => {
                 callUser(partnerId || "");
               }}
               label="Call"
+            />
+          </View>
+        )}
+
+        {/* Connecting/Ringing state - show End Call button */}
+        {(isConnecting || callStatus === "connecting" || callStatus === "ringing") && !isCalling && (
+          <View className="items-center">
+            <ActionButton
+              icon="phone-slash"
+              color="#fff"
+              bg={backgroundColortwo}
+              size={68}
+              iconSize={24}
+              onPress={async () => {
+                setCallStatus("idle");
+                unregisterCall();
+                await hangUp();
+                router.back();
+              }}
+              label="End Call"
             />
           </View>
         )}
@@ -388,13 +478,25 @@ const CallChat = ({ userDetails = "{}" }: MainProps) => {
               label={isMuted ? "Unmute" : "Mute"}
             />
             <ActionButton
+              icon={isRecording ? "circle" : "record-vinyl"}
+              color={isRecording ? "#fff" : "#fff"}
+              bg={isRecording ? backgroundColortwo : "rgba(255,255,255,0.15)"}
+              onPress={async () => {
+                if (isRecording) await stopRecording();
+                else await startRecording();
+              }}
+              label={isRecording ? `Rec ${Math.floor(recordingDuration / 60).toString().padStart(2, '0')}:${(recordingDuration % 60).toString().padStart(2, '0')}` : isUploading ? 'Saving...' : 'Record'}
+            />
+            <ActionButton
               icon="phone-slash"
               color="#fff"
               bg={backgroundColortwo}
               size={68}
               iconSize={24}
               onPress={async () => {
+                if (isRecording) await stopRecording();
                 setCallStatus("idle");
+                unregisterCall();
                 await hangUp();
               }}
               label="End"
@@ -413,33 +515,11 @@ const CallChat = ({ userDetails = "{}" }: MainProps) => {
           </View>
         )}
 
-        {/* Incoming call controls */}
+        {/* Incoming call controls - REMOVED */}
+        {/* Incoming calls should only be handled in modal, not on active call screen */}
         {incomingCall && !isCalling && (
           <View className="flex-row items-start justify-evenly">
-            <ActionButton
-              icon="phone-slash"
-              color="#fff"
-              bg={backgroundColortwo}
-              size={64}
-              iconSize={24}
-              onPress={async () => {
-                setCallStatus("idle");
-                await rejectCall();
-              }}
-              label="Decline"
-            />
-            <ActionButton
-              icon="phone"
-              color="#fff"
-              bg={primaryColor}
-              size={64}
-              iconSize={24}
-              onPress={async () => {
-                setCallStatus("connecting");
-                await acceptCall();
-              }}
-              label="Accept"
-            />
+            {/* Empty view - incoming calls handled by modal */}
           </View>
         )}
       </View>

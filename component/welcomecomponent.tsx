@@ -25,17 +25,17 @@ function WelcomeComponent() {
 
   const handleClientPress = () => {
     dispatch({ type: "SET_ROLE", payload: "client" });
-    router.navigate("/loginscreen");
+    router.navigate("/(NotAuthenticated)/loginscreen");
   };
 
   const handleProfessionalPress = () => {
     dispatch({ type: "SET_ROLE", payload: "artisan" });
-    router.navigate("/(professionAuth)/loginprofession");
+    router.navigate("/(NotAuthenticated)/(professionAuth)/loginprofession");
   };
 
   const handleDeliveryPress = () => {
     dispatch({ type: "SET_ROLE", payload: "delivery" });
-    router.navigate("/(professionAuth)/loginprofession");
+    router.navigate("/(NotAuthenticated)/(professionAuth)/loginprofession");
   };
 
   return (

@@ -14,7 +14,7 @@ interface VehicleInfoStepProps {
   onNext: () => void;
 }
 
-const VEHICLE_TYPES = ["Motorcycle", "Bicycle", "Car", "Van", "Truck"];
+const VEHICLE_TYPES = ["bike", "car", "keke", "truck", "bus"];
 
 const VehicleInfoStep = ({ onNext }: VehicleInfoStepProps) => {
   const { theme } = useTheme();

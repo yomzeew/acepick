@@ -4,8 +4,8 @@ import RecoverPasswordPage from '@pages/auth/forget/firststage'
 
 const RecoverpasswordScreen = () => {
   return (
-    <View>
-      <RecoverPasswordPage/>
+    <View style={{ flex: 1 }}>
+      <RecoverPasswordPage />
     </View>
   )
 }

@@ -4,8 +4,8 @@ import ChangePasswordPage from '@pages/auth/forget/thirdstage'
 
 const Createnewpasswordscreen = () => {
   return (
-    <View>
-      <ChangePasswordPage/>
+    <View style={{ flex: 1 }}>
+      <ChangePasswordPage />
     </View>
   )
 }

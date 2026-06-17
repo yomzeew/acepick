@@ -15,31 +15,27 @@ export const useNotifications = () => {
   const fcmToken = useSelector((state: RootState) => state.auth.user?.fcmToken);
   const authToken = useSelector((state: RootState) => state.auth.token);
 
-  // Set up notifications when authenticated
+  // Always re-register push token on every login (token can change between sessions)
   useEffect(() => {
-    if (isAuthenticated && !fcmToken) {
-      // Register for push notifications
+    if (isAuthenticated && authToken) {
       registerForPushNotificationsAsync().then(async (token) => {
-        console.log('🔔 Push token registered:', token);
         if (token) {
+          console.log('Push token registered successfully:', token);
           dispatch(setFcmToken(token));
+          SaveTokenFunction(token)
+            .then(() => console.log('Push token saved to backend'))
+            .catch((err) => console.error('Failed to save push token:', err));
+        } else {
+          console.warn('Push token registration failed - app will continue without push notifications');
+          // Don't block the user experience if push notifications fail
+          // The app will still work, just without push notifications
         }
+      }).catch((err) => {
+        console.error('Push notification registration error:', err);
+        // Gracefully handle push notification failures
       });
     }
-  }, [isAuthenticated, fcmToken, dispatch]);
-
-  // Save token to backend when we have both token and auth token
-  useEffect(() => {
-    if (isAuthenticated && fcmToken && authToken) {
-      SaveTokenFunction(fcmToken)
-        .then(() => {
-          console.log('✅ Push token saved to backend');
-        })
-        .catch((err) => {
-          console.error('❌ Failed to save push token:', err);
-        });
-    }
-  }, [isAuthenticated, fcmToken, authToken]);
+  }, [isAuthenticated, authToken]);
 
   // Set up notification listeners when authenticated
   useEffect(() => {

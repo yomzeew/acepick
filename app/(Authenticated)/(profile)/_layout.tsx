@@ -22,7 +22,10 @@ export default function ProfileLayout() {
       <Stack.Screen name="resetpinlayout" />
       <Stack.Screen name="supportlayout" />
       <Stack.Screen name="termsandprivacylayout" />
-      <Stack.Screen name="switchtoprofessionallayout" />
+      <Stack.Screen name="switch-role" />
+      <Stack.Screen name="professionalsetuplayout" />
+      <Stack.Screen name="deliverysetuplayout" />
+      <Stack.Screen name="deleteaccountlayout" />
     </Stack>
   
     

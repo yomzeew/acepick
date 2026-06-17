@@ -1,13 +1,15 @@
 // contexts/CallContext.tsx
 import { useSocket } from 'hooks/useSocket';
 import { useWebRtc } from 'hooks/useWebRTCCall';
-import { createContext, useContext, ReactNode, useRef } from 'react';
+import { createContext, useContext, ReactNode, useRef, useEffect } from 'react';
+import CleanupService from 'services/cleanupService';
 
 type CallContextType = ReturnType<typeof useWebRtc>;
 
 // Default context value when socket is not available
 const defaultCallContext: CallContextType = {
   isCalling: false,
+  isConnecting: false,
   setIsCalling: () => {},
   incomingCall: null,
   callUser: async () => {},
@@ -22,6 +24,7 @@ const defaultCallContext: CallContextType = {
   remoteStream: { current: null },
   toggleMute: () => false,
   toggleSpeaker: async () => {},
+  cleanupCall: async () => {},
 };
 
 const CallContext = createContext<CallContextType>(defaultCallContext);
@@ -29,6 +32,16 @@ const CallContext = createContext<CallContextType>(defaultCallContext);
 export const CallProvider = ({ children }: { children: ReactNode }) => {
   const { socket } = useSocket();
   const callState = useWebRtc(socket);
+
+  // Register voice call cleanup function
+  useEffect(() => {
+    if (callState.cleanupCall) {
+      CleanupService.registerVoiceCallCleanup(callState.cleanupCall);
+    }
+    return () => {
+      CleanupService.registerVoiceCallCleanup(async () => {});
+    };
+  }, [callState.cleanupCall]);
 
   return (
     <CallContext.Provider value={socket ? callState : defaultCallContext}>

@@ -21,6 +21,7 @@ import { getColors } from "static/color";
 import { Profile } from "types/userDetailsType";
 import { getInitials } from "utilizes/initialsName";
 import { useRouter } from "expo-router";
+import { useActiveCall } from "context/ActiveCallContext";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -30,6 +31,7 @@ interface MainProps {
 
 const VideoCallPage = ({ userDetails = "{}" }: MainProps) => {
   const router = useRouter();
+  const { startCall: registerCall, endCall: unregisterCall, activeCall, updateElapsed } = useActiveCall();
   const {
     isCalling,
     incomingCall,
@@ -40,6 +42,7 @@ const VideoCallPage = ({ userDetails = "{}" }: MainProps) => {
     setModalVisible,
     localStream,
     remoteStream,
+    hasRemoteStream,
     toggleCamera,
     toggleVideo,
     toggleMute,
@@ -51,8 +54,31 @@ const VideoCallPage = ({ userDetails = "{}" }: MainProps) => {
   }, []);
 
   const user = useSelector((state: RootState) => state?.auth.user);
-  const ids = JSON.parse(userDetails);
-  const partnerId = ids?.userId;
+  
+  // Handle both JSON string and plain string for userDetails
+  let partnerId: string;
+  try {
+    const ids = JSON.parse(userDetails);
+    partnerId = ids?.userId;
+    if (!partnerId) {
+      console.error('❌ No userId found in userDetails:', userDetails);
+      return;
+    }
+  } catch (error) {
+    // If userDetails is not valid JSON, treat it as a plain userId string
+    partnerId = userDetails;
+    if (!partnerId) {
+      console.error('❌ Empty userDetails provided');
+      return;
+    }
+  }
+
+  // Register active call route for the global banner
+  useEffect(() => {
+    if (isCalling && partnerId) {
+      registerCall('video', `/videocall/${JSON.stringify({ userId: partnerId })}`, partnerId);
+    }
+  }, [isCalling, partnerId]);
 
   const [data, setData] = useState<Profile | null>(null);
   const [imageError, setImageError] = useState(false);
@@ -62,8 +88,6 @@ const VideoCallPage = ({ userDetails = "{}" }: MainProps) => {
   const [callStatus, setCallStatus] = useState<
     "idle" | "ringing" | "connecting" | "connected" | "failed"
   >("idle");
-  const [callDuration, setCallDuration] = useState(0);
-  const callTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const pulseOpacity = useRef(new Animated.Value(0.6)).current;
@@ -117,7 +141,12 @@ const VideoCallPage = ({ userDetails = "{}" }: MainProps) => {
 
   const mutation = useMutation({
     mutationFn: generalUserDetailFn,
-    onSuccess: (response) => setData(response.data),
+    onSuccess: (response) => {
+      // Guard against null response
+      if (response && response.data) {
+        setData(response.data);
+      }
+    },
     onError: (error: any) => console.error("Failed to fetch user:", error?.message),
   });
 
@@ -125,27 +154,53 @@ const VideoCallPage = ({ userDetails = "{}" }: MainProps) => {
     if (partnerId) mutation.mutate(partnerId);
   }, []);
 
+  // Update global elapsed time when call is active
+  useEffect(() => {
+    if (isCalling && activeCall) {
+      const interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - activeCall.startTime) / 1000);
+        updateElapsed(elapsed);
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [isCalling, activeCall?.startTime, updateElapsed]);
+
   useEffect(() => {
     if (isCalling) {
-      if (callDuration === 0) setCallStatus("connecting");
-      else if (callDuration < 5) setCallStatus("ringing");
+      if (activeCall && activeCall.elapsed === 0) setCallStatus("connecting");
+      else if (activeCall && activeCall.elapsed < 5) setCallStatus("ringing");
       else setCallStatus("connected");
 
-      callTimerRef.current = setInterval(() => {
-        setCallDuration((prev) => prev + 1);
-      }, 1000);
+      // Update status based on elapsed time
+      const checkStatus = () => {
+        if (activeCall && activeCall.elapsed === 0) setCallStatus("connecting");
+        else if (activeCall && activeCall.elapsed < 5) setCallStatus("ringing");
+        else setCallStatus("connected");
+      };
+      
+      const statusInterval = setInterval(checkStatus, 1000);
+      checkStatus(); // Check immediately
+      
+      return () => clearInterval(statusInterval);
     } else {
-      if (callDuration > 0) setCallStatus("idle");
-      clearInterval(callTimerRef.current!);
-      setCallDuration(0);
+      if (activeCall && activeCall.elapsed > 0) setCallStatus("idle");
     }
-    return () => clearInterval(callTimerRef.current!);
-  }, [isCalling, callDuration]);
+  }, [isCalling, activeCall?.elapsed]);
 
+  // Set callStatus based on actual connection state, not elapsed time
   useEffect(() => {
-    if (incomingCall) setCallStatus("ringing");
-    else if (!isCalling && !incomingCall) setCallStatus("idle");
-  }, [incomingCall, isCalling]);
+    if (isCalling) {
+      setCallStatus('connected'); // answer-made fired → truly connected
+    } else if (incomingCall) {
+      setCallStatus('ringing');
+    } else {
+      setCallStatus('idle');
+    }
+  }, [isCalling, incomingCall]);
+
+  // Set 'connecting' when callUser is called (handled in callUser function)
+  // Set 'idle' on hangUp (handled in hangUp function)
 
   const statusConfig: Record<string, { text: string; color: string }> = {
     idle: { text: "Tap to call", color: "#9CA3AF" },
@@ -154,7 +209,7 @@ const VideoCallPage = ({ userDetails = "{}" }: MainProps) => {
       color: backgroundColortwo,
     },
     connecting: { text: "Connecting...", color: backgroundColortwo },
-    connected: { text: formatTime(callDuration), color: primaryColor },
+    connected: { text: formatTime(activeCall?.elapsed || 0), color: primaryColor },
     failed: { text: "Call failed", color: backgroundColortwo },
   };
 
@@ -163,7 +218,6 @@ const VideoCallPage = ({ userDetails = "{}" }: MainProps) => {
     ? `${data.firstName || ""} ${data.lastName || ""}`.trim()
     : "Loading...";
 
-  const hasRemoteStream = remoteStream.current && remoteStream.current.toURL();
   const hasLocalStream = localStream.current && localStream.current.toURL();
 
   const handleToggleControls = () => {
@@ -355,11 +409,14 @@ const VideoCallPage = ({ userDetails = "{}" }: MainProps) => {
           }}
         >
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => {
+              // Minimize — navigate away but keep call alive
+              router.back();
+            }}
             className="w-10 h-10 rounded-full items-center justify-center"
             style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
           >
-            <Ionicons name="chevron-back" size={20} color="#fff" />
+            <Ionicons name={isCalling ? "chevron-down" : "chevron-back"} size={20} color="#fff" />
           </TouchableOpacity>
           <View className="flex-row items-center">
             <Ionicons name="videocam" size={16} color="#fff" style={{ marginRight: 6 }} />
@@ -396,7 +453,7 @@ const VideoCallPage = ({ userDetails = "{}" }: MainProps) => {
             {displayName}
           </Text>
           <Text style={{ color: primaryColor, fontSize: 14, marginTop: 4 }}>
-            {formatTime(callDuration)}
+            {formatTime(activeCall?.elapsed || 0)}
           </Text>
         </View>
       )}
@@ -418,7 +475,7 @@ const VideoCallPage = ({ userDetails = "{}" }: MainProps) => {
           }}
         >
           {/* Idle state */}
-          {!isCalling && !incomingCall && (
+          {!isCalling && !incomingCall && callStatus !== "connecting" && callStatus !== "ringing" && (
             <View className="items-center">
               <ActionButton
                 icon="video"
@@ -435,6 +492,26 @@ const VideoCallPage = ({ userDetails = "{}" }: MainProps) => {
             </View>
           )}
 
+          {/* Connecting/Ringing state - show End Call button */}
+          {(callStatus === "connecting" || callStatus === "ringing") && !isCalling && (
+            <View className="items-center">
+              <ActionButton
+                icon="phone-slash"
+                color="#fff"
+                bg={backgroundColortwo}
+                size={68}
+                iconSize={24}
+                onPress={async () => {
+                  setCallStatus("idle");
+                  unregisterCall();
+                  await hangUp();
+                  router.back();
+                }}
+                label="End Call"
+              />
+            </View>
+          )}
+
           {/* In-call controls */}
           {isCalling && (
             <View className="flex-row items-start justify-evenly">
@@ -443,8 +520,8 @@ const VideoCallPage = ({ userDetails = "{}" }: MainProps) => {
                 color="#fff"
                 bg={isMuted ? backgroundColortwo : "rgba(255,255,255,0.2)"}
                 onPress={() => {
-                  toggleMute();
-                  setIsMuted(!isMuted);
+                  const muted = toggleMute();
+                  setIsMuted(muted);
                 }}
                 label={isMuted ? "Unmute" : "Mute"}
               />
@@ -466,6 +543,7 @@ const VideoCallPage = ({ userDetails = "{}" }: MainProps) => {
                 iconSize={24}
                 onPress={async () => {
                   setCallStatus("idle");
+                  unregisterCall();
                   await hangUp();
                   router.back();
                 }}
@@ -481,34 +559,11 @@ const VideoCallPage = ({ userDetails = "{}" }: MainProps) => {
             </View>
           )}
 
-          {/* Incoming call controls */}
+          {/* Incoming call controls - REMOVED */}
+          {/* Incoming calls should only be handled in modal, not on active call screen */}
           {incomingCall && !isCalling && (
             <View className="flex-row items-start justify-evenly">
-              <ActionButton
-                icon="phone-slash"
-                color="#fff"
-                bg={backgroundColortwo}
-                size={64}
-                iconSize={24}
-                onPress={async () => {
-                  setCallStatus("idle");
-                  await rejectCall();
-                  router.back();
-                }}
-                label="Decline"
-              />
-              <ActionButton
-                icon="video"
-                color="#fff"
-                bg={primaryColor}
-                size={64}
-                iconSize={24}
-                onPress={async () => {
-                  setCallStatus("connecting");
-                  await acceptCall();
-                }}
-                label="Accept"
-              />
+              {/* Empty view - incoming calls handled by modal */}
             </View>
           )}
         </View>

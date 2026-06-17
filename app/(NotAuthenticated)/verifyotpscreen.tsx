@@ -3,8 +3,8 @@ import VerifyOtpPage from "@pages/auth/forget/secondstage"
 const VerifyOtpScreen=()=>{
     return(
         <>
-        <View>
-           <VerifyOtpPage/>
+        <View style={{ flex: 1 }}>
+          <VerifyOtpPage />
         </View>
         </>
     )

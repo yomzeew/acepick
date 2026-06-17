@@ -11,7 +11,7 @@ export const getColors = (theme: Theme) => {
     secondaryTextColor: theme === "light" ? "#171717" : "#E5E7EB", // Much lighter for dark mode
     textColor: theme === "light" ? "#033A62" : "#F3F4F6", // Lighter for dark mode
     backgroundColor: theme === "light" ? "#FAF8F8" : "#1F2937", // Darker background
-    backgroundColortwo: theme === "light" ? "#33658A" : "#111827", // Darker secondary background
+    backgroundColortwo: theme === "light" ? "#33658A" : "#94969c", // Darker secondary background
     welcomeText: theme === "light" ? "#000000" : "#F9FAFB", // Lighter for dark mode
     subText: theme === "light" ? "#838BA1" : "#9CA3AF", // Lighter for dark mode
     selectioncardColor: theme === "light" ? "#ffffff" : "#374151", // Darker card background

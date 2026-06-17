@@ -23,7 +23,7 @@ import { updateUserFromDashboard } from "redux/slices/authSlice";
 import * as ImagePicker from "expo-image-picker";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
-import { uploadAvatar as uploadAvatarToSupabase } from "services/supabaseStorage";
+import { uploadAvatarToLocal } from "services/localUploadService";
 import EditModal from "./editprofileModal";
 import { AlertMessageBanner } from "component/AlertMessageBanner";
 import { API_BASE_URL, PROFILE } from "utilizes/endpoints";
@@ -115,8 +115,8 @@ const Profileinfo = () => {
         setIsUploadingAvatar(true);
 
         try {
-          // 1. Upload to Supabase
-          const uploadedUrl = await uploadAvatarToSupabase(localUri, user?.id);
+          // 1. Upload to local backend
+          const uploadedUrl = await uploadAvatarToLocal(localUri);
           setAvatarUri(uploadedUrl);
 
           // 2. Save to backend immediately
@@ -153,7 +153,16 @@ const Profileinfo = () => {
       });
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (response: any) => {
+      console.log('Profile update response:', response);
+      
+      // Check if the API actually returned success
+      if (response.success === false || response.status === false) {
+        const errorMsg = response.message || response.error || 'Failed to update profile';
+        setErrorMessage(errorMsg);
+        return;
+      }
+      
       // Update Redux store with new profile + location data
       dispatch(
         updateUserFromDashboard({
@@ -176,6 +185,7 @@ const Profileinfo = () => {
       setshowmodaltwo(false);
     },
     onError: (error: any) => {
+      console.error('Profile update error:', error);
       let msg = "Failed to update profile";
       if (error?.response?.data?.message) msg = error.response.data.message;
       else if (error?.response?.data?.errors) {

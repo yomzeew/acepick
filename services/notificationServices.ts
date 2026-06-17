@@ -51,11 +51,14 @@ export async function registerNotificationCategories() {
   }
 }
 
-export async function registerForPushNotificationsAsync(): Promise<string | undefined> {
+export async function registerForPushNotificationsAsync(retryCount: number = 0): Promise<string | undefined> {
+  const maxRetries = 3;
+  const retryDelay = 2000; // 2 seconds
+
   try {
     let token: string | undefined;
 
-    console.log('🔔 Starting push notification registration...');
+    console.log(`Starting push notification registration${retryCount > 0 ? ` (attempt ${retryCount + 1}/${maxRetries + 1})` : ''}...`);
 
     // Set up Android notification channels
     if (Platform.OS === 'android') {
@@ -75,53 +78,81 @@ export async function registerForPushNotificationsAsync(): Promise<string | unde
         lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
         bypassDnd: true,
       });
-      console.log('✅ Android notification channels set up');
+      console.log('Android notification channels set up');
     }
 
     // Register notification categories with action buttons
     await registerNotificationCategories();
 
     // Check if running on physical device
-    // if (!Device.isDevice) {
-    //   console.warn('⚠️ Must use physical device for Push Notifications');
-    //   console.warn('⚠️ Running in simulator - push notifications will not work');
-    //   return undefined;
-    // }
+    if (!Device.isDevice) {
+      console.warn('Must use physical device for Push Notifications');
+      console.warn('Running in simulator - push notifications will not work');
+      return undefined;
+    }
 
     // Check existing permissions
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
-    console.log('📋 Current notification permission status:', existingStatus);
+    console.log('Current notification permission status:', existingStatus);
 
     // Request permissions if not granted
     if (existingStatus !== 'granted') {
-      console.log('🔐 Requesting notification permissions...');
+      console.log('Requesting notification permissions...');
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
-      console.log('📋 Permission request result:', status);
+      console.log('Permission request result:', status);
     }
 
     if (finalStatus !== 'granted') {
-      console.warn('❌ Failed to get push token for push notification!');
-      console.warn('❌ Permission status:', finalStatus);
+      console.warn('Failed to get push token for push notification!');
+      console.warn('Permission status:', finalStatus);
       return undefined;
     }
 
-    console.log('✅ Notification permissions granted');
+    console.log('Notification permissions granted');
 
-    // Get Expo push token with projectId
-    const pushTokenResponse = await Notifications.getExpoPushTokenAsync({
+    // Get Expo push token with projectId with timeout
+    const tokenPromise = Notifications.getExpoPushTokenAsync({
       projectId: 'a326550b-b6a8-4184-acd5-8cc999a18c4a',
     });
+
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Token request timeout')), 10000);
+    });
+
+    const pushTokenResponse = await Promise.race([tokenPromise, timeoutPromise]) as any;
     token = pushTokenResponse.data;
 
-    console.log('🎯 Push token obtained successfully:', token);
+    console.log('Push token obtained successfully:', token);
     return token;
   } catch (error: any) {
-    console.error('❌ Error registering for push notifications:', error?.message || error);
+    console.error(`Error registering for push notifications:`, error?.message || error);
+    
+    // Handle specific error cases
     if (error?.message?.includes('FirebaseApp') || error?.message?.includes('Firebase')) {
-      console.warn('⚠️ Firebase not configured — rebuild with EAS to include google-services.json');
+      console.warn('Firebase not configured - rebuild with EAS to include google-services.json');
+      return undefined;
     }
+    
+    if (error?.message?.includes('timeout')) {
+      console.warn('Push token request timed out');
+    }
+    
+    if (error?.response?.status === 500) {
+      console.warn('Expo server error - this is usually temporary');
+      
+      // Retry logic for server errors
+      if (retryCount < maxRetries) {
+        console.log(`Retrying in ${retryDelay / 1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        return registerForPushNotificationsAsync(retryCount + 1);
+      } else {
+        console.warn('Max retries reached for push notification registration');
+      }
+    }
+    
     return undefined;
   }
 }

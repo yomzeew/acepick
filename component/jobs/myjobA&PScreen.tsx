@@ -20,7 +20,8 @@ import {
   import JobAlertScreen from './jobAlertScreen';
   import ButtonComponent from 'component/buttoncomponent';
   import { AlertMessageBanner } from 'component/AlertMessageBanner';
-  import { ClientDetailsForProf } from 'component/dashboardComponent/clientdetail';
+  import { ClientDetailsFromJob } from "component/dashboardComponent/clientDetailsFromJob";
+  import ProfileSlideupModal from "component/profileSlideupModal";
   
   import { getColors } from 'static/color';
   import { Textstyles } from 'static/textFontsize';
@@ -70,6 +71,13 @@ import {
     const [banner, setBanner]               = useState<{type:'error'|'success';msg:string}|null>(null);
     const [showRespondModal, setShowRespondModal] = useState(false);
     const [respondAction, setRespondAction] = useState<'accept' | 'decline'>('accept');
+    
+    // Profile modal state
+    const [showProfileModal, setShowProfileModal] = useState(false);
+    const [profileModalData, setProfileModalData] = useState<{
+      type: 'client';
+      data: MyJob['client'];
+    } | null>(null);
 
     useEffect(() => {
       if (banner) {
@@ -106,6 +114,16 @@ import {
       const qs = statusFilter ? `status=${encodeURIComponent(statusFilter)}` : null;
       jobsMutation.mutate(qs);
     }, [statusFilter]);
+  
+    const handleOpenClientProfile = (client: MyJob['client']) => {
+      if (client) {
+        setProfileModalData({
+          type: 'client',
+          data: client
+        });
+        setShowProfileModal(true);
+      }
+    };
   
     useEffect(() => { refetchJobs(); }, [statusFilter]);
     useEffect(() => { if (job) setShowAlert(true); }, [job]);
@@ -176,6 +194,7 @@ import {
                       setRespondAction('decline');
                       setShowRespondModal(true);
                     }}
+                    onProfileClick={handleOpenClientProfile}
                   />
                 ))
               ) : (
@@ -221,6 +240,15 @@ import {
             onCancel={() => setShowRespondModal(false)}
           />
         </SliderModalNoScrollview>
+
+      {/* Profile Modal */}
+      {showProfileModal && (
+        <ProfileSlideupModal
+          isVisible={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+          profileData={profileModalData}
+        />
+      )}
       </>
     );
   };
@@ -236,12 +264,24 @@ import {
     onEndJobPress: () => void;
     onAccept?: () => void;
     onDecline?: () => void;
+    onProfileClick?: (client: MyJob['client']) => void;
   }
   
-  const ProfJobCard = ({ item, onEndJobPress, onAccept, onDecline }: ProfJobCardProps) => {
+  const ProfJobCard = ({ item, onEndJobPress, onAccept, onDecline, onProfileClick }: ProfJobCardProps) => {
     const router = useRouter();
     const { theme } = useTheme();
     const { selectioncardColor, primaryColor, borderColor, secondaryTextColor, backgroundColortwo } = getColors(theme);
+
+    // Debug logging to check client data
+    console.log('🔍 MyJobA&PScreen ProfJobCard Data:', {
+      jobId: item.id,
+      hasClient: !!item.client,
+      clientId: item.clientId,
+      clientData: item.client,
+      hasClientProfile: !!item.client?.profile,
+      clientProfileData: item.client?.profile,
+      clientDetailsExpanded: item.client?.profile ? JSON.stringify(item.client.profile, null, 2) : 'null'
+    });
 
     const totalAmount = (Number(item.workmanship) || 0) + (Number(item.materialsCost) || 0);
   
@@ -280,9 +320,11 @@ import {
         </View>
 
         {/* Client info */}
-        <View className="px-4 py-2">
-          <ClientDetailsForProf clientId={item.clientId} />
-        </View>
+        {item.client && (
+          <View className="px-4 py-2">
+            <ClientDetailsFromJob client={item.client} showActions={true} onProfileClick={() => onProfileClick?.(item.client)} />
+          </View>
+        )}
 
         {/* Description */}
         <View className="px-4 pb-2">

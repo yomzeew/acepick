@@ -50,6 +50,13 @@ const TransferFund = ({ setshowmodal }: TransferFundProps) => {
       mutationVerify.mutate(transferRef);
     },
     onError: (error: any) => {
+      // Handle BVN verification required error
+      if (error?.bvnRequired) {
+        toast.error("BVN Verification Required", "You must verify your BVN before performing transactions");
+        setshowmodal(false);
+        return;
+      }
+
       const msg = error?.response?.data?.message || error?.message || "Withdrawal failed";
       toast.error("Withdrawal Failed", msg);
     },

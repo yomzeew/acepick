@@ -52,10 +52,12 @@ export default function AuthenticatedLayout() {
         <Stack.Screen name="(professionalLayout)" />
         <Stack.Screen name="(jobs)" />
         <Stack.Screen name="professionals" />
-        <Stack.Screen name="professional/[id]" />
         <Stack.Screen name="(notifications)" />
         <Stack.Screen name="(delivery)" />
         <Stack.Screen name="(marketplace)" />
+        <Stack.Screen name="sectorsPage" />
+        <Stack.Screen name="(activationLayout)" />
+        <Stack.Screen name="rider" />
       </Stack>
     {showalertModal &&<JobAlertScreen item={job} showalertModal={showalertModal} setshowalertModal={setshowalertModal}/>}
     <IncomingCallModal />

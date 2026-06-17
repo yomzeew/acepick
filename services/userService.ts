@@ -1,9 +1,9 @@
 import axios from "axios"
 import { store } from "redux/store"; 
 import { JobInvoice } from "types/type"
-import { addbankDetailsUrl, API_BASE_URL, certificationUrl, clientDetailUrl, debitWallet, educationUrl, experienceUrl, getbanksDetails, getBanksUrl, getLocationUrl, getMyReviewsUrl, getReviewsForUserUrl, getProfessionByUserIdUrl, getProfessionUrl, giveRatingUrl, giveReviewUrl, initiatepayment, initiatetransfer, invoiceUrl, jobsUrl, jobUrlAcceptDecline, jobUrlApproved, jobUrlatest, jobUrlCancel, jobUrlComplete, jobUrlDispute, jobUrlUpdate, listofArtisan, listofContactUrl, locationUrl, portfolioUrl, pushTokenUrl, ratingUrl, resetPinUrl, resolveUrl, sectorUrlDetails, setPinUrl, updatebanksDetails, updateProfessionalProfileUrl, userDetailsgeneralUrl, verifypayment, verifytransfer, viewWalletUrl } from "utilizes/endpoints"
+import { API_BASE_URL, CHAT_CONTACTS } from "utilizes/endpoints";
 import MockDataService from './mockDataService';
-
+import { addbankDetailsUrl, certificationUrl, clientDetailUrl, debitWallet, debitWalletProductUrl, deleteUserUrl, educationUrl, experienceUrl, getbanksDetails, getBanksUrl, getLocationUrl, getMyReviewsUrl, getReviewsForUserUrl, getProfessionByUserIdUrl, getProfessionUrl, giveRatingUrl, giveReviewUrl, initiatepayment, initiatetransfer, invoiceUrl, jobsUrl, jobUrlAcceptDecline, jobUrlApproved, jobUrlatest, jobUrlCancel, jobUrlComplete, jobUrlDispute, jobUrlUpdate, listofArtisan, listofContactUrl, locationUrl, updateLocationUrl, myLocationsUrl, portfolioUrl, pushTokenUrl, ratingUrl, resetPinUrl, forgotPinUrl, resolveUrl, sectorUrlDetails, setPinUrl, updatebanksDetails, updateNotificationsUrl, updateProfessionalProfileUrl, userDetailsgeneralUrl, verifypayment, verifytransfer, viewWalletUrl } from "utilizes/endpoints"
 
 
 /** Fetch short-lived Cloudflare TURN/ICE server credentials for WebRTC calls */
@@ -66,7 +66,7 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
               headers:{
                 Authorization:`Bearer ${token}`
               },
-              timeout: 10000
+              timeout: 30000 // Increased from 10000ms to 30000ms
           });
         
         console.log('✅ Professionals fetched successfully:', response.data?.data?.length || 0);
@@ -127,7 +127,7 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
 
   export const updateLocation=async(locationId: string, data:any)=>{
     const token = store.getState().auth?.token;
-    const url = `${locationUrl}/${locationId}`;
+    const url = updateLocationUrl(locationId);
     
     try {
       console.log('📍 Location Update Request:', {
@@ -196,21 +196,14 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
     const url = `${listofArtisan}/${professionalId}`;
     
     try {
-      console.log('👤 Get Professional Details Request:', {
-        url,
-        professionalId,
-        hasToken: !!token
-      });
-
       const response = await axios.get(url, {
         headers: {
           Authorization: `Bearer ${token}`
         },
-        timeout: 10000
+        timeout: 30000 // Increased from 10000ms to 30000ms
       });
       
       console.log('✅ Professional Details Success:', response.data);
-      console.log('🔍 Extracted Data:', response.data.data);
       // Extract the actual data from the wrapper response
       const extractedData = response.data.data || response.data;
       console.log('📤 Returning Data:', {
@@ -236,59 +229,145 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
       
       console.error('❌ Professional Details Error:', errorDetails);
 
-      // Return mock data as fallback
-      const mockData = {
-        status: true,
-        message: "success (mock data)",
-        data: {
-          id: professionalId,
-          profile: {
-            firstName: "John",
-            lastName: "Doe",
-            avatar: "https://placehold.co/150x150?text=JD",
-            verified: true,
-            bio: "Experienced professional with over 5 years of experience in the field.",
-            user: {
-              location: { state: "Lagos", lga: "Ikeja" }
+      // If server is unavailable, fall back to mock data
+      if (error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        console.log('Server unavailable or timeout, using mock data for professional details');
+        
+        // Return mock professional data
+        const mockData = {
+          status: true,
+          message: "success (mock data)",
+          data: {
+            id: professionalId,
+            profile: {
+              firstName: "John",
+              lastName: "Doe",
+              avatar: "https://placehold.co/150x150?text=JD",
+              userId: professionalId,
+              user: {
+                location: {
+                  state: 'Lagos',
+                  lga: 'Ikeja'
+                },
+                professionalReviews: [
+                  {
+                    id: 1,
+                    rating: 5,
+                    review: 'Excellent service! Very professional and knowledgeable.',
+                    clientUser: {
+                      profile: {
+                        firstName: 'Client',
+                        lastName: 'Name',
+                        avatar: 'https://placehold.co/150x150?text=CN'
+                      }
+                    },
+                    createdAt: new Date().toISOString()
+                  }
+                ]
+              },
+              professional: {
+                id: professionalId,
+                intro: 'Experienced professional with excellent skills and attention to detail.',
+                language: 'English',
+                yearsOfExp: 5,
+                numRating: 23,
+                avgRating: 4.8,
+                profession: {
+                  title: 'Professional Service'
+                }
+              }
             }
-          },
-          profession: {
-            title: "Plumber",
-            description: "Professional plumbing services"
-          },
-          chargeFrom: 5000,
-          available: true,
-          avgRating: 4.5,
-          totalReviews: 23,
-          completedJobs: 45,
-          skills: ["Plumbing", "Installation", "Repair"],
-          portfolio: [],
-          education: [],
-          experience: [],
-          certifications: []
-        }
-      };
+          }
+        };
+        
+        return mockData.data;
+      }
       
-      console.log('🔄 Using mock professional data as fallback');
-      return mockData;
+      throw error;
     }
   }
 
   export const getProfessionDetailFnBYUserID=async(professionalId:any)=>{
-
-    const token = store.getState().auth?.token; // get token inside function
-    const response=await axios.get(`${getProfessionByUserIdUrl}/${professionalId}`,
-        {
-          headers:{
-            Authorization:`Bearer ${token}`
-          }
+    const token = store.getState().auth?.token; 
+    const url = `${API_BASE_URL}/professionals/user/${professionalId}`; // Build URL directly
     
-      })
-      return response.data
+    try {
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        timeout: 30000 // Increased timeout
+      });
+      
+      console.log('✅ Professional Details by User ID Success:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Professional Details by User ID Error:', {
+        endpoint: url,
+        method: 'GET',
+        professionalId,
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        errorData: error?.response?.data,
+        errorMessage: error?.message,
+      });
 
-   
-
-
+      // If server is unavailable, fall back to mock data
+      if (error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        console.log('Server unavailable or timeout, using mock data for professional details by user ID');
+        
+        // Return mock professional data with proper structure
+        const mockData = {
+          status: true,
+          message: "success (mock data)",
+          data: {
+            id: professionalId,
+            profile: {
+              firstName: "Emeka",
+              lastName: "Obi",
+              avatar: "https://placehold.co/200x200?text=EO",
+              userId: professionalId,
+              user: {
+                location: {
+                  state: 'Lagos',
+                  lga: 'Ikeja'
+                },
+                professionalReviews: [
+                  {
+                    id: 1,
+                    rating: 5,
+                    review: 'Excellent service! Very professional and knowledgeable.',
+                    clientUser: {
+                      profile: {
+                        firstName: 'Client',
+                        lastName: 'Name',
+                        avatar: 'https://placehold.co/150x150?text=CN'
+                      }
+                    },
+                    createdAt: new Date().toISOString()
+                  }
+                ]
+              },
+              professional: {
+                id: professionalId,
+                intro: 'Experienced professional with excellent skills and attention to detail.',
+                language: 'English',
+                yearsOfExp: 5,
+                numRating: 23,
+                avgRating: 4.8,
+                profession: {
+                  title: 'Professional Service'
+                }
+              }
+            }
+          }
+        };
+        
+        return mockData.data;
+      }
+      
+      throw error;
+    }
 }
   export const getProfessionDetailIDFn=async(professionalId:any)=>{
 
@@ -526,14 +605,15 @@ export const SaveTokenFunction=async(fcmToken:any)=>{
 
 export const fetchInvoice = async (jobId: string | number) => {
   const token = store.getState().auth?.token;
-  const { data } = await axios.get<{ data: JobInvoice }>(
+  const response = await axios.get(
     `${jobsUrl}/${jobId}`,
     {
       headers: { Authorization: `Bearer ${token}` },
     }
   );
-  console.log('first test',data.data.id)
-  return data.data;
+  
+  // Return the appropriate data structure
+  return response.data?.data || response.data || null;
 };
 export const updateInvoiceFn=async(id:number,payload:any)=>{
     
@@ -674,11 +754,14 @@ export const resetPinFn=async(data:any)=>{
         }
       
         return response.data;
-     
+}
 
-     
- 
- 
+export const forgotPinFn = async () => {
+  const token = store.getState().auth?.token;
+  const response = await axios.post(forgotPinUrl, {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
 }
 
 
@@ -688,47 +771,75 @@ export const resetPinFn=async(data:any)=>{
 export const paymentInitiate=async(data:any)=>{
 
       const token = store.getState().auth?.token; // get token inside function
-      const response=await axios.post(`${initiatepayment}`,data,
-          {
-            headers:{
-              Authorization:`Bearer ${token}`
-            }
-      
-        })
-        return response.data
+      try {
+        const response=await axios.post(`${initiatepayment}`,data,
+            {
+              headers:{
+                Authorization:`Bearer ${token}`
+              }
 
-     
+          })
+          return response.data
+      } catch (error: any) {
+        // Handle BVN verification required error
+        if (error?.response?.status === 403 && error?.response?.data?.code === 'BVN_REQUIRED') {
+          error.bvnRequired = true;
+        }
+        throw error;
+      }
+}
+
+export const walletCreditFn=async(data:any)=>{
+      const token = store.getState().auth?.token; // get token inside function
+      try {
+        const response=await axios.post(`${API_BASE_URL}/credit-wallet`,data,
+            {
+              headers:{
+                Authorization:`Bearer ${token}`
+              }
+
+          })
+          return response.data
+      } catch (error: any) {
+        // Handle BVN verification required error
+        if (error?.response?.status === 403 && error?.response?.data?.code === 'BVN_REQUIRED') {
+          error.bvnRequired = true;
+        }
+        throw error;
+      }
 }
 
 export const paymentVerify=async(ref:string)=>{
-      const token = store.getState().auth?.token; // get token inside function
-      console.log(token)
-      const response=await axios.post(`${verifypayment}/${ref}`, {},
+      const token = store.getState().auth?.token;
+      const response=await axios.post(verifypayment(ref), {},
           {
             headers:{
               Authorization:`Bearer ${token}`
             }
-      
         })
         return response.data
-
-     
 }
 //transfer
 
 export const transferInitiate=async(data:any)=>{
 
       const token = store.getState().auth?.token; // get token inside function
-      const response=await axios.post(`${initiatetransfer}`,data,
-          {
-            headers:{
-              Authorization:`Bearer ${token}`
-            }
-      
-        })
-        return response.data
+      try {
+        const response=await axios.post(`${initiatetransfer}`,data,
+            {
+              headers:{
+                Authorization:`Bearer ${token}`
+              }
 
-     
+          })
+          return response.data
+      } catch (error: any) {
+        // Handle BVN verification required error
+        if (error?.response?.status === 403 && error?.response?.data?.code === 'BVN_REQUIRED') {
+          error.bvnRequired = true;
+        }
+        throw error;
+      }
 }
 
 export const transferVerify=async(ref:string)=>{
@@ -885,10 +996,14 @@ export const walletDebitFn=async(data:any)=>{
               headers:{
                 Authorization:`Bearer ${token}`
               }
-          
+
           })
           return response.data
       } catch (error: any) {
+        // Handle BVN verification required error
+        if (error?.response?.status === 403 && error?.response?.data?.code === 'BVN_REQUIRED') {
+          error.bvnRequired = true;
+        }
         // If server is unavailable, fall back to mock data
         if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
           console.log('Server unavailable, using mock data for wallet debit');
@@ -900,6 +1015,22 @@ export const walletDebitFn=async(data:any)=>{
         throw error;
       }
 }
+
+export const walletDebitProductFn = async (data: { amount: number; pin: string; productTransactionId: number; reason?: string }) => {
+  const token = store.getState().auth?.token;
+  try {
+    const response = await axios.post(`${debitWalletProductUrl}`, data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error?.response?.status === 403 && error?.response?.data?.code === 'BVN_REQUIRED') {
+      error.bvnRequired = true;
+    }
+    throw error;
+  }
+}
+
 export const educationCreateFn=async(data:any)=>{
   const token = store.getState().auth?.token; // get token inside function
   const response=await axios.post(`${educationUrl}`,data,
@@ -1120,10 +1251,15 @@ export const portfoliosDeleteFn=async(id:number)=>{
 }
 
   export const generalUserDetailFn=async(userid:string)=>{
+    // Guard against undefined userid
+    if (!userid || userid === 'undefined' || userid === undefined) {
+        // Silent fail - don't log to reduce noise
+        return null;
+    }
+    
     const token = store.getState().auth?.token; // get token inside function
     const url = userDetailsgeneralUrl(userid);
 
-    console.log('generalUserDetailFn:', { userid, token: token ? 'present' : 'null', url });
     const response=await axios.get(url,
         {
           headers:{
@@ -1131,7 +1267,6 @@ export const portfoliosDeleteFn=async(id:number)=>{
           }
     
       })
-      console.log('generalUserDetailFn success');
       return response.data
   }
 
@@ -1144,7 +1279,7 @@ export const getContactListFn = async (params: {
 }) => {
   const token = store.getState().auth?.token;
   try {
-    const response = await axios.get(listofContactUrl, {
+    const response = await axios.get(`${API_BASE_URL}${CHAT_CONTACTS.LIST}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -1207,16 +1342,79 @@ export const getContactListFn = async (params: {
   }
 };
 
-export const getLocationFn=async()=>{
-  const token=store.getState().auth?.token
-  const user=store.getState().auth?.user
-  if (!user?.id) throw new Error('User not found');
-  const response=await axios.get(getLocationUrl(user.id), {
-    headers:{
-      Authorization:`Bearer ${token}`
-    }
+export const addChatContactFn = async (contactId: string) => {
+  const token = store.getState().auth?.token;
+  try {
+    const response = await axios.post(`${API_BASE_URL}${CHAT_CONTACTS.ADD}`, {
+      contactId
+    }, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error('Error adding chat contact:', error);
+    throw error;
+  }
+}
+
+export const removeChatContactFn = async (contactId: string) => {
+  const token = store.getState().auth?.token;
+  try {
+    const response = await axios.delete(`${API_BASE_URL}${CHAT_CONTACTS.REMOVE}`, {
+      data: { contactId },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error('Error removing chat contact:', error);
+    throw error;
+  }
+}
+
+export const unhideChatContactFn = async (contactId: string) => {
+  const token = store.getState().auth?.token;
+  try {
+    const response = await axios.post(`${API_BASE_URL}${CHAT_CONTACTS.UNHIDE}`, {
+      contactId
+    }, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error('Error unhiding chat contact:', error);
+    throw error;
+  }
+}
+
+export const addLocationFn = async (data: {
+  address: string;
+  latitude: number;
+  longitude: number;
+  state?: string;
+  lga?: string;
+}) => {
+  const token = store.getState().auth?.token;
+  const response = await axios.post(locationUrl, data, {
+    headers: { Authorization: `Bearer ${token}` },
   });
-  return response.data
+  return response.data;
+};
+
+export const getLocationFn = async () => {
+  const token = store.getState().auth?.token;
+  const response = await axios.get(myLocationsUrl, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
 }
 
 export const updateProfessionalProfileFn=async(data:any)=>{
@@ -1242,4 +1440,26 @@ export const ratingGiveFn=async(data:any)=>{
     return response.data
 
 
+}
+
+export const deleteUserFn=async()=>{
+  const token = store.getState().auth?.token;
+  const response=await axios.delete(deleteUserUrl,
+      {
+        headers:{
+          Authorization:`Bearer ${token}`
+        }
+  })
+  return response.data
+}
+
+export const updateNotificationPreferencesFn=async(data:{callNotifications?:boolean, messengerNotifications?:boolean, hireAlertNotifications?:boolean})=>{
+  const token = store.getState().auth?.token;
+  const response=await axios.put(updateNotificationsUrl,data,
+      {
+        headers:{
+          Authorization:`Bearer ${token}`
+        }
+  })
+  return response.data
 }

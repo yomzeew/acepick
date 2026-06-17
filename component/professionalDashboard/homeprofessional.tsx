@@ -1,4 +1,4 @@
-import { AntDesign, Feather } from "@expo/vector-icons"
+import { AntDesign, Feather, Ionicons } from "@expo/vector-icons"
 import { useMutation } from "@tanstack/react-query"
 import ButtonComponent from "component/buttoncomponent"
 import ContainerTemplate from "component/dashboardComponent/containerTemplate"
@@ -6,12 +6,23 @@ import HeaderComponent from "component/dashboardComponent/headercomponent"
 import WalletCard from "component/dashboardComponent/walletcompoment"
 import EmptyView from "component/emptyview"
 import SliderModalTemplate from "component/slideupModalTemplate"
+import VerificationBadge from "component/controls/verificationBadge"
 import { ThemeText, ThemeTextsecond } from "component/ThemeText"
 import { useRouter } from "expo-router"
 import { useCurrentLocation } from "hooks/useLocation"
 import { useTheme } from "hooks/useTheme"
+import { useBVNVerification } from "hooks/useBVNVerification"
 import { useEffect, useState, useCallback } from "react"
-import { Text, TouchableOpacity, View, ScrollView, RefreshControl, ActivityIndicator } from "react-native"
+import {
+    Text,
+    TouchableOpacity,
+    View,
+    ScrollView,
+    RefreshControl,
+    ActivityIndicator,
+    StyleSheet,
+    Image,
+} from "react-native"
 import { useSelector } from "react-redux"
 import { RootState } from "redux/store"
 import { SaveTokenFunction, updateLocation } from "services/userService"
@@ -26,45 +37,55 @@ const HomeComponentProfession = () => {
     const [showmodal, setshowmodal] = useState(false)
     const [showwithdraw, setshowwithdraw] = useState(false)
     const { theme } = useTheme()
-    const { primaryColor, selectioncardColor, secondaryTextColor, borderColor, backgroundColortwo, successColor, errorColor } = getColors(theme)
+    const {
+        primaryColor,
+        selectioncardColor,
+        secondaryTextColor,
+        borderColor,
+        backgroundColortwo,
+        successColor,
+        errorColor,
+        backgroundColor,
+        subText,
+    } = getColors(theme)
+    const isDark = theme === "dark"
     const [balanceRefreshTrigger, setBalanceRefreshTrigger] = useState(false)
     const [refreshing, setRefreshing] = useState(false)
     const fcmToken = useSelector((state: RootState) => state?.auth.user?.fcmToken)
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const { data: dashboardData, loading: dashboardLoading, refresh: refreshDashboard } = useDashboard()
+    const { isVerified: isBVNVerified, isLoading: bvnLoading } = useBVNVerification()
 
     const user = useSelector((state: RootState) => state.auth?.user) ?? null
     const profile = user?.profile
     const professional = profile?.professional
-    const { location, address, state, lga } = useCurrentLocation()
+    const { location, address, state: locationState, lga } = useCurrentLocation()
 
-    // Derived dashboard data
     const ongoingJobs = (dashboardData as any)?.ongoingJobs || []
     const recentReviews = (dashboardData as any)?.recentReviews || []
     const ratings = (dashboardData as any)?.ratings || { average: 0, total: 0 }
     const recentTransactions = (dashboardData as any)?.recentTransactions || []
 
+    const completionRate = (() => {
+        const total = (profile?.totalJobsCompleted || 0) + (profile?.totalJobsDeclined || 0)
+        if (total === 0) return 0
+        return Math.round(((profile?.totalJobsCompleted || 0) / total) * 100)
+    })()
+
     const saveFcmToken = useCallback(async () => {
-        try {
-            await SaveTokenFunction(fcmToken)
-        } catch (error) {
-            console.error('SaveTokenUrl error:', error)
-        }
+        try { await SaveTokenFunction(fcmToken) } catch {}
     }, [fcmToken])
 
     const locationMutation = useMutation({
-        mutationFn: ({ locationId, data }: { locationId: string; data: any }) => updateLocation(locationId, data),
-        onError: (error: any) => {
-            setErrorMessage(error?.response?.data?.message || error?.message || "Location update failed")
-        },
+        mutationFn: ({ locationId, data }: { locationId: string; data: any }) =>
+            updateLocation(locationId, data),
     })
 
     const updateLocationFn = useCallback(() => {
         const locationId = user?.location?.id?.toString()
         if (!locationId || !location?.coords) return
         const { latitude, longitude } = location.coords
-        locationMutation.mutate({ locationId, data: { latitude, longitude, address, state, lga } })
-    }, [user?.location?.id, location, address, state, lga])
+        locationMutation.mutate({ locationId, data: { latitude, longitude, address, state: locationState, lga } })
+    }, [user?.location?.id, location, address, locationState, lga])
 
     useEffect(() => {
         saveFcmToken()
@@ -78,385 +99,535 @@ const HomeComponentProfession = () => {
         setTimeout(() => setRefreshing(false), 1200)
     }, [refreshDashboard])
 
+    // ── Data configs ────────────────────────────────────────────────
     const jobStats = [
-        { label: "Completed", count: profile?.totalJobsCompleted || 0, color: primaryColor, icon: "check-circle" as const, iconLib: "feather", route: "/jobstatusLayout/COMPLETED" },
-        { label: "In Progress", count: profile?.totalJobsOngoing || 0, color: primaryColor, icon: "loader" as const, iconLib: "feather", route: "/jobstatusLayout/ONGOING" },
-        { label: "Pending", count: profile?.totalJobsPending || 0, color: backgroundColortwo, icon: "clock" as const, iconLib: "feather", route: "/jobstatusLayout/PENDING" },
-        { label: "Declined", count: profile?.totalJobsDeclined || 0, color: backgroundColortwo, icon: "x-circle" as const, iconLib: "feather", route: "/jobstatusLayout/REJECTED" },
+        { label: "Completed", count: profile?.totalJobsCompleted || 0, icon: "check-circle" as const, color: successColor, route: "/jobstatusLayout/COMPLETED" },
+        { label: "In Progress", count: profile?.totalJobsOngoing || 0, icon: "loader" as const, color: primaryColor, route: "/jobstatusLayout/ONGOING" },
+        { label: "Pending", count: profile?.totalJobsPending || 0, icon: "clock" as const, color: backgroundColortwo, route: "/jobstatusLayout/PENDING" },
+        { label: "Declined", count: profile?.totalJobsDeclined || 0, icon: "x-circle" as const, color: errorColor, route: "/jobstatusLayout/REJECTED" },
     ]
 
     const earningsData = [
-        { label: "Completed", amount: professional?.completedAmount || 0, icon: "trending-up", color: primaryColor },
-        { label: "Pending", amount: professional?.pendingAmount || 0, icon: "clock", color: backgroundColortwo },
-        { label: "Withdrawable", amount: professional?.availableWithdrawalAmount || 0, icon: "download", color: primaryColor },
-        { label: "Rejected", amount: professional?.rejectedAmount || 0, icon: "x-circle", color: backgroundColortwo },
+        { label: "Total Earned", amount: professional?.totalEarning || 0, icon: "trending-up" as const, color: successColor },
+        { label: "Completed", amount: professional?.completedAmount || 0, icon: "check-circle" as const, color: primaryColor },
+        { label: "Withdrawable", amount: professional?.availableWithdrawalAmount || 0, icon: "download" as const, color: backgroundColortwo },
+        { label: "Pending", amount: professional?.pendingAmount || 0, icon: "clock" as const, color: backgroundColortwo },
     ]
+
+    const cardBg = isDark ? "#1F2937" : "#FFFFFF"
+    const cardBorder = isDark ? "#374151" : "#E5E7EB"
 
     return (
         <>
-            <SliderModalTemplate showmodal={showmodal} modalHeight={'60%'} setshowmodal={setshowmodal}>
+            <SliderModalTemplate showmodal={showmodal} modalHeight="60%" setshowmodal={setshowmodal}>
                 <SlideupContent />
             </SliderModalTemplate>
-            <SliderModalTemplate showmodal={showwithdraw} modalHeight={'80%'} setshowmodal={setshowwithdraw}>
+            <SliderModalTemplate showmodal={showwithdraw} modalHeight="80%" setshowmodal={setshowwithdraw}>
                 <TransferFund setshowmodal={setshowwithdraw} />
             </SliderModalTemplate>
 
             <ContainerTemplate>
-                <HeaderComponent />
+                <HeaderComponent showSettings={true} />
 
-                <View className="flex-1">
-                    <ScrollView
-                        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />}
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{ paddingBottom: 120 }}
-                    >
-                        {/* Verification Banner */}
-                        <View className="mt-2 mb-3">
-                            <VerificationBadge onPress={() => setshowmodal(true)} />
+                <ScrollView
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />
+                    }
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 120 }}
+                >
+                    {/* ── Verification Banner ── */}
+                    {!bvnLoading ? (
+                        <View style={{ marginBottom: 12 }}>
+                            <VerificationBadge
+                                isVerified={isBVNVerified}
+                                onPress={() => !isBVNVerified && router.push("/bvnActivation")}
+                                size="medium"
+                            />
                         </View>
-
-                        {/* Wallet Card */}
-                        <WalletCard
-                            setshowmodal={setshowmodal}
-                            showmodal={showmodal}
-                            refreshTrigger={balanceRefreshTrigger}
-                            setshowwithdraw={setshowwithdraw}
-                            showwithdraw={showwithdraw}
-                        />
-
-                        {/* Job Stats Grid */}
-                        <View className="mt-5 mb-2 px-1">
-                            <ThemeText size={Textstyles.text_small}>Job Overview</ThemeText>
-                            <EmptyView height={10} />
-                            <View className="flex-row flex-wrap justify-between">
-                                {jobStats.map((stat) => (
-                                    <TouchableOpacity
-                                        key={stat.label}
-                                        onPress={() => router.push(stat.route as any)}
-                                        activeOpacity={0.7}
-                                        style={{ backgroundColor: selectioncardColor, borderColor: borderColor, borderWidth: 1, width: '48%', marginBottom: 10 }}
-                                        className="rounded-2xl p-4"
-                                    >
-                                        <View className="flex-row items-center justify-between mb-2">
-                                            <View style={{ backgroundColor: stat.color + '20' }} className="w-10 h-10 rounded-xl items-center justify-center">
-                                                <Feather name={stat.icon} size={18} color={stat.color} />
-                                            </View>
-                                            <Feather name="chevron-right" size={16} color={secondaryTextColor} />
-                                        </View>
-                                        <Text style={{ fontSize: 28, fontWeight: '700', color: stat.color }}>{stat.count}</Text>
-                                        <ThemeTextsecond size={Textstyles.text_xsmall}>{stat.label}</ThemeTextsecond>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
+                    ) : (
+                        <View style={styles.verifyLoader}>
+                            <ActivityIndicator size="small" color={primaryColor} />
+                            <Text style={[styles.verifyText, { color: subText }]}>Checking verification...</Text>
                         </View>
+                    )}
 
-                        {/* Earnings Section */}
-                        <View className="mt-3 px-1">
-                            <View className="flex-row items-center justify-between mb-3">
-                                <ThemeText size={Textstyles.text_small}>Earnings</ThemeText>
-                                <View style={{ backgroundColor: primaryColor + '20' }} className="px-3 py-1 rounded-full">
-                                    <Text style={{ color: primaryColor, fontSize: 12, fontWeight: '600' }}>
-                                        Total: {formatAmount(professional?.totalEarning || 0)}
+                    {/* ── Wallet ── */}
+                    <WalletCard
+                        setshowmodal={setshowmodal}
+                        showmodal={showmodal}
+                        refreshTrigger={balanceRefreshTrigger}
+                        setshowwithdraw={setshowwithdraw}
+                        showwithdraw={showwithdraw}
+                    />
+
+                    {/* ── Performance strip ── */}
+                    <View style={[styles.perfStrip, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+                        <PerfPill label="Rating" value={`${(ratings.average || 0).toFixed(1)}★`} color={primaryColor} subText={subText} />
+                        <View style={[styles.perfDivider, { backgroundColor: cardBorder }]} />
+                        <PerfPill label="Reviews" value={`${ratings.total || 0}`} color={backgroundColortwo} subText={subText} />
+                        <View style={[styles.perfDivider, { backgroundColor: cardBorder }]} />
+                        <PerfPill label="Completion" value={`${completionRate}%`} color={successColor} subText={subText} />
+                    </View>
+
+                    {/* ── Job Stats ── */}
+                    <SectionHeader
+                        title="Job Overview"
+                        action={{ label: "All Jobs", onPress: () => router.push("/jobstatusLayout/ONGOING" as any) }}
+                        primaryColor={primaryColor}
+                        subText={subText}
+                    />
+                    <View style={styles.statsGrid}>
+                        {jobStats.map((stat) => (
+                            <TouchableOpacity
+                                key={stat.label}
+                                onPress={() => router.push(stat.route as any)}
+                                activeOpacity={0.75}
+                                style={[styles.statCard, { backgroundColor: cardBg, borderColor: cardBorder }]}
+                            >
+                                <View style={[styles.statIcon, { backgroundColor: stat.color + "18" }]}>
+                                    <Feather name={stat.icon} size={18} color={stat.color} />
+                                </View>
+                                <Text style={[styles.statCount, { color: stat.color }]}>{stat.count}</Text>
+                                <Text style={[styles.statLabel, { color: subText }]}>{stat.label}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    {/* ── Earnings ── */}
+                    <SectionHeader title="Earnings" primaryColor={primaryColor} subText={subText} />
+                    <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+                        {earningsData.map((item, i) => (
+                            <View key={item.label}>
+                                <View style={styles.earningsRow}>
+                                    <View style={[styles.earningsIcon, { backgroundColor: item.color + "18" }]}>
+                                        <Feather name={item.icon} size={15} color={item.color} />
+                                    </View>
+                                    <Text style={[styles.earningsLabel, { color: subText }]}>{item.label}</Text>
+                                    <Text style={[styles.earningsAmount, { color: item.color }]}>
+                                        {formatAmount(item.amount)}
                                     </Text>
                                 </View>
+                                {i < earningsData.length - 1 && (
+                                    <View style={[styles.divider, { backgroundColor: cardBorder }]} />
+                                )}
                             </View>
-                            <View style={{ backgroundColor: selectioncardColor, borderColor: borderColor, borderWidth: 1 }} className="rounded-2xl p-4">
-                                {earningsData.map((item, index) => (
-                                    <View key={item.label}>
-                                        <View className="flex-row items-center justify-between py-3">
-                                            <View className="flex-row items-center flex-1">
-                                                <View style={{ backgroundColor: item.color + '15' }} className="w-9 h-9 rounded-xl items-center justify-center mr-3">
-                                                    <Feather name={item.icon as any} size={16} color={item.color} />
-                                                </View>
-                                                <ThemeTextsecond size={Textstyles.text_small}>{item.label}</ThemeTextsecond>
+                        ))}
+                    </View>
+
+                    {/* ── Jobs In Progress ── */}
+                    <SectionHeader
+                        title="Jobs in Progress"
+                        action={{ label: "See All", onPress: () => router.push("/jobstatusLayout/ONGOING" as any) }}
+                        primaryColor={primaryColor}
+                        subText={subText}
+                    />
+
+                    {dashboardLoading && ongoingJobs.length === 0 ? (
+                        <View style={styles.emptyCenter}>
+                            <ActivityIndicator color={primaryColor} />
+                        </View>
+                    ) : ongoingJobs.length === 0 ? (
+                        <EmptyCard
+                            icon="briefcase"
+                            title="No jobs in progress"
+                            subtitle="Active jobs will appear here"
+                            cardBg={cardBg}
+                            cardBorder={cardBorder}
+                            subText={subText}
+                        />
+                    ) : (
+                        ongoingJobs.slice(0, 3).map((job: any) => (
+                            <OngoingJobCard
+                                key={job.id}
+                                job={job}
+                                onPress={() => router.push(`/jobdetailsLayout/${job.id}` as any)}
+                                primaryColor={primaryColor}
+                                cardBg={cardBg}
+                                cardBorder={cardBorder}
+                                subText={subText}
+                            />
+                        ))
+                    )}
+
+                    {/* ── Ratings & Reviews ── */}
+                    <SectionHeader title="Ratings & Reviews" primaryColor={primaryColor} subText={subText} />
+                    <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+                        {/* Summary row */}
+                        <View style={styles.ratingsSummary}>
+                            <View style={styles.ratingsBig}>
+                                <Text style={[styles.ratingNumber, { color: primaryColor }]}>
+                                    {(ratings.average || 0).toFixed(1)}
+                                </Text>
+                                <View style={styles.starsRow}>
+                                    {[1, 2, 3, 4, 5].map((s) => (
+                                        <AntDesign
+                                            key={s}
+                                            name={s <= Math.round(ratings.average || 0) ? "star" : "staro"}
+                                            size={13}
+                                            color={primaryColor}
+                                            style={{ marginHorizontal: 1 }}
+                                        />
+                                    ))}
+                                </View>
+                                <Text style={[styles.reviewCount, { color: subText }]}>
+                                    {ratings.total || 0} reviews
+                                </Text>
+                            </View>
+                            <View style={[styles.ratingsVDivider, { backgroundColor: cardBorder }]} />
+                            <View style={styles.ratingsRight}>
+                                {[5, 4, 3, 2, 1].map((star) => {
+                                    const pct = ratings.total
+                                        ? Math.round(((ratings[`star${star}`] || 0) / ratings.total) * 100)
+                                        : 0
+                                    return (
+                                        <View key={star} style={styles.barRow}>
+                                            <Text style={[styles.barLabel, { color: subText }]}>{star}</Text>
+                                            <View style={[styles.barTrack, { backgroundColor: cardBorder }]}>
+                                                <View style={[styles.barFill, { backgroundColor: primaryColor, width: `${pct}%` as any }]} />
                                             </View>
-                                            <Text style={{ fontSize: 16, fontWeight: '600', color: item.color }}>
-                                                {formatAmount(item.amount)}
+                                        </View>
+                                    )
+                                })}
+                            </View>
+                        </View>
+
+                        {/* Recent reviews */}
+                        {recentReviews.length > 0 && (
+                            <>
+                                <View style={[styles.divider, { backgroundColor: cardBorder, marginVertical: 14 }]} />
+                                {recentReviews.map((review: any, i: number) => (
+                                    <View key={review.id || i} style={{ marginBottom: i < recentReviews.length - 1 ? 14 : 0 }}>
+                                        <View style={styles.reviewHeader}>
+                                            {review.clientUser?.profile?.avatar ? (
+                                                <Image
+                                                    source={{ uri: review.clientUser.profile.avatar }}
+                                                    style={[styles.reviewAvatar, { borderColor: primaryColor + "40" }]}
+                                                />
+                                            ) : (
+                                                <View style={[styles.reviewAvatarFallback, { backgroundColor: primaryColor + "20" }]}>
+                                                    <Text style={[styles.reviewInitial, { color: primaryColor }]}>
+                                                        {(review.clientUser?.profile?.firstName?.[0] || "?").toUpperCase()}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={[styles.reviewName, { color: subText }]}>
+                                                    {review.clientUser?.profile?.firstName} {review.clientUser?.profile?.lastName}
+                                                </Text>
+                                                <View style={styles.reviewStars}>
+                                                    {[1, 2, 3, 4, 5].map((s) => (
+                                                        <AntDesign
+                                                            key={s}
+                                                            name={s <= (review.rating || 0) ? "star" : "staro"}
+                                                            size={11}
+                                                            color={primaryColor}
+                                                        />
+                                                    ))}
+                                                </View>
+                                            </View>
+                                            <Text style={[styles.reviewDate, { color: subText }]}>
+                                                {new Date(review.createdAt).toLocaleDateString()}
                                             </Text>
                                         </View>
-                                        {index < earningsData.length - 1 && (
-                                            <View style={{ backgroundColor: borderColor, height: 1 }} />
+                                        {review.text ? (
+                                            <Text style={[styles.reviewText, { color: subText }]}>"{review.text}"</Text>
+                                        ) : null}
+                                        {i < recentReviews.length - 1 && (
+                                            <View style={[styles.divider, { backgroundColor: cardBorder, marginTop: 12 }]} />
+                                        )}
+                                    </View>
+                                ))}
+                            </>
+                        )}
+
+                        {recentReviews.length === 0 && (
+                            <View style={styles.emptyCenter}>
+                                <Feather name="message-square" size={28} color={subText} />
+                                <Text style={[styles.emptyTitle, { color: subText }]}>No reviews yet</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* ── Recent Transactions ── */}
+                    {recentTransactions.length > 0 && (
+                        <>
+                            <SectionHeader
+                                title="Recent Transactions"
+                                action={{ label: "View All", onPress: () => router.push("/billhistorylayout") }}
+                                primaryColor={primaryColor}
+                                subText={subText}
+                            />
+                            <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+                                {recentTransactions.slice(0, 5).map((txn: any, i: number) => (
+                                    <View key={txn.id}>
+                                        <View style={styles.txnRow}>
+                                            <View style={[styles.txnIcon, {
+                                                backgroundColor: (txn.type === "credit" ? successColor : errorColor) + "18",
+                                            }]}>
+                                                <Feather
+                                                    name={txn.type === "credit" ? "arrow-down-left" : "arrow-up-right"}
+                                                    size={15}
+                                                    color={txn.type === "credit" ? successColor : errorColor}
+                                                />
+                                            </View>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={[styles.txnDesc, { color: subText }]} numberOfLines={1}>
+                                                    {txn.description || (txn.type === "credit" ? "Credit" : "Debit")}
+                                                </Text>
+                                                <Text style={[styles.txnDate, { color: subText }]}>
+                                                    {new Date(txn.createdAt).toLocaleDateString()}
+                                                </Text>
+                                            </View>
+                                            <Text style={[styles.txnAmount, {
+                                                color: txn.type === "credit" ? successColor : errorColor,
+                                            }]}>
+                                                {txn.type === "credit" ? "+" : "-"}{formatAmount(txn.amount)}
+                                            </Text>
+                                        </View>
+                                        {i < Math.min(recentTransactions.length, 5) - 1 && (
+                                            <View style={[styles.divider, { backgroundColor: cardBorder }]} />
                                         )}
                                     </View>
                                 ))}
                             </View>
-                        </View>
-
-                        {/* Jobs In Progress */}
-                        <View className="mt-5 px-1">
-                            <View className="flex-row items-center justify-between mb-3">
-                                <ThemeText size={Textstyles.text_small}>Jobs in Progress</ThemeText>
-                                <TouchableOpacity
-                                    onPress={() => router.push('/jobstatusLayout/ONGOING')}
-                                    style={{ backgroundColor: primaryColor + '15' }}
-                                    className="px-3 py-1.5 rounded-full"
-                                >
-                                    <Text style={{ color: primaryColor, fontSize: 12, fontWeight: '600' }}>See All</Text>
-                                </TouchableOpacity>
-                            </View>
-
-                            {dashboardLoading && ongoingJobs.length === 0 ? (
-                                <View className="py-8 items-center">
-                                    <ActivityIndicator size="small" color={primaryColor} />
-                                </View>
-                            ) : ongoingJobs.length === 0 ? (
-                                <View style={{ backgroundColor: selectioncardColor, borderColor: borderColor, borderWidth: 1 }} className="rounded-2xl p-6 items-center">
-                                    <Feather name="briefcase" size={32} color={secondaryTextColor} />
-                                    <EmptyView height={8} />
-                                    <ThemeTextsecond size={Textstyles.text_small}>No jobs in progress</ThemeTextsecond>
-                                    <ThemeTextsecond size={Textstyles.text_xsmall}>Active jobs will appear here</ThemeTextsecond>
-                                </View>
-                            ) : (
-                                ongoingJobs.slice(0, 3).map((job: any) => (
-                                    <OngoingJobCard
-                                        key={job.id}
-                                        job={job}
-                                        onPress={() => router.push(`/jobdetails/${job.id}` as any)}
-                                    />
-                                ))
-                            )}
-                        </View>
-
-                        {/* Ratings & Reviews */}
-                        <View className="mt-5 px-1">
-                            <View className="flex-row items-center justify-between mb-3">
-                                <ThemeText size={Textstyles.text_small}>Ratings & Reviews</ThemeText>
-                            </View>
-                            <View style={{ backgroundColor: selectioncardColor, borderColor: borderColor, borderWidth: 1 }} className="rounded-2xl p-4">
-                                {/* Rating Summary */}
-                                <View className="flex-row items-center mb-4">
-                                    <View className="items-center mr-5">
-                                        <Text style={{ fontSize: 36, fontWeight: '700', color: primaryColor }}>
-                                            {(ratings.average || 0).toFixed(1)}
-                                        </Text>
-                                        <View className="flex-row mt-1">
-                                            {[1, 2, 3, 4, 5].map((star) => (
-                                                <AntDesign
-                                                    key={star}
-                                                    name={star <= Math.round(ratings.average || 0) ? "star" : "staro"}
-                                                    size={14}
-                                                    color={primaryColor}
-                                                    style={{ marginHorizontal: 1 }}
-                                                />
-                                            ))}
-                                        </View>
-                                        <ThemeTextsecond size={Textstyles.text_xsmall}>
-                                            {ratings.total || 0} reviews
-                                        </ThemeTextsecond>
-                                    </View>
-                                    <View style={{ backgroundColor: borderColor, width: 1, height: 60 }} />
-                                    <View className="flex-1 ml-5">
-                                        <ThemeTextsecond size={Textstyles.text_xsmall}>
-                                            Your rating is visible to clients when they search for professionals.
-                                        </ThemeTextsecond>
-                                    </View>
-                                </View>
-
-                                {/* Recent Reviews */}
-                                {recentReviews.length > 0 && (
-                                    <>
-                                        <View style={{ backgroundColor: borderColor, height: 1, marginBottom: 12 }} />
-                                        {recentReviews.map((review: any, index: number) => (
-                                            <View key={review.id || index} className="mb-3">
-                                                <View className="flex-row items-center mb-1">
-                                                    <View style={{ backgroundColor: primaryColor + '20' }} className="w-8 h-8 rounded-full items-center justify-center mr-2">
-                                                        <Text style={{ color: primaryColor, fontSize: 12, fontWeight: '600' }}>
-                                                            {(review.clientUser?.profile?.firstName?.[0] || '?').toUpperCase()}
-                                                        </Text>
-                                                    </View>
-                                                    <View className="flex-1">
-                                                        <ThemeTextsecond size={Textstyles.text_xsmall}>
-                                                            {review.clientUser?.profile?.firstName} {review.clientUser?.profile?.lastName}
-                                                        </ThemeTextsecond>
-                                                    </View>
-                                                    <ThemeTextsecond size={{ fontSize: 10 }}>
-                                                        {new Date(review.createdAt).toLocaleDateString()}
-                                                    </ThemeTextsecond>
-                                                </View>
-                                                <ThemeTextsecond size={Textstyles.text_xsmall}>
-                                                    "{review.text}"
-                                                </ThemeTextsecond>
-                                                {index < recentReviews.length - 1 && (
-                                                    <View style={{ backgroundColor: borderColor, height: 1, marginTop: 10 }} />
-                                                )}
-                                            </View>
-                                        ))}
-                                    </>
-                                )}
-                            </View>
-                        </View>
-
-                        {/* Recent Transactions */}
-                        {recentTransactions.length > 0 && (
-                            <View className="mt-5 px-1">
-                                <View className="flex-row items-center justify-between mb-3">
-                                    <ThemeText size={Textstyles.text_small}>Recent Transactions</ThemeText>
-                                    <TouchableOpacity
-                                        onPress={() => router.push('/billhistorylayout')}
-                                        style={{ backgroundColor: primaryColor + '15' }}
-                                        className="px-3 py-1.5 rounded-full"
-                                    >
-                                        <Text style={{ color: primaryColor, fontSize: 12, fontWeight: '600' }}>View All</Text>
-                                    </TouchableOpacity>
-                                </View>
-                                <View style={{ backgroundColor: selectioncardColor, borderColor: borderColor, borderWidth: 1 }} className="rounded-2xl p-3">
-                                    {recentTransactions.slice(0, 4).map((txn: any, index: number) => (
-                                        <View key={txn.id}>
-                                            <View className="flex-row items-center py-2.5">
-                                                <View
-                                                    style={{ backgroundColor: (txn.type === 'credit' ? successColor : errorColor) + '20' }}
-                                                    className="w-9 h-9 rounded-xl items-center justify-center mr-3"
-                                                >
-                                                    <Feather
-                                                        name={txn.type === 'credit' ? 'arrow-down-left' : 'arrow-up-right'}
-                                                        size={16}
-                                                        color={txn.type === 'credit' ? successColor : errorColor}
-                                                    />
-                                                </View>
-                                                <View className="flex-1">
-                                                    <ThemeTextsecond size={Textstyles.text_xsmall}>
-                                                        {txn.description || (txn.type === 'credit' ? 'Credit' : 'Debit')}
-                                                    </ThemeTextsecond>
-                                                    <ThemeTextsecond size={{ fontSize: 10 }}>
-                                                        {new Date(txn.createdAt).toLocaleDateString()}
-                                                    </ThemeTextsecond>
-                                                </View>
-                                                <Text style={{ fontSize: 14, fontWeight: '600', color: txn.type === 'credit' ? successColor : errorColor }}>
-                                                    {txn.type === 'credit' ? '+' : '-'}{formatAmount(txn.amount)}
-                                                </Text>
-                                            </View>
-                                            {index < Math.min(recentTransactions.length, 4) - 1 && (
-                                                <View style={{ backgroundColor: borderColor, height: 1 }} />
-                                            )}
-                                        </View>
-                                    ))}
-                                </View>
-                            </View>
-                        )}
-
-                    </ScrollView>
-                </View>
+                        </>
+                    )}
+                </ScrollView>
             </ContainerTemplate>
         </>
     )
 }
+
 export default HomeComponentProfession
 
-// ── Ongoing Job Card ────────────────────────────────────────────────
+// ─── Sub-components ──────────────────────────────────────────────────────────
+
+const SectionHeader = ({
+    title,
+    action,
+    primaryColor,
+    subText,
+}: {
+    title: string
+    action?: { label: string; onPress: () => void }
+    primaryColor: string
+    subText: string
+}) => (
+    <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: subText }]}>{title}</Text>
+        {action && (
+            <TouchableOpacity
+                onPress={action.onPress}
+                style={[styles.sectionAction, { backgroundColor: primaryColor + "18" }]}
+            >
+                <Text style={[styles.sectionActionText, { color: primaryColor }]}>{action.label}</Text>
+            </TouchableOpacity>
+        )}
+    </View>
+)
+
+const PerfPill = ({ label, value, color, subText }: { label: string; value: string; color: string; subText: string }) => (
+    <View style={styles.perfPill}>
+        <Text style={[styles.perfValue, { color }]}>{value}</Text>
+        <Text style={[styles.perfLabel, { color: subText }]}>{label}</Text>
+    </View>
+)
+
+const EmptyCard = ({
+    icon,
+    title,
+    subtitle,
+    cardBg,
+    cardBorder,
+    subText,
+}: {
+    icon: any; title: string; subtitle: string
+    cardBg: string; cardBorder: string; subText: string
+}) => (
+    <View style={[styles.card, styles.emptyCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+        <Feather name={icon} size={30} color={subText} />
+        <Text style={[styles.emptyTitle, { color: subText }]}>{title}</Text>
+        <Text style={[styles.emptySubtitle, { color: subText }]}>{subtitle}</Text>
+    </View>
+)
+
 interface OngoingJobCardProps {
-    job: any;
-    onPress: () => void;
+    job: any
+    onPress: () => void
+    primaryColor: string
+    cardBg: string
+    cardBorder: string
+    subText: string
 }
-const OngoingJobCard = ({ job, onPress }: OngoingJobCardProps) => {
-    const { theme } = useTheme()
-    const { selectioncardColor, borderColor, primaryColor, secondaryTextColor } = getColors(theme)
+const OngoingJobCard = ({ job, onPress, primaryColor, cardBg, cardBorder, subText }: OngoingJobCardProps) => {
     const clientName = job.client?.profile
         ? `${job.client.profile.firstName} ${job.client.profile.lastName}`
-        : 'Unknown Client'
+        : "Unknown Client"
 
     return (
         <TouchableOpacity
             onPress={onPress}
-            activeOpacity={0.7}
-            style={{ backgroundColor: selectioncardColor, borderColor: borderColor, borderWidth: 1 }}
-            className="rounded-2xl p-4 mb-2.5"
+            activeOpacity={0.75}
+            style={[styles.jobCard, { backgroundColor: cardBg, borderColor: cardBorder }]}
         >
-            <View className="flex-row items-start justify-between mb-2">
-                <View className="flex-1 mr-3">
-                    <ThemeText size={Textstyles.text_small}>{job.title || 'Untitled Job'}</ThemeText>
-                    <View className="flex-row items-center mt-1">
-                        <Feather name="user" size={12} color={secondaryTextColor} />
-                        <ThemeTextsecond size={Textstyles.text_xsmall}> {clientName}</ThemeTextsecond>
+            {/* Left accent bar */}
+            <View style={[styles.jobAccentBar, { backgroundColor: primaryColor }]} />
+
+            <View style={{ flex: 1 }}>
+                <View style={styles.jobCardTop}>
+                    <Text style={[styles.jobTitle, { color: subText }]} numberOfLines={1}>
+                        {job.title || "Untitled Job"}
+                    </Text>
+                    <View style={[styles.jobBadge, { backgroundColor: primaryColor + "18" }]}>
+                        <Text style={[styles.jobBadgeText, { color: primaryColor }]}>Ongoing</Text>
                     </View>
                 </View>
-                <View style={{ backgroundColor: primaryColor + '20' }} className="px-2.5 py-1 rounded-full">
-                    <Text style={{ color: primaryColor, fontSize: 11, fontWeight: '600' }}>Ongoing</Text>
+
+                <View style={styles.jobMeta}>
+                    <View style={styles.jobMetaItem}>
+                        <Feather name="user" size={11} color={subText} />
+                        <Text style={[styles.jobMetaText, { color: subText }]}>{clientName}</Text>
+                    </View>
+                    <View style={styles.jobMetaItem}>
+                        <Feather name="calendar" size={11} color={subText} />
+                        <Text style={[styles.jobMetaText, { color: subText }]}>
+                            {new Date(job.createdAt).toLocaleDateString()}
+                        </Text>
+                    </View>
                 </View>
-            </View>
-            <View className="flex-row items-center justify-between mt-1">
-                <View className="flex-row items-center">
-                    <Feather name="calendar" size={12} color={secondaryTextColor} />
-                    <ThemeTextsecond size={{ fontSize: 11 }}> {new Date(job.createdAt).toLocaleDateString()}</ThemeTextsecond>
-                </View>
+
                 {job.total != null && (
-                    <Text style={{ fontSize: 14, fontWeight: '700', color: primaryColor }}>
+                    <Text style={[styles.jobAmount, { color: primaryColor }]}>
                         {formatAmount(job.total)}
                     </Text>
                 )}
             </View>
+
+            <Feather name="chevron-right" size={16} color={subText} style={{ marginLeft: 8 }} />
         </TouchableOpacity>
     )
 }
 
-// ── Verification Badge ──────────────────────────────────────────────
-const VerificationBadge = ({ onPress }: { onPress: () => void }) => {
-    const { theme } = useTheme()
-    const { primaryColor, backgroundColortwo } = getColors(theme)
-
-    return (
-        <TouchableOpacity
-            onPress={onPress}
-            activeOpacity={0.8}
-            style={{
-                backgroundColor: '#DC262610',
-                borderColor: '#DC262630',
-                borderWidth: 1,
-            }}
-            className="w-full rounded-2xl px-4 py-3"
-        >
-            <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center flex-1">
-                    <View
-                        style={{ backgroundColor: '#DC2626' }}
-                        className="w-9 h-9 rounded-full justify-center items-center"
-                    >
-                        <AntDesign size={14} name="warning" color="#ffffff" />
-                    </View>
-                    <View className="ml-3 flex-1">
-                        <Text style={{ fontSize: 13, fontWeight: '600', color: '#DC2626' }}>
-                            Verification Required
-                        </Text>
-                        <Text style={{ fontSize: 11, color: '#DC262699', marginTop: 1 }}>
-                            Complete to be visible to clients
-                        </Text>
-                    </View>
-                </View>
-                <View style={{ backgroundColor: primaryColor }} className="px-3.5 py-2 rounded-xl">
-                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Verify</Text>
-                </View>
-            </View>
-        </TouchableOpacity>
-    )
-}
-
-// ── Slide-up Content ────────────────────────────────────────────────
 const SlideupContent = () => {
     const { theme } = useTheme()
     const { primaryColor, backgroundColortwo } = getColors(theme)
     return (
-        <View className="h-full w-full px-5 items-center justify-center">
+        <View style={styles.slideup}>
             <EmptyView height={40} />
-            <View style={{ backgroundColor: backgroundColortwo + '20' }} className="w-20 h-20 rounded-full items-center justify-center">
+            <View style={[styles.slideupIcon, { backgroundColor: backgroundColortwo + "20" }]}>
                 <AntDesign name="warning" size={36} color={backgroundColortwo} />
             </View>
             <EmptyView height={20} />
             <ThemeText size={Textstyles.text_medium}>Account Not Verified</ThemeText>
             <EmptyView height={8} />
             <ThemeTextsecond size={Textstyles.text_xsmall}>
-                <Text style={{ textAlign: 'center' }}>
+                <Text style={{ textAlign: "center" }}>
                     Please activate your account to be visible to clients and start receiving job requests.
                 </Text>
             </ThemeTextsecond>
             <EmptyView height={30} />
-            <View className="w-full px-3">
-                <ButtonComponent
-                    color={primaryColor}
-                    text="Activate Now"
-                    textcolor="#ffffff"
-                    onPress={() => null}
-                />
+            <View style={{ width: "100%", paddingHorizontal: 12 }}>
+                <ButtonComponent color={primaryColor} text="Activate Now" textcolor="#ffffff" onPress={() => null} />
             </View>
         </View>
     )
 }
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+    verifyLoader: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 8, marginBottom: 8 },
+    verifyText: { fontSize: 12, marginLeft: 8, fontFamily: "TTFirsNeue" },
+
+    perfStrip: {
+        flexDirection: "row", alignItems: "center", borderRadius: 16,
+        borderWidth: 1, marginTop: 14, marginBottom: 2, paddingVertical: 14,
+    },
+    perfPill: { flex: 1, alignItems: "center" },
+    perfValue: { fontSize: 18, fontWeight: "700", fontFamily: "TTFirsNeueMedium" },
+    perfLabel: { fontSize: 11, fontFamily: "TTFirsNeue", marginTop: 2 },
+    perfDivider: { width: 1, height: 36 },
+
+    sectionHeader: {
+        flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+        marginTop: 22, marginBottom: 10, paddingHorizontal: 2,
+    },
+    sectionTitle: { fontSize: 16, fontWeight: "700", fontFamily: "TTFirsNeueMedium" },
+    sectionAction: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
+    sectionActionText: { fontSize: 12, fontWeight: "600", fontFamily: "TTFirsNeueMedium" },
+
+    statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+    statCard: {
+        width: "48%", borderRadius: 18, borderWidth: 1,
+        padding: 16, alignItems: "flex-start",
+        shadowColor: "#000", shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
+    },
+    statIcon: { width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center", marginBottom: 12 },
+    statCount: { fontSize: 30, fontWeight: "800", fontFamily: "TTFirsNeueMedium", lineHeight: 34 },
+    statLabel: { fontSize: 12, fontFamily: "TTFirsNeue", marginTop: 3 },
+
+    card: {
+        borderRadius: 20, borderWidth: 1, padding: 16,
+        shadowColor: "#000", shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
+    },
+    divider: { height: 1 },
+
+    earningsRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12 },
+    earningsIcon: { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center", marginRight: 12 },
+    earningsLabel: { flex: 1, fontSize: 14, fontFamily: "TTFirsNeue" },
+    earningsAmount: { fontSize: 15, fontWeight: "700", fontFamily: "TTFirsNeueMedium" },
+
+    jobCard: {
+        flexDirection: "row", alignItems: "center", borderRadius: 18,
+        borderWidth: 1, padding: 14, marginBottom: 10, overflow: "hidden",
+        shadowColor: "#000", shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
+    },
+    jobAccentBar: { width: 4, height: "100%", borderRadius: 4, marginRight: 12, position: "absolute", left: 0, top: 0, bottom: 0 },
+    jobCardTop: { flexDirection: "row", alignItems: "center", marginLeft: 8 },
+    jobTitle: { flex: 1, fontSize: 14, fontWeight: "600", fontFamily: "TTFirsNeueMedium", marginRight: 8 },
+    jobBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+    jobBadgeText: { fontSize: 11, fontWeight: "600", fontFamily: "TTFirsNeueMedium" },
+    jobMeta: { flexDirection: "row", gap: 14, marginTop: 6, marginLeft: 8 },
+    jobMetaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+    jobMetaText: { fontSize: 11, fontFamily: "TTFirsNeue" },
+    jobAmount: { fontSize: 15, fontWeight: "700", fontFamily: "TTFirsNeueMedium", marginTop: 6, marginLeft: 8 },
+
+    emptyCard: { alignItems: "center", paddingVertical: 28 },
+    emptyCenter: { alignItems: "center", paddingVertical: 20 },
+    emptyTitle: { fontSize: 14, fontFamily: "TTFirsNeueMedium", marginTop: 8, fontWeight: "600" },
+    emptySubtitle: { fontSize: 12, fontFamily: "TTFirsNeue", marginTop: 4 },
+
+    ratingsSummary: { flexDirection: "row", alignItems: "center", paddingBottom: 4 },
+    ratingsBig: { alignItems: "center", paddingRight: 16, minWidth: 90 },
+    ratingNumber: { fontSize: 40, fontWeight: "800", fontFamily: "TTFirsNeueMedium", lineHeight: 44 },
+    starsRow: { flexDirection: "row", marginTop: 4 },
+    reviewCount: { fontSize: 11, fontFamily: "TTFirsNeue", marginTop: 4 },
+    ratingsVDivider: { width: 1, height: 70 },
+    ratingsRight: { flex: 1, paddingLeft: 16, gap: 5 },
+    barRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+    barLabel: { fontSize: 11, fontFamily: "TTFirsNeue", width: 10 },
+    barTrack: { flex: 1, height: 5, borderRadius: 3, overflow: "hidden" },
+    barFill: { height: 5, borderRadius: 3 },
+
+    reviewHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 6 },
+    reviewAvatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 1.5 },
+    reviewAvatarFallback: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+    reviewInitial: { fontSize: 14, fontWeight: "700", fontFamily: "TTFirsNeueMedium" },
+    reviewName: { fontSize: 13, fontWeight: "600", fontFamily: "TTFirsNeueMedium" },
+    reviewStars: { flexDirection: "row", gap: 2, marginTop: 2 },
+    reviewDate: { fontSize: 10, fontFamily: "TTFirsNeue" },
+    reviewText: { fontSize: 13, fontFamily: "TTFirsNeue", lineHeight: 19, paddingLeft: 46, fontStyle: "italic" },
+
+    txnRow: { flexDirection: "row", alignItems: "center", paddingVertical: 11 },
+    txnIcon: { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center", marginRight: 12 },
+    txnDesc: { fontSize: 13, fontWeight: "600", fontFamily: "TTFirsNeueMedium" },
+    txnDate: { fontSize: 11, fontFamily: "TTFirsNeue", marginTop: 2 },
+    txnAmount: { fontSize: 13, fontWeight: "700", fontFamily: "TTFirsNeueMedium" },
+
+    slideup: { flex: 1, width: "100%", paddingHorizontal: 20, alignItems: "center", justifyContent: "center" },
+    slideupIcon: { width: 80, height: 80, borderRadius: 40, alignItems: "center", justifyContent: "center" },
+})

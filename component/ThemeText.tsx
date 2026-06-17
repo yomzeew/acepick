@@ -8,20 +8,22 @@ interface ThemeTextProps {
   size: TextStyle;
   type?: 'primary' | 'secondary';
   className?: string;
+  style?: TextStyle;
 }
 
 export const ThemeText: React.FC<ThemeTextProps> = ({ 
   children, 
   size, 
   type = 'primary', 
-  className = "" 
+  className = "",
+  style 
 }) => {
   const { theme } = useTheme();
   const { primaryColor, backgroundColor, primaryTextColor, secondaryTextColor } = getColors(theme);
   
   return (
     <Text 
-      style={[size, { color: type === 'secondary' ? secondaryTextColor : primaryTextColor }]}
+      style={[size, { color: type === 'secondary' ? secondaryTextColor : primaryTextColor }, style]}
       className={className}
       allowFontScaling={false}
     >
@@ -33,15 +35,17 @@ export const ThemeText: React.FC<ThemeTextProps> = ({
 interface ThemeTextSecondProps {
   children: ReactNode;
   size?: TextStyle;
+  className?: string;
 }
 
-export const ThemeTextsecond: React.FC<ThemeTextSecondProps> = ({ children, size }) => {
+export const ThemeTextsecond: React.FC<ThemeTextSecondProps> = ({ children, size, className = "" }) => {
   const { theme } = useTheme();
   const { textColor } = getColors(theme);
   
   return (
     <Text 
       style={[size, { color: textColor }]}
+      className={className}
       allowFontScaling={false}
     >
       {children}

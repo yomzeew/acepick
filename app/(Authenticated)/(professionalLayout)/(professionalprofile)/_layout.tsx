@@ -5,7 +5,7 @@ export default function ProfessionalProfilepagesLayout() {
   return (
     
       <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="[professionalId]" />
+      <Stack.Screen name="profile/[id]" />
       <Stack.Screen name="professionalSettingLayout" />
       <Stack.Screen name="corporateReglayout" />
       <Stack.Screen name="artisanSettingLayout" />
@@ -15,7 +15,6 @@ export default function ProfessionalProfilepagesLayout() {
       <Stack.Screen name="faqlayout" />
       <Stack.Screen name="passwordchangelayout" />
       <Stack.Screen name="billhistorylayout" />
-      <Stack.Screen name="(artisanProfileEditLayout)" />
     </Stack> 
   );
 }

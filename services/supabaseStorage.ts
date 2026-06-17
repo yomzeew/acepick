@@ -38,6 +38,12 @@ const getMimeType = (ext: string): string => {
     heif: 'image/heif',
     svg: 'image/svg+xml',
     pdf: 'application/pdf',
+    mp4: 'video/mp4',
+    m4a: 'audio/mp4',
+    mp3: 'audio/mpeg',
+    wav: 'audio/wav',
+    aac: 'audio/aac',
+    ogg: 'audio/ogg',
   };
   return map[ext] || 'application/octet-stream';
 };
@@ -167,6 +173,22 @@ export const uploadGenericFile = async (uri: string, folder?: string): Promise<s
     folder: folder ? `${FOLDERS.GENERAL}/${folder}` : FOLDERS.GENERAL,
   });
   return result.url;
+};
+
+/**
+ * Upload a call recording audio file. Returns { url, path }.
+ * @param uri - Local file URI from expo-av Recording
+ * @param callerId - Caller's user ID for subfolder organization
+ */
+export const uploadCallRecording = async (
+  uri: string,
+  callerId?: string,
+): Promise<UploadResult> => {
+  return uploadFile(uri, {
+    bucket: BUCKET,
+    folder: callerId ? `${FOLDERS.RECORDINGS}/${callerId}` : FOLDERS.RECORDINGS,
+    fileName: `recording_${Date.now()}`,
+  });
 };
 
 /**

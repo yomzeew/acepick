@@ -5,14 +5,18 @@ import { View, Text, ScrollView, TouchableOpacity, Switch, Image, Alert } from "
 import { getColors } from "static/color";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "redux/store";
-import { logout } from "redux/slices/authSlice";
+import { logoutAsync } from "redux/slices/authSlice";
 import { getInitials } from "utilizes/initialsName";
+import ChatCacheService from "services/chatCache";
+import { useSecureAuth } from "hooks/useSecureAuth";
+import { useEffect, useState } from "react";
 
 const ProfessionalsSettingsComp = () => {
   const { theme, toggleTheme } = useTheme();
   const { primaryColor, backgroundColortwo } = getColors(theme);
   const router = useRouter();
   const dispatch = useDispatch();
+  const { isBiometricAvailable, isBiometricEnabled, setBiometricEnabled } = useSecureAuth();
   const user = useSelector((state: RootState) => state?.auth?.user);
   const profile = user?.profile;
   const professional = profile?.professional;
@@ -29,6 +33,28 @@ const ProfessionalsSettingsComp = () => {
   const avatar = profile?.avatar || '';
   const professionTitle = professional?.profession?.title || 'Professional';
   const isVerified = profile?.verified || false;
+  const totalDisputes = profile?.totalDisputes || 0;
+  const totalReviews = profile?.totalReview || 0;
+
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricOn, setBiometricOn] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      const available = await isBiometricAvailable();
+      setBiometricSupported(available);
+      if (available) {
+        const enabled = await isBiometricEnabled();
+        setBiometricOn(enabled);
+      }
+    };
+    load();
+  }, []);
+
+  const handleToggleBiometric = async (value: boolean) => {
+    await setBiometricEnabled(value);
+    setBiometricOn(value);
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -36,8 +62,8 @@ const ProfessionalsSettingsComp = () => {
       "Are you sure you want to logout?",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Logout", style: "destructive", onPress: () => {
-          dispatch(logout());
+        { text: "Logout", style: "destructive", onPress: async () => {
+          await dispatch(logoutAsync() as any);
           router.replace("/loginscreen");
         }},
       ]
@@ -64,6 +90,13 @@ const ProfessionalsSettingsComp = () => {
       ],
     },
     {
+      title: "Activity",
+      items: [
+        { label: `Disputes (${totalDisputes})`, subtitle: "View and manage your disputes", icon: "warning-outline", color: "#EF4444", onPress: () => router.push("/jobstatusLayout/DISPUTED" as any) },
+        { label: `Reviews & Ratings (${totalReviews})`, subtitle: "See what clients say about you", icon: "star-outline", color: "#F59E0B", onPress: () => router.push("/reviewlayout" as any) },
+      ],
+    },
+    {
       title: "Bill & Payment",
       items: [
         { label: "Wallet & Payment", subtitle: "Manage payment methods", icon: "wallet-outline", color: primaryColor, onPress: () => router.push("/walletpay") },
@@ -81,7 +114,18 @@ const ProfessionalsSettingsComp = () => {
     {
       title: "Account",
       items: [
+        { label: "Switch Role", subtitle: "Switch between client, professional, delivery", icon: "swap-horizontal-outline", color: "#6366F1", onPress: () => router.push("/switch-role") },
         { label: "Change Password", subtitle: "Update your password", icon: "lock-closed-outline", color: backgroundColortwo, onPress: () => router.push("/passwordchangelayout") },
+        { label: "Delete Account", subtitle: "Permanently remove your account", icon: "trash-outline", color: "#DC2626", onPress: () => router.push("/deleteaccountlayout") },
+        ...(biometricSupported ? [{
+          label: "Biometric Login",
+          subtitle: "Use Face ID or fingerprint to sign in",
+          icon: "finger-print-outline",
+          color: primaryColor,
+          type: "toggle" as const,
+          toggleValue: biometricOn,
+          onToggle: () => handleToggleBiometric(!biometricOn),
+        }] : []),
         {
           label: isDark ? "Dark Mode" : "Light Mode",
           subtitle: "Change app appearance",

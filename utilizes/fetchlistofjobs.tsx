@@ -1,6 +1,7 @@
 import axios from 'axios';
-import { getProfessionUrl, sectorUrl } from './endpoints';
+import { getProfessionUrl, sectorUrlLegacy } from './endpoints';
 import nigeriaData from './statelga.json';
+import { store } from '../redux/store';
 
 interface Sector {
   id: number;
@@ -14,18 +15,25 @@ interface Profession {
   sector_id: number;
   [key: string]: any;
 }
+
 interface ApiResponse<T> {
-    status: boolean;
-    message: string;
-    data: T;
-  }
+  status: boolean;
+  message: string;
+  data: T;
+}
+
+const getAuthHeader = () => {
+  const token = store.getState().auth?.token;
+  return { headers: { Authorization: `Bearer ${token}` } };
+};
+
 /**
  * Get the list of all sectors.
  * @returns {Promise<any[]>} Array of sector objects
  */
 export const getAllSector = async (): Promise<Sector[]> => {
   try {
-    const response = await axios.get<ApiResponse<Sector[]>>(sectorUrl);
+    const response = await axios.get<ApiResponse<Sector[]>>(sectorUrlLegacy, getAuthHeader());
     return response.data?.data;
   } catch (error) {
     console.error('Error fetching sectors:', error);
@@ -60,7 +68,8 @@ export const getProfessionsBySector = async (
     console.log(`✅ Found sector: ${sectorTitle} (ID: ${sectorId})`);
 
     const response = await axios.get<ApiResponse<Profession[]>>(
-      `${getProfessionUrl}?sectorId=${sectorId}`
+      `${getProfessionUrl}?sectorId=${sectorId}`,
+      getAuthHeader()
     );
     
     console.log(`📊 Found ${response.data?.data?.length || 0} professions for ${sectorTitle}`);

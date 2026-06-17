@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:35051820546:android:3fdc4cc7042185973fb91b",
+        "mobilesdk_app_id": "1:35051820546:android:a2ad4aea54584c763fb91b",
         "android_client_info": {
-          "package_name": "com.anonymous.acepicknewversion"
+          "package_name": "com.theacepick.app"
         }
       },
       "oauth_client": [],
