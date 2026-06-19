@@ -8,6 +8,8 @@ import {
   ScrollView,
   Dimensions,
   StyleSheet,
+  Linking,
+  Platform,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "hooks/useTheme";
@@ -22,10 +24,20 @@ interface Broadcast {
   title: string;
   message: string | null;
   imageUrl: string | null;
-  type: "news" | "image" | "both";
+  type: "news" | "image" | "both" | "link" | "update";
+  link: string | null;
+  appVersion: string | null;
+  iosUrl: string | null;
+  androidUrl: string | null;
 }
 
 const SEEN_KEY = "acepick_seen_broadcasts";
+
+const openUrl = (url: string) => {
+  Linking.canOpenURL(url).then(supported => {
+    if (supported) Linking.openURL(url);
+  });
+};
 
 const BroadcastModal: React.FC = () => {
   const { isDark } = useTheme();
@@ -70,14 +82,27 @@ const BroadcastModal: React.FC = () => {
   if (!current) return null;
 
   const showImage = (current.type === "image" || current.type === "both") && !!current.imageUrl;
-  const showText = current.type === "news" || current.type === "both";
+  const showText = current.type !== "image";
+  const isLink = current.type === "link";
+  const isUpdate = current.type === "update";
 
-  // All theme-sensitive values derived here so they react to isDark changes
+  // Store URL: prefer platform-specific, fall back to the other
+  const storeUrl = Platform.OS === "ios"
+    ? (current.iosUrl || current.androidUrl)
+    : (current.androidUrl || current.iosUrl);
+
+  // Theme colours
   const cardBg = isDark ? colors.selectioncardColor : "#ffffff";
   const titleColor = isDark ? colors.textColor : "#111111";
   const messageColor = isDark ? colors.subText : "#555555";
   const counterColor = colors.subText;
   const dividerColor = isDark ? colors.borderColor : "#e5e7eb";
+  const versionBadgeBg = isDark ? "#1f2937" : "#f0fdf4";
+  const versionBadgeText = colors.successColor;
+  const linkBtnBg = isDark ? "#1e3a5f" : "#eff6ff";
+  const linkBtnText = isDark ? "#60a5fa" : "#1d4ed8";
+
+  const isNextable = queue.length > 1 && queue.indexOf(current) < queue.length - 1;
 
   return (
     <Modal
@@ -89,12 +114,24 @@ const BroadcastModal: React.FC = () => {
       <View style={styles.backdrop}>
         <View style={[styles.card, { backgroundColor: cardBg }]}>
 
-          {/* Coloured header bar */}
+          {/* Header */}
           <View style={[styles.header, { backgroundColor: colors.primaryColor }]}>
-            <Text style={styles.headerLabel}>📢 Announcement</Text>
+            <Text style={styles.headerLabel}>
+              {isUpdate ? "🚀 App Update Available" : "📢 Announcement"}
+            </Text>
           </View>
 
           <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+
+            {/* App update version badge */}
+            {isUpdate && current.appVersion && (
+              <View style={[styles.versionBadge, { backgroundColor: versionBadgeBg }]}>
+                <Text style={[styles.versionText, { color: versionBadgeText }]}>
+                  Version {current.appVersion} is now available
+                </Text>
+              </View>
+            )}
+
             {showImage && (
               <Image
                 source={{ uri: current.imageUrl! }}
@@ -115,6 +152,33 @@ const BroadcastModal: React.FC = () => {
                 ) : null}
               </>
             )}
+
+            {/* Link button */}
+            {isLink && current.link && (
+              <TouchableOpacity
+                style={[styles.linkBtn, { backgroundColor: linkBtnBg, borderColor: linkBtnText + "40" }]}
+                activeOpacity={0.7}
+                onPress={() => openUrl(current.link!)}
+              >
+                <Text style={[styles.linkBtnText, { color: linkBtnText }]}>
+                  🔗  Open Link
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {/* App update store buttons */}
+            {isUpdate && storeUrl && (
+              <TouchableOpacity
+                style={[styles.updateBtn, { backgroundColor: colors.primaryColor }]}
+                activeOpacity={0.8}
+                onPress={() => openUrl(storeUrl)}
+              >
+                <Text style={styles.updateBtnText}>
+                  {Platform.OS === "ios" ? "📱 Update on App Store" : "📱 Update on Play Store"}
+                </Text>
+              </TouchableOpacity>
+            )}
+
           </ScrollView>
 
           {/* Divider */}
@@ -127,17 +191,39 @@ const BroadcastModal: React.FC = () => {
             </Text>
           )}
 
-          <TouchableOpacity
-            style={[styles.btn, { backgroundColor: colors.primaryColor }]}
-            activeOpacity={0.8}
-            onPress={dismiss}
-          >
-            <Text style={styles.btnText}>
-              {queue.length > 1 && queue.indexOf(current) < queue.length - 1
-                ? "Next →"
-                : "Got it"}
-            </Text>
-          </TouchableOpacity>
+          {/* Dismiss / Next */}
+          <View style={styles.footer}>
+            {isUpdate && storeUrl ? (
+              // For update: "Later" (dismiss) + "Update Now"
+              <>
+                <TouchableOpacity
+                  style={[styles.footerBtn, styles.footerBtnOutline, { borderColor: dividerColor }]}
+                  activeOpacity={0.7}
+                  onPress={dismiss}
+                >
+                  <Text style={[styles.footerBtnOutlineText, { color: messageColor }]}>Later</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.footerBtn, { backgroundColor: colors.primaryColor }]}
+                  activeOpacity={0.8}
+                  onPress={() => { openUrl(storeUrl); dismiss(); }}
+                >
+                  <Text style={styles.footerBtnText}>Update Now</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity
+                style={[styles.singleBtn, { backgroundColor: colors.primaryColor }]}
+                activeOpacity={0.8}
+                onPress={dismiss}
+              >
+                <Text style={styles.footerBtnText}>
+                  {isNextable ? "Next →" : "Got it"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
         </View>
       </View>
     </Modal>
@@ -153,7 +239,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: SCREEN_W * 0.88,
-    maxHeight: SCREEN_H * 0.8,
+    maxHeight: SCREEN_H * 0.82,
     borderRadius: 18,
     overflow: "hidden",
     elevation: 12,
@@ -176,6 +262,18 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 8,
   },
+  versionBadge: {
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+    alignItems: "center",
+  },
+  versionText: {
+    fontWeight: "700",
+    fontSize: 16,
+    letterSpacing: 0.2,
+  },
   image: {
     width: "100%",
     height: 200,
@@ -193,6 +291,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
   },
+  linkBtn: {
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  linkBtnText: {
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  updateBtn: {
+    marginTop: 16,
+    paddingVertical: 13,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  updateBtnText: {
+    color: "#ffffff",
+    fontWeight: "700",
+    fontSize: 15,
+  },
   divider: {
     height: 1,
     marginHorizontal: 16,
@@ -203,18 +324,36 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 10,
   },
-  btn: {
+  footer: {
+    flexDirection: "row",
+    gap: 10,
     margin: 16,
     marginTop: 10,
+  },
+  footerBtn: {
+    flex: 1,
     paddingVertical: 13,
     borderRadius: 10,
     alignItems: "center",
   },
-  btnText: {
+  footerBtnOutline: {
+    borderWidth: 1,
+    backgroundColor: "transparent",
+  },
+  footerBtnText: {
     color: "#ffffff",
     fontWeight: "700",
     fontSize: 15,
-    letterSpacing: 0.3,
+  },
+  footerBtnOutlineText: {
+    fontWeight: "600",
+    fontSize: 15,
+  },
+  singleBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 10,
+    alignItems: "center",
   },
 });
 
