@@ -10,6 +10,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import { StatusBar } from "expo-status-bar";
 import IncomingCallModal from "component/incomingcallModal";
+import BroadcastModal from "component/BroadcastModal";
 import ActiveCallBanner from "component/ActiveCallBanner";
 import ErrorBoundary from "../component/ErrorBoundary";
 import WithNetworkStatus from "../component/withNetworkStatus";
@@ -69,6 +70,7 @@ const RootContent = ({ onLayoutRootView }: { onLayoutRootView: () => void }) => 
               )}
             </Stack>
             <IncomingCallModal/>
+            {auth && <BroadcastModal />}
           </View>
         </WithNetworkStatus>
       </ToastProvider>
