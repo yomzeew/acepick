@@ -53,7 +53,7 @@ function RecoverPassword() {
   const mutation = useMutation({
     mutationFn: sendOtp,
     onSuccess: (data) => {
-      if (data.data.emailSendStatus) {
+      if (data.status) {
         setSuccessMessage("OTP sent to your email");
         setShouldProceed(true);
       } else {
