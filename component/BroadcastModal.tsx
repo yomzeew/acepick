@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
-  ActivityIndicator,
   Dimensions,
   StyleSheet,
 } from "react-native";
@@ -33,10 +32,8 @@ const BroadcastModal: React.FC = () => {
   const colors = getColors(isDark ? "dark" : "light");
   const [queue, setQueue] = useState<Broadcast[]>([]);
   const [current, setCurrent] = useState<Broadcast | null>(null);
-  const [loading, setLoading] = useState(false);
 
   const loadBroadcasts = useCallback(async () => {
-    setLoading(true);
     try {
       const res = await axios.get(`${API_BASE_URL}/public/broadcasts`);
       const broadcasts: Broadcast[] = res.data?.data ?? [];
@@ -52,8 +49,6 @@ const BroadcastModal: React.FC = () => {
       }
     } catch {
       // silently fail — broadcast is non-critical
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -63,23 +58,26 @@ const BroadcastModal: React.FC = () => {
 
   const dismiss = async () => {
     if (!current) return;
-
-    // Mark as seen
     const seenRaw = await AsyncStorage.getItem(SEEN_KEY);
     const seen: number[] = seenRaw ? JSON.parse(seenRaw) : [];
     const updated = [...new Set([...seen, current.id])];
     await AsyncStorage.setItem(SEEN_KEY, JSON.stringify(updated));
-
-    // Advance to next in queue
     const remaining = queue.filter((b) => b.id !== current.id);
     setQueue(remaining);
     setCurrent(remaining[0] ?? null);
   };
 
-  if (loading || !current) return null;
+  if (!current) return null;
 
   const showImage = (current.type === "image" || current.type === "both") && !!current.imageUrl;
   const showText = current.type === "news" || current.type === "both";
+
+  // All theme-sensitive values derived here so they react to isDark changes
+  const cardBg = isDark ? colors.selectioncardColor : "#ffffff";
+  const titleColor = isDark ? colors.textColor : "#111111";
+  const messageColor = isDark ? colors.subText : "#555555";
+  const counterColor = colors.subText;
+  const dividerColor = isDark ? colors.borderColor : "#e5e7eb";
 
   return (
     <Modal
@@ -89,51 +87,29 @@ const BroadcastModal: React.FC = () => {
       statusBarTranslucent
     >
       <View style={styles.backdrop}>
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: isDark ? colors.selectioncardColor : "#fff" },
-          ]}
-        >
-          {/* Header */}
-          <View
-            style={[
-              styles.header,
-              { backgroundColor: colors.primaryColor },
-            ]}
-          >
+        <View style={[styles.card, { backgroundColor: cardBg }]}>
+
+          {/* Coloured header bar */}
+          <View style={[styles.header, { backgroundColor: colors.primaryColor }]}>
             <Text style={styles.headerLabel}>📢 Announcement</Text>
           </View>
 
-          <ScrollView
-            contentContainerStyle={styles.body}
-            showsVerticalScrollIndicator={false}
-          >
+          <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
             {showImage && (
               <Image
                 source={{ uri: current.imageUrl! }}
-                style={styles.image}
+                style={[styles.image, { borderColor: dividerColor }]}
                 resizeMode="cover"
               />
             )}
 
             {showText && (
               <>
-                <Text
-                  style={[
-                    styles.title,
-                    { color: isDark ? colors.textColor : "#111" },
-                  ]}
-                >
+                <Text style={[styles.title, { color: titleColor }]}>
                   {current.title}
                 </Text>
                 {current.message ? (
-                  <Text
-                    style={[
-                      styles.message,
-                      { color: isDark ? colors.subText : "#555" },
-                    ]}
-                  >
+                  <Text style={[styles.message, { color: messageColor }]}>
                     {current.message}
                   </Text>
                 ) : null}
@@ -141,15 +117,19 @@ const BroadcastModal: React.FC = () => {
             )}
           </ScrollView>
 
+          {/* Divider */}
+          <View style={[styles.divider, { backgroundColor: dividerColor }]} />
+
           {/* Queue indicator */}
           {queue.length > 1 && (
-            <Text style={[styles.counter, { color: colors.subText }]}>
+            <Text style={[styles.counter, { color: counterColor }]}>
               {queue.indexOf(current) + 1} of {queue.length}
             </Text>
           )}
 
           <TouchableOpacity
             style={[styles.btn, { backgroundColor: colors.primaryColor }]}
+            activeOpacity={0.8}
             onPress={dismiss}
           >
             <Text style={styles.btnText}>
@@ -167,64 +147,74 @@ const BroadcastModal: React.FC = () => {
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    backgroundColor: "rgba(0,0,0,0.65)",
     justifyContent: "center",
     alignItems: "center",
   },
   card: {
     width: SCREEN_W * 0.88,
     maxHeight: SCREEN_H * 0.8,
-    borderRadius: 16,
+    borderRadius: 18,
     overflow: "hidden",
-    elevation: 10,
+    elevation: 12,
     shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
   },
   header: {
     paddingVertical: 14,
     paddingHorizontal: 20,
   },
   headerLabel: {
-    color: "#fff",
+    color: "#ffffff",
     fontWeight: "700",
     fontSize: 15,
+    letterSpacing: 0.3,
   },
   body: {
     padding: 20,
+    paddingBottom: 8,
   },
   image: {
     width: "100%",
     height: 200,
     borderRadius: 10,
     marginBottom: 16,
+    borderWidth: 1,
   },
   title: {
     fontSize: 18,
     fontWeight: "700",
     marginBottom: 10,
+    lineHeight: 24,
   },
   message: {
     fontSize: 14,
     lineHeight: 22,
   },
+  divider: {
+    height: 1,
+    marginHorizontal: 16,
+    marginTop: 8,
+  },
   counter: {
     textAlign: "center",
     fontSize: 12,
-    marginBottom: 4,
+    marginTop: 10,
   },
   btn: {
     margin: 16,
-    marginTop: 8,
+    marginTop: 10,
     paddingVertical: 13,
     borderRadius: 10,
     alignItems: "center",
   },
   btnText: {
-    color: "#fff",
+    color: "#ffffff",
     fontWeight: "700",
     fontSize: 15,
+    letterSpacing: 0.3,
   },
 });
 
