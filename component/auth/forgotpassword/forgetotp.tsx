@@ -87,7 +87,7 @@ function ForgetOtp() {
   const resendMutation = useMutation({
     mutationFn: sendOtp,
     onSuccess: (data) => {
-      if (data.data?.emailSendStatus) setSuccessMessage("A new code has been sent to your email");
+      if (data.status) setSuccessMessage("A new code has been sent to your email");
       else setErrorMessage("Could not resend OTP. Please try again.");
     },
     onError: (error: any) => {
@@ -141,7 +141,7 @@ function ForgetOtp() {
             </View>
             <Text style={[styles.heading, { color: primaryTextColor }]}>Check Your Email</Text>
             <Text style={[styles.subheading, { color: subText }]}>
-              We sent a 6-digit code to
+              We sent a 4-digit code to
             </Text>
             <Text style={[styles.emailText, { color: primaryColor }]}>{maskedEmail}</Text>
           </View>
@@ -166,7 +166,7 @@ function ForgetOtp() {
 
           {/* OTP card */}
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={[styles.otpHint, { color: subText }]}>Enter the 6-digit code below</Text>
+            <Text style={[styles.otpHint, { color: subText }]}>Enter the 4-digit code below</Text>
 
             <OtpComponent
               onOtpComplete={(v: string) => setOtpEmail(v)}
