@@ -24,12 +24,15 @@ import { useMutation } from "@tanstack/react-query";
 import { getContactListFn, removeChatContactFn } from "services/userService";
 import { getInitials } from "utilizes/initialsName";
 import { useDebounce } from "hooks/useDebounce";
+import { useSocket } from "hooks/useSocket";
 
 // Role config colors are applied dynamically from theme in getRoleBadge
 const ROLE_CONFIG_KEYS = {
   client: { icon: "person", iconSet: "Ionicons", label: "Client" },
   professional: { icon: "construct", iconSet: "Ionicons", label: "Pro" },
   delivery: { icon: "bicycle", iconSet: "Ionicons", label: "Delivery" },
+  admin: { icon: "shield", iconSet: "Ionicons", label: "Admin" },
+  superadmin: { icon: "shield", iconSet: "Ionicons", label: "Admin" },
 };
 
 /** Compute which filter tabs to show based on the logged-in user's role.
@@ -38,7 +41,7 @@ const ROLE_CONFIG_KEYS = {
  *  Delivery → can chat with client only (no tabs needed)
  */
 const getRoleFilters = (role?: string): string[] => {
-  if (role === 'client') return ['all', 'professional', 'delivery'];
+  if (role === 'client') return ['all', 'professional', 'delivery', 'admin'];
   // professional & delivery only see clients — single audience, no tabs
   return [];
 };
@@ -62,8 +65,11 @@ const ContactListScreen = () => {
     client: { icon: "person", iconSet: "Ionicons", color: primaryColor, label: "Client" },
     professional: { icon: "construct", iconSet: "Ionicons", color: backgroundColortwo, label: "Pro" },
     delivery: { icon: "bicycle", iconSet: "Ionicons", color: primaryColor, label: "Delivery" },
+    admin: { icon: "shield", iconSet: "Ionicons", color: backgroundColortwo, label: "Admin" },
+    superadmin: { icon: "shield", iconSet: "Ionicons", color: backgroundColortwo, label: "Admin" },
   };
 
+  const { socket } = useSocket();
   const role = useAppSelector((state) => state?.auth?.user?.role);
   const previousChats = useAppSelector((state) => state.chat.previousChats);
   const refreshTrigger = useAppSelector((state) => state.chat.refreshTrigger);
@@ -78,10 +84,22 @@ const ContactListScreen = () => {
 
   const debouncedSearch = useDebounce(search, 400);
 
+  const fetchContacts = useCallback(() => {
+    // Primary: socket-based (gets real-time contacts including admin chats)
+    if (socket?.connected) {
+      socket.emit('previous_chats');
+    }
+    // Secondary: REST API (fallback + search/filter support)
+    mutation.mutate({ search: debouncedSearch, role: filterRole, page: 1, limit: 30 });
+  }, [socket, debouncedSearch, filterRole]);
+
   const mutation = useMutation({
     mutationFn: getContactListFn,
     onSuccess: (response) => {
-      dispatch(setPreviousChats(response.data?.data || []));
+      const contacts = response.data?.data;
+      if (Array.isArray(contacts) && contacts.length > 0) {
+        dispatch(setPreviousChats(contacts));
+      }
       setRefreshing(false);
     },
     onError: (error) => {
@@ -92,22 +110,34 @@ const ContactListScreen = () => {
   const removeContactMutation = useMutation({
     mutationFn: removeChatContactFn,
     onSuccess: () => {
-      // Refresh the contact list after successful removal
-      mutation.mutate({ search: debouncedSearch, role: filterRole, page: 1, limit: 30 });
+      fetchContacts();
     },
     onError: (error: any) => {
       Alert.alert('Error', 'Failed to remove contact. Please try again.');
     }
   });
 
+  // Load contacts on mount and when socket connects
   useEffect(() => {
-    mutation.mutate({ search: debouncedSearch, role: filterRole, page: 1, limit: 30 });
+    fetchContacts();
   }, [debouncedSearch, filterRole]);
 
-  // Refetch contacts when refreshTrigger changes (socket event)
+  // When socket connects/reconnects, re-fetch via socket
+  useEffect(() => {
+    if (!socket) return;
+    const handleConnected = () => {
+      socket.emit('previous_chats');
+    };
+    socket.on('connected', handleConnected);
+    // If already connected, fetch immediately
+    if (socket.connected) socket.emit('previous_chats');
+    return () => { socket.off('connected', handleConnected); };
+  }, [socket]);
+
+  // Refetch contacts when refreshTrigger changes (contact_list_updated socket event)
   useEffect(() => {
     if (refreshTrigger > 0 && !mutation.isPending) {
-      mutation.mutate({ search: debouncedSearch, role: filterRole, page: 1, limit: 30 });
+      fetchContacts();
     }
   }, [refreshTrigger]);
 
@@ -152,13 +182,19 @@ const ContactListScreen = () => {
   const filteredContacts = useMemo(() => {
     if (!Array.isArray(sortedContacts) || sortedContacts.length === 0) return [];
     if (!filterRole) return sortedContacts;
+    // 'admin' tab matches both admin and superadmin roles
+    if (filterRole === 'admin') {
+      return sortedContacts.filter((contact: ChatContact) =>
+        contact.role === 'admin' || contact.role === 'superadmin'
+      );
+    }
     return sortedContacts.filter((contact: ChatContact) => contact.role === filterRole);
   }, [sortedContacts, filterRole]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    mutation.mutate({ search: debouncedSearch, role: filterRole, page: 1, limit: 30 });
-  }, [debouncedSearch, filterRole]);
+    fetchContacts();
+  }, [fetchContacts]);
 
   const goToChat = (contact: ChatContact) => {
     router.push(`/mainchat/${JSON.stringify({ userId: contact.id, professionalId: "" })}`);
