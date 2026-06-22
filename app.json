@@ -77,7 +77,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.theacepick.app",
       "buildNumber": "7",
+      "userInterfaceStyle": "automatic",
       "infoPlist": {
+        "UIUserInterfaceStyle": "Automatic",
         "NSCameraUsageDescription": "Acepick needs camera access for video calls and profile pictures",
         "NSMicrophoneUsageDescription": "Acepick needs microphone access for voice calls",
         "NSLocationWhenInUseUsageDescription": "AcePick uses your location to show nearby professionals, delivery riders, and service providers. For example, when you search for a plumber or book a delivery, we use your location to find the closest available professionals and calculate accurate service areas.",
